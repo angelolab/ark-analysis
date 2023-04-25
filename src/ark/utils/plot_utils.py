@@ -60,7 +60,7 @@ def plot_neighborhood_cluster_result(img_xr, fovs, k, save_dir=None, cmap_name='
 
         # show the image on the figure
         im = plt.imshow(img_xr[img_xr[fov_col] == fov].values.squeeze(),
-                        cmap=cmap, norm=norm)
+                        cmap=cmap, norm=norm, interpolation='nearest')
 
         # remove the axes
         plt.axis('off')
