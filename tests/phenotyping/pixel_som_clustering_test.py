@@ -315,7 +315,6 @@ def test_cluster_pixels_corrupt(multiprocess, capsys):
         )
 
 def test__ignore_extended_attributes(tmp_path):
-    ...
     test_utils._make_blank_file(tmp_path, "._TEST_FILE.txt")
     test_utils._make_blank_file(tmp_path, "TEST_FILE.txt")
     
