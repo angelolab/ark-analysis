@@ -6,7 +6,7 @@ import feather
 import numpy as np
 import pandas as pd
 import pytest
-from alpineer import io_utils, misc_utils
+from alpineer import io_utils, misc_utils, test_utils
 
 import ark.phenotyping.cluster_helpers as cluster_helpers
 import ark.phenotyping.pixel_som_clustering as pixel_som_clustering
@@ -313,6 +313,15 @@ def test_cluster_pixels_corrupt(multiprocess, capsys):
             data_files=io_utils.list_files(os.path.join(temp_dir, 'pixel_mat_data')),
             written_files=['fov0.feather', 'fov2.feather']
         )
+
+def test__ignore_extended_attributes(tmp_path):
+    ...
+    test_utils._make_blank_file(tmp_path, "._TEST_FILE.txt")
+    test_utils._make_blank_file(tmp_path, "TEST_FILE.txt")
+    
+    rmtree(path=tmp_path, onerror=pixel_som_clustering._ignore_extended_attributes)
+    assert not os.path.exists(tmp_path)
+    
 
 
 def test_generate_som_avg_files(capsys):
