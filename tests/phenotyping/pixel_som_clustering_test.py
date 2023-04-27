@@ -1,8 +1,6 @@
 import os
 import pathlib
 import tempfile
-from shutil import rmtree
-from xml.etree.ElementTree import QName
 
 import feather
 import numpy as np
