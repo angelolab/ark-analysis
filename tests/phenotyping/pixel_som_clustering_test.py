@@ -1,6 +1,8 @@
 import os
+import pathlib
 import tempfile
 from shutil import rmtree
+from xml.etree.ElementTree import QName
 
 import feather
 import numpy as np
@@ -316,11 +318,27 @@ def test_cluster_pixels_corrupt(multiprocess, capsys):
 
 
 def test__ignore_extended_attributes(tmp_path):
-    test_utils._make_blank_file(tmp_path, "._TEST_FILE.txt")
-    test_utils._make_blank_file(tmp_path, "TEST_FILE.txt")
+    ignore_attrib_path: pathlib.Path = tmp_path / "ignore_attributes"
+    ignore_attrib_path.mkdir()
+    test_utils._make_blank_file(ignore_attrib_path, "._TEST_FILE.txt")
+    test_utils._make_blank_file(ignore_attrib_path, "TEST_FILE.txt")
 
-    rmtree(path=tmp_path, onerror=pixel_som_clustering._ignore_extended_attributes)
-    assert not os.path.exists(tmp_path)
+    # Raises a runtime error when the function is not `os.unlink` and the file is a hidden file
+    # prefixed with `._`
+    with pytest.raises(RuntimeError):
+        pixel_som_clustering._ignore_extended_attributes(
+            func=os.path.exists, filename="._TEST_FILE.txt", exc_info=(None, None, None))
+
+    # Raises a runtime error when the function is `os.unlink` and the file is not prefixed
+    # with `._`
+    with pytest.raises(RuntimeError):
+        pixel_som_clustering._ignore_extended_attributes(
+            func=os.unlink, filename="TEST_FILE.txt", exc_info=(None, None, None))
+
+    # Do not raise an erorr when the function is `os.unlink` and the file is a hidden file
+    # prefixed with `._`
+    pixel_som_clustering._ignore_extended_attributes(
+        func=os.unlink, filename="._TEST_FILE.txt", exc_info=(None, None, None))
 
 
 def test_generate_som_avg_files(capsys):
