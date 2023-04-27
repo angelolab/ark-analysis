@@ -314,13 +314,13 @@ def test_cluster_pixels_corrupt(multiprocess, capsys):
             written_files=['fov0.feather', 'fov2.feather']
         )
 
+
 def test__ignore_extended_attributes(tmp_path):
     test_utils._make_blank_file(tmp_path, "._TEST_FILE.txt")
     test_utils._make_blank_file(tmp_path, "TEST_FILE.txt")
-    
+
     rmtree(path=tmp_path, onerror=pixel_som_clustering._ignore_extended_attributes)
     assert not os.path.exists(tmp_path)
-    
 
 
 def test_generate_som_avg_files(capsys):
