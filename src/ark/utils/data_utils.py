@@ -534,11 +534,12 @@ def stitch_images_by_shape(data_dir, stitched_dir, img_sub_folder=None, channels
                                   valid_channels=io_utils.remove_file_extensions(channel_imgs))
 
     file_ext = channel_imgs[0].split('.')[1]
-    expected_fovs, num_rows, num_cols = load_utils.get_tiled_fov_names(fovs, return_dims=True)
+    expected_tiles = load_utils.get_tiled_fov_names(fovs, return_dims=True)
 
     # save new images to the stitched_images, one channel at a time
     os.makedirs(stitched_dir)
     for chan in channels:
+        prefix, expected_fovs, num_rows, num_cols = expected_tiles[0]
         image_data = load_utils.load_tiled_img_data(data_dir, fovs, expected_fovs, chan,
                                                     single_dir=any([segmentation, clustering]),
                                                     file_ext=file_ext,
