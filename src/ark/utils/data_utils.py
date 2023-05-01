@@ -537,14 +537,19 @@ def stitch_images_by_shape(data_dir, stitched_dir, img_sub_folder=None, channels
     expected_tiles = load_utils.get_tiled_fov_names(fovs, return_dims=True)
 
     # save new images to the stitched_images, one channel at a time
-    os.makedirs(stitched_dir)
     for chan in channels:
-        prefix, expected_fovs, num_rows, num_cols = expected_tiles[0]
-        image_data = load_utils.load_tiled_img_data(data_dir, fovs, expected_fovs, chan,
-                                                    single_dir=any([segmentation, clustering]),
-                                                    file_ext=file_ext,
-                                                    img_sub_folder=img_sub_folder)
-        stitched_data = data_utils.stitch_images(image_data, num_cols)
-        current_img = stitched_data.loc['stitched_image', :, :, chan].values
-        image_utils.save_image(os.path.join(stitched_dir, chan + '_stitched.' + file_ext),
-                               current_img)
+        for tile in expected_tiles:
+            prefix, expected_fovs, num_rows, num_cols = tile
+            if prefix == "":
+                prefix = "unnamed_tile"
+            stitched_subdir = os.path.join(stitched_dir, prefix)
+            if not os.path.exists(stitched_subdir):
+                os.makedirs(stitched_subdir)
+            image_data = load_utils.load_tiled_img_data(data_dir, fovs, expected_fovs, chan,
+                                                        single_dir=any([segmentation, clustering]),
+                                                        file_ext=file_ext,
+                                                        img_sub_folder=img_sub_folder)
+            stitched_data = data_utils.stitch_images(image_data, num_cols)
+            current_img = stitched_data.loc['stitched_image', :, :, chan].values
+            image_utils.save_image(os.path.join(stitched_subdir, chan + '_stitched.' + file_ext),
+                                   current_img)
