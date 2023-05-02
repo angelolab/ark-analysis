@@ -631,10 +631,10 @@ def test_stitch_images_by_shape(segmentation, clustering, subdir, stitching_fovs
         else:
             prefixes = ["run_1"]
 
+        data_utils.stitch_images_by_shape(data_dir, stitched_dir, img_sub_folder=subdir,
+                                          segmentation=segmentation, clustering=clustering)
         for prefix in prefixes:
             stitched_subdir = os.path.join(stitched_dir, prefix)
-            data_utils.stitch_images_by_shape(data_dir, stitched_dir, img_sub_folder=subdir,
-                                              segmentation=segmentation, clustering=clustering)
             assert sorted(io_utils.list_files(stitched_subdir)) == \
                 [chan + '_stitched.tiff' for chan in chans]
 
@@ -642,13 +642,15 @@ def test_stitch_images_by_shape(segmentation, clustering, subdir, stitching_fovs
             stitched_data = load_utils.load_imgs_from_dir(stitched_subdir,
                                                           files=[chans[0] + '_stitched.tiff'])
             assert stitched_data.shape == (1, 120, 120, 1)
-            shutil.rmtree(stitched_subdir)
+        shutil.rmtree(stitched_dir)
 
-            # test successful stitching for select channels
-            random_channel = chans[random.randint(0, len(chans)-1)]
-            data_utils.stitch_images_by_shape(data_dir, stitched_dir, img_sub_folder=subdir,
-                                              channels=[random_channel], segmentation=segmentation,
-                                              clustering=clustering)
+        # test successful stitching for select channels
+        random_channel = chans[random.randint(0, len(chans) - 1)]
+        data_utils.stitch_images_by_shape(data_dir, stitched_dir, img_sub_folder=subdir,
+                                          channels=[random_channel], segmentation=segmentation,
+                                          clustering=clustering)
+        for prefix in prefixes:
+            stitched_subdir = os.path.join(stitched_dir, prefix)
             assert sorted(io_utils.list_files(stitched_subdir)) == \
                    [random_channel + '_stitched.tiff']
 
