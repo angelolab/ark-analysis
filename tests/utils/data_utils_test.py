@@ -545,12 +545,12 @@ def stitching_fovs(request: str) -> Iterator[List[str]]:
     param = request.param
 
     if param == "no_prefix":
-        fovs: List[str] = [f"R{n}C{m}" for n in range(1, 14) for m in range(13)]
+        fovs: List[str] = [f"R{n}C{m}" for n in range(1, 14) for m in range(1, 14)]
     elif param == "single_prefix":
-        fovs = [f"run_1_R{n}C{m}" for n in range(1, 14) for m in range(13)]
+        fovs = [f"run_1_R{n}C{m}" for n in range(1, 14) for m in range(1, 14)]
     else:
-        fovs = [f"run_1_R{n}C{m}" for n in range(1, 14) for m in range(13)]
-        fovs = fovs + [f"run_2_R{n}C{m}" for n in range(1, 14) for m in range(13)]
+        fovs = [f"run_1_R{n}C{m}" for n in range(1, 14) for m in range(1, 14)]
+        fovs = fovs + [f"run_2_R{n}C{m}" for n in range(1, 14) for m in range(1, 14)]
     yield fovs
 
 
@@ -630,7 +630,6 @@ def test_stitch_images_by_shape(segmentation, clustering, subdir, stitching_fovs
             prefixes = ["unnamed_tile"]
         else:
             prefixes = ["run_1"]
-        print(len(stitching_fovs))
 
         data_utils.stitch_images_by_shape(data_dir, stitched_dir, img_sub_folder=subdir,
                                           segmentation=segmentation, clustering=clustering)
