@@ -545,12 +545,12 @@ def stitching_fovs(request: str) -> Iterator[List[str]]:
     param = request.param
 
     if param == "no_prefix":
-        fovs: List[str] = [f"R{n}C{m}" for n in range(13) for m in range(13)]
+        fovs: List[str] = [f"R{n}C{m}" for n in range(1, 14) for m in range(13)]
     elif param == "single_prefix":
-        fovs = [f"run_1_R{n}C{m}" for n in range(13) for m in range(13)]
+        fovs = [f"run_1_R{n}C{m}" for n in range(1, 14) for m in range(13)]
     else:
-        fovs = [f"run_1_R{n}C{m}" for n in range(13) for m in range(13)]
-        fovs = fovs + [f"run_2_R{n}C{m}" for n in range(13) for m in range(13)]
+        fovs = [f"run_1_R{n}C{m}" for n in range(1, 14) for m in range(13)]
+        fovs = fovs + [f"run_2_R{n}C{m}" for n in range(1, 14) for m in range(13)]
     yield fovs
 
 
@@ -624,12 +624,13 @@ def test_stitch_images_by_shape(segmentation, clustering, subdir, stitching_fovs
                                               clustering=clustering)
 
         # test successful stitching
-        if len(stitching_fovs) > 13*13:
+        if len(stitching_fovs) == 13*13*2:
             prefixes = ["run_1", "run_2"]
         elif stitching_fovs[0] == "R1C1":
             prefixes = ["unnamed_tile"]
         else:
             prefixes = ["run_1"]
+        print(len(stitching_fovs))
 
         data_utils.stitch_images_by_shape(data_dir, stitched_dir, img_sub_folder=subdir,
                                           segmentation=segmentation, clustering=clustering)
