@@ -227,7 +227,6 @@ def test_visualize_fov_stats():
         assert os.path.exists(os.path.join(temp_dir, "fov_metrics_total_cells.png"))
 
 
-@pytest.mark.skip(reason="Numpy error in spatial_lda library")
 def test_visualize_fov_graphs():
     cell_table = test_utils.make_cell_table(num_cells=1000)
     all_clusters = list(np.unique(cell_table[settings.CELL_TYPE]))

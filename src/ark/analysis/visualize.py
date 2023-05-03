@@ -2,6 +2,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import seaborn as sns
+import spatial_lda.visualization as sv
 from alpineer import misc_utils
 
 from ark.utils.spatial_lda_utils import make_plot_fn
