@@ -34,7 +34,7 @@ def check_format_cell_table_args(cell_table, markers, clusters):
     if markers is None and clusters is None:
         raise ValueError("Markers and clusters cannot both be None.")
     elif markers is None or clusters is None:
-        empty_list = markers if len(markers) == 0 else clusters
+        empty_list = markers if markers is None else clusters
         raise ValueError(f"The list {empty_list} is empty.")
 
     if markers is not None:
