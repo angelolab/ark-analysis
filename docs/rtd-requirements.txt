@@ -7,6 +7,7 @@ mistune==0.8.4
 mock==4.0.3
 nbsphinx==0.8.9
 nbsphinx-link==1.3.0
+requests==2.28.0
 recommonmark==0.7.1
 sphinx==5.1.1
 sphinx-rtd-theme==0.5.0
