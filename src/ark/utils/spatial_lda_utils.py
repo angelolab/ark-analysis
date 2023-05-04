@@ -35,9 +35,12 @@ def check_format_cell_table_args(cell_table, markers, clusters):
         raise ValueError("markers and clusters cannot both be None")
     if markers is not None:
         misc_utils.verify_in_list(markers=markers, cell_table_columns=cell_table.columns.to_list())
-    if clusters is not None:
+    elif clusters is not None:
         cell_table_clusters = cell_table[CELL_TYPE].unique().tolist()
         misc_utils.verify_in_list(clusters=clusters, cell_table_clusters=cell_table_clusters)
+    else:
+        empty_list = markers if len(markers) == 0 else clusters
+        raise ValueError(f"The list {empty_list} is empty.")
 
 
 def check_featurize_cell_table_args(cell_table, featurization, radius, cell_index):
