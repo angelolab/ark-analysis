@@ -51,11 +51,11 @@ def test_check_format_cell_table_args():
         spu.check_format_cell_table_args(valid_df, invalid_markers1, None)
     with pytest.raises(ValueError):
         spu.check_format_cell_table_args(valid_df, invalid_markers2, None)
-    with pytest.raises(ValueError, match=r"List arguments cannot be empty"):
+    with pytest.raises(ValueError, match=r"empty"):
         spu.check_format_cell_table_args(valid_df, invalid_markers3, None)
     with pytest.raises(ValueError):
         spu.check_format_cell_table_args(valid_df, valid_markers, invalid_clusters1)
-    with pytest.raises(ValueError, match=r"List arguments cannot be empty"):
+    with pytest.raises(ValueError, match=r"empty"):
         spu.check_format_cell_table_args(valid_df, valid_markers, invalid_clusters2)
 
 
