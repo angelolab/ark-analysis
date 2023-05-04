@@ -524,7 +524,7 @@ def stitch_images_by_shape(data_dir, stitched_dir, img_sub_folder=None, channels
             dir_name=os.path.join(data_dir, fovs[0], img_sub_folder),
             substrs=EXTENSION_TYPES["IMAGE"])
     else:
-        channel_imgs = io_utils.list_files(data_dir, substrs=fovs[0])
+        channel_imgs = io_utils.list_files(data_dir, substrs=fovs[0]+'_')
         channel_imgs = [chan.split(fovs[0] + '_')[1] for chan in channel_imgs]
 
     if channels is None:
