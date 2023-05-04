@@ -551,5 +551,5 @@ def stitch_images_by_shape(data_dir, stitched_dir, img_sub_folder=None, channels
                                                     img_sub_folder=img_sub_folder)
         stitched_data = data_utils.stitch_images(image_data, num_cols)
         current_img = stitched_data.loc['stitched_image', :, :, chan].values
-        image_utils.save_image(os.path.join(stitched_subdir, chan + '_stitched.' + file_ext),
+        image_utils.save_image(os.path.join(stitched_subdir, chan + '_stitched' + file_ext),
                                current_img)
