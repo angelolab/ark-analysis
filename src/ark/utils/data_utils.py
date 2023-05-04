@@ -547,7 +547,7 @@ def stitch_images_by_shape(data_dir, stitched_dir, img_sub_folder=None, channels
             os.makedirs(stitched_subdir)
         image_data = load_utils.load_tiled_img_data(data_dir, fovs, expected_fovs, chan,
                                                     single_dir=any([segmentation, clustering]),
-                                                    file_ext=file_ext,
+                                                    file_ext=file_ext[1:],
                                                     img_sub_folder=img_sub_folder)
         stitched_data = data_utils.stitch_images(image_data, num_cols)
         current_img = stitched_data.loc['stitched_image', :, :, chan].values
