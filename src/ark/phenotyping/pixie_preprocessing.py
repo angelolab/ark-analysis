@@ -29,6 +29,8 @@ def create_fov_pixel_data(fov, channels, img_data, seg_labels, pixel_thresh_val,
             Array representing image data for one fov
         seg_labels (numpy.ndarray):
             Array representing segmentation labels for one fov
+        pixel_thresh_val (float):
+            value used to determine per-pixel cutoff for total signal inclusion
         blur_factor (int):
             The sigma to set for the Gaussian blur
         subset_proportion (float):
@@ -111,8 +113,12 @@ def preprocess_fov(base_dir, tiff_dir, data_dir, subset_dir, seg_dir, seg_suffix
             The sigma to set for the Gaussian blur
         subset_proportion (float):
             The proportion of pixels to take from each fov
+        pixel_thresh_val (float):
+            The value to normalize the pixels by
         seed (int):
             The random seed to set for subsetting
+        channel_norm_df (pandas.DataFrame):
+            The channel normalization values to use
         fov (str):
             The name of the FOV to preprocess
 
