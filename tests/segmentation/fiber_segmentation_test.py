@@ -140,5 +140,5 @@ def test_calculate_density(areas):
 
     pixel_density, fiber_density = fiber_segmentation.calculate_density(ex_fiber_table,
                                                                         total_pixels=50**2)
-    assert pixel_density == (np.sum(areas) / 50**2) *100
-    assert fiber_density == (len(areas) / 50**2) *100
+    assert pixel_density == (np.sum(areas) / 50**2) * 100
+    assert fiber_density == (len(areas) / 50**2) * 100
