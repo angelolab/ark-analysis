@@ -14,6 +14,8 @@ from skimage.morphology import remove_small_objects
 from skimage.segmentation import watershed
 from alpineer import image_utils, io_utils, load_utils, misc_utils
 from scipy.spatial.distance import cdist
+import statistics as stats
+import skimage.io as io
 
 from ark import settings
 from ark.utils.plot_utils import set_minimum_color_for_colormap
@@ -232,8 +234,7 @@ def calculate_fiber_alignment(fiber_object_table, k=4, axis_thresh=2):
             # find index for smallest distances, excluding itself
             indy = fiber_dist_mat[indx, :].argsort()[1:1+k]
             neighbor_angles = filtered_lengths.orientation[indy]
-            fiber_scores.append(
-                np.sqrt(np.sum((neighbor_angles - angle) ** 2)) / k)
+            fiber_scores.append(1 / (np.sqrt(np.sum((neighbor_angles - angle) ** 2)) / k))
 
         fov_alignments = pd.DataFrame(
             zip([fov] * len(fiber_scores), filtered_lengths.label, fiber_scores),
@@ -353,7 +354,7 @@ def segment_fibers(data_xr, fiber_channel, out_dir, fov, blur=2, contrast_scalin
     fiber_object_table = regionprops_table(labeled_filtered, properties=object_properties)
 
     fiber_object_table = pd.DataFrame(fiber_object_table)
-    fiber_object_table[settings.FOV_ID] = fov
+    fiber_object_table.insert(0, settings.FOV_ID, fov)
 
     # append fiber knn alignment
     fiber_object_table = calculate_fiber_alignment(fiber_object_table)
@@ -362,3 +363,129 @@ def segment_fibers(data_xr, fiber_channel, out_dir, fov, blur=2, contrast_scalin
         fiber_object_table.to_csv(os.path.join(out_dir, 'fiber_object_table.csv'))
 
     return fiber_object_table
+
+
+def calculate_density(fov_fiber_table, total_pixels):
+    """ Calculates both pixel area and fiber number based densities.
+    pixel based = fiber pixel area / total image area
+    fiber number based = number of fibers / total image area
+
+     Args:
+         fov_fiber_table (pd.DataFrame):
+            the array representation of the fiber segmented mask for an image
+         total_pixels (int):
+            area of the image
+
+    Returns:
+        tuple (float, float):
+         - returns the both densities scaled up by 100
+    """
+
+    fiber_num = len(np.unique(fov_fiber_table.label))
+    fiber_density = fiber_num / total_pixels
+
+    pixel_sum = np.sum(fov_fiber_table['area'].values)
+    pixel_density = pixel_sum / total_pixels
+
+    return pixel_density * 100, fiber_density * 100
+
+
+def generate_summary_stats(fiber_object_table, fibseg_dir, tile_length=512, save_tiles=False):
+    """ Calculates the fov level and tile level statistics for alignment, length, and density.
+    Saves them to separate csvs.
+
+     Args:
+         fiber_object_table (pd.DataFrame):
+            dataframe containing the fiber objects and their properties (fov, label, alignment,
+            centroid-0, centroid-1, major_axis_length, minor_axis_length)
+         fibseg_dir (string):
+            path to directory containing the fiber segmentation masks
+         tile_length (int):
+            length of tile size, must be a multiple of the total image size (default to 512)
+         save_tiles (bool):
+            whether to save cropped images (default to False)
+    """
+
+    io_utils.validate_paths(fibseg_dir)
+
+    save_dir = os.path.join(fibseg_dir, f'tile_stats_{tile_length}')
+    fovs = np.unique(fiber_object_table.fov)
+    fov_stats, tile_stats = [], []
+    fov_alignment, fov_avg_length, fov_pixel_density, fov_fiber_density = [], [], [], []
+
+    # get fov level and tile level stats for each image
+    for fov in fovs:
+        fov_fiber_img = io.imread(os.path.join(fibseg_dir, fov + '_fiber_labels.tiff'))
+        fov_length = fov_fiber_img.shape[0]
+        fov_table = fiber_object_table[fiber_object_table.fov == fov]
+
+        # fov level stats
+        fov_align_scores = fov_table['alignment_score'].values
+        fov_alignment.append(stats.mean(fov_align_scores[~np.isnan(fov_align_scores)]))
+        fov_avg_length.append(stats.mean(fov_table['major_axis_length'].values))
+        fov_p_density, fov_p_density = calculate_density(fov_table, fov_length**2)
+        fov_pixel_density.append(fov_p_density)
+        fov_fiber_density.append(fov_p_density)
+
+        # tile level stats
+        t_alignment, t_length, t_pixel_density, t_fiber_density = [], [], [], []
+        fov_list, tile_x, tile_y = [], [], []
+
+        # create tiles based on provided tile_length
+        for i in range(int(fov_length / tile_length)):
+            y_range = (i*tile_length, (i + 1) * tile_length)
+            for j in range(int(fov_length / tile_length)):
+                x_range = (j * tile_length, (j + 1) * tile_length)
+                tile_fiber_img = fov_fiber_img[y_range[0]:y_range[1], x_range[0]:x_range[1]]
+
+                fov_list.append(fov)
+                tile_x.append(x_range[0])
+                tile_y.append(y_range[0])
+
+                if save_tiles:
+                    if not os.path.exists(os.path.join(save_dir, fov)):
+                        os.makedirs(os.path.join(save_dir, fov))
+                    io.imsave(os.path.join(save_dir, fov, f'tile_{y_range[0]},{x_range[0]}.tiff'),
+                              tile_fiber_img, check_contrast=False)
+
+                tile_table = fov_table[np.logical_and(
+                    fov_table['centroid-0'] >= y_range[0], fov_table['centroid-0'] < y_range[1])]
+                tile_table = tile_table[np.logical_and(
+                    tile_table['centroid-1'] >= x_range[0], tile_table['centroid-1'] < x_range[1])]
+
+                if len(tile_table) < 5:
+                    for stat_list in [t_alignment, t_length, t_pixel_density, t_fiber_density]:
+                        stat_list.append(np.nan)
+                else:
+                    # alignment stat
+                    align_scores = tile_table['alignment_score'].values
+                    align_scores = align_scores[~np.isnan(align_scores)]
+                    avg_alignment = stats.mean(align_scores) if len(align_scores) >= 5 else np.nan
+                    t_alignment.append(avg_alignment)
+
+                    # length stat
+                    avg_length = stats.mean(tile_table['major_axis_length'].values)
+                    t_length.append(avg_length)
+
+                    # density stats
+                    pixel_density, fiber_density = calculate_density(tile_table, tile_length**2)
+                    t_pixel_density.append(pixel_density)
+                    t_fiber_density.append(fiber_density)
+
+        fov_tile_stats = pd.DataFrame(zip(
+            fov_list, tile_y, tile_x, t_alignment, t_length, t_pixel_density, t_fiber_density),
+            columns=['fov', 'tile_y', 'tile_x', 'tile_alignment', 'tile_avg_length',
+                     'tile_pixel_density', 'tile_fiber_density'])
+        tile_stats.append(fov_tile_stats)
+
+    fov_stats = pd.DataFrame({
+        'fov': fovs,
+        'fov_alignment': fov_alignment,
+        'fov_avg_length': fov_avg_length,
+        'fov_pixel_density': fov_pixel_density,
+        'fov_fiber_density': fov_fiber_density
+        })
+    fov_stats.to_csv(os.path.join(fibseg_dir, f'fiber_stats_table.csv'))
+
+    tile_stats = pd.concat(tile_stats)
+    tile_stats.to_csv(os.path.join(save_dir, f'fiber_stats_table-tile_{tile_length}.csv'))

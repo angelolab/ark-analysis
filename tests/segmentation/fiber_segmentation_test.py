@@ -2,6 +2,7 @@ import os
 import shutil
 import tempfile
 import math
+import random
 
 import numpy as np
 import pandas as pd
@@ -123,6 +124,6 @@ def test_calculate_fiber_alignment(neighbors):
         neighbor_fibers = closest_fibers[fiber][:neighbors]
         neighbor_orientations = np.array(ex_fiber_table[ex_fiber_table.label.isin(neighbor_fibers)]
                                          .orientation.values)
-        alignment_score = np.sqrt(np.sum((neighbor_orientations - angle) ** 2)) / neighbors
+        alignment_score = 1 / (np.sqrt(np.sum((neighbor_orientations - angle) ** 2)) / neighbors)
 
         assert (alignment_score == align_table[align_table.label == fiber].alignment_score).all()
