@@ -127,3 +127,18 @@ def test_calculate_fiber_alignment(neighbors):
         alignment_score = 1 / (np.sqrt(np.sum((neighbor_orientations - angle) ** 2)) / neighbors)
 
         assert (alignment_score == align_table[align_table.label == fiber].alignment_score).all()
+
+
+@pytest.mark.parametrize(
+    "areas", [random.sample(range(100, 200), 10), random.sample(range(100, 200), 10)])
+def test_calculate_density(areas):
+    ex_fiber_table = pd.DataFrame({
+        'fov': ['fov1'] * len(areas),
+        'label': list(range(1, 11)),
+        'area': areas,
+    })
+
+    pixel_density, fiber_density = fiber_segmentation.calculate_density(ex_fiber_table,
+                                                                        total_pixels=100**2)
+    assert pixel_density == np.sum(areas) / 100**2
+    assert fiber_density == len(areas) / 100**2
