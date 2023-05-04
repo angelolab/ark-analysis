@@ -1,3 +1,4 @@
+import itertools
 import os
 import pathlib
 import re
@@ -533,23 +534,22 @@ def stitch_images_by_shape(data_dir, stitched_dir, img_sub_folder=None, channels
         misc_utils.verify_in_list(channel_inputs=channels,
                                   valid_channels=io_utils.remove_file_extensions(channel_imgs))
 
-    file_ext = channel_imgs[0].split('.')[1]
+    file_ext = os.path.splitext(channel_imgs[0])[1]
     expected_tiles = load_utils.get_tiled_fov_names(fovs, return_dims=True)
 
     # save new images to the stitched_images, one channel at a time
-    for chan in channels:
-        for tile in expected_tiles:
-            prefix, expected_fovs, num_rows, num_cols = tile
-            if prefix == "":
-                prefix = "unnamed_tile"
-            stitched_subdir = os.path.join(stitched_dir, prefix)
-            if not os.path.exists(stitched_subdir):
-                os.makedirs(stitched_subdir)
-            image_data = load_utils.load_tiled_img_data(data_dir, fovs, expected_fovs, chan,
-                                                        single_dir=any([segmentation, clustering]),
-                                                        file_ext=file_ext,
-                                                        img_sub_folder=img_sub_folder)
-            stitched_data = data_utils.stitch_images(image_data, num_cols)
-            current_img = stitched_data.loc['stitched_image', :, :, chan].values
-            image_utils.save_image(os.path.join(stitched_subdir, chan + '_stitched.' + file_ext),
-                                   current_img)
+    for chan, tile in itertools.product(channels, expected_tiles):
+        prefix, expected_fovs, num_rows, num_cols = tile
+        if prefix == "":
+            prefix = "unnamed_tile"
+        stitched_subdir = os.path.join(stitched_dir, prefix)
+        if not os.path.exists(stitched_subdir):
+            os.makedirs(stitched_subdir)
+        image_data = load_utils.load_tiled_img_data(data_dir, fovs, expected_fovs, chan,
+                                                    single_dir=any([segmentation, clustering]),
+                                                    file_ext=file_ext,
+                                                    img_sub_folder=img_sub_folder)
+        stitched_data = data_utils.stitch_images(image_data, num_cols)
+        current_img = stitched_data.loc['stitched_image', :, :, chan].values
+        image_utils.save_image(os.path.join(stitched_subdir, chan + '_stitched.' + file_ext),
+                               current_img)
