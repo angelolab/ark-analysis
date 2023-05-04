@@ -16,7 +16,7 @@ from ark.phenotyping import pixel_cluster_utils
 multiprocessing.set_start_method('spawn', force=True)
 
 
-def create_fov_pixel_data(fov, channels, img_data, seg_labels,
+def create_fov_pixel_data(fov, channels, img_data, seg_labels, pixel_thresh_val,
                           blur_factor=2, subset_proportion=0.1):
     """Preprocess pixel data for one fov
 
@@ -63,6 +63,10 @@ def create_fov_pixel_data(fov, channels, img_data, seg_labels,
         seg_labels_flat = seg_labels.flatten()
         pixel_mat['segmentation_label'] = seg_labels_flat
 
+    # remove any rows with channels with a sum below the threshold
+    rowsums = pixel_mat[channels].sum(axis=1)
+    pixel_mat = pixel_mat.loc[rowsums > pixel_thresh_val, :].reset_index(drop=True)
+
     # remove any rows with channels that sum to zero prior to normalization
     pixel_mat = pixel_mat.loc[(pixel_mat[channels] != 0).any(axis=1), :].reset_index(drop=True)
 
@@ -77,7 +81,7 @@ def create_fov_pixel_data(fov, channels, img_data, seg_labels,
 
 def preprocess_fov(base_dir, tiff_dir, data_dir, subset_dir, seg_dir, seg_suffix,
                    img_sub_folder, is_mibitiff, channels, blur_factor,
-                   subset_proportion, seed, fov):
+                   subset_proportion, pixel_thresh_val, seed, channel_norm_df, fov):
     """Helper function to read in the FOV-level pixel data, run `create_fov_pixel_data`,
     and save the preprocessed data.
 
@@ -142,13 +146,20 @@ def preprocess_fov(base_dir, tiff_dir, data_dir, subset_dir, seg_dir, seg_suffix
     # subset for the channel data
     img_data = img_xr.loc[fov, :, :, channels].values.astype(np.float32)
 
+    # create vector for normalizing image data
+    norm_vect = channel_norm_df.iloc[0].values
+    norm_vect = np.array(norm_vect).reshape([1, 1, len(norm_vect)])
+
+    # normalize image data
+    img_data = img_data / norm_vect
+
     # set seed for subsetting
     np.random.seed(seed)
 
     # create the full and subsetted fov matrices
     pixel_mat, pixel_mat_subset = create_fov_pixel_data(
         fov=fov, channels=channels, img_data=img_data, seg_labels=seg_labels,
-        blur_factor=blur_factor,
+        pixel_thresh_val=pixel_thresh_val, blur_factor=blur_factor,
         subset_proportion=subset_proportion
     )
 
@@ -241,6 +252,34 @@ def create_pixel_matrix(fovs, channels, base_dir, tiff_dir, seg_dir,
     if not os.path.exists(os.path.join(base_dir, subset_dir)):
         os.mkdir(os.path.join(base_dir, subset_dir))
 
+    # define path to channel normalization values
+    channel_norm_path = os.path.join(
+        base_dir, pixel_output_dir, 'channel_norm.feather'
+    )
+
+    # define path to pixel normalization values
+    pixel_thresh_path = os.path.join(
+        base_dir, pixel_output_dir, 'pixel_thresh.feather'
+    )
+
+    # reset entire cohort if channels provided are different from ones in existing channel_norm
+    if os.path.exists(channel_norm_path):
+        channel_norm_df = feather.read_dataframe(channel_norm_path)
+
+        if set(channel_norm_df.columns.values) != set(channels):
+            print("New channels provided: overwriting whole cohort")
+
+            # delete the existing data in data_dir and subset_dir
+            rmtree(os.path.join(base_dir, data_dir))
+            os.mkdir(os.path.join(base_dir, data_dir))
+
+            rmtree(os.path.join(base_dir, subset_dir))
+            os.mkdir(os.path.join(base_dir, subset_dir))
+
+            # delete the existing channel_norm.feather and pixel_thresh.feather
+            os.remove(channel_norm_path)
+            os.remove(pixel_thresh_path)
+
     # create variable for storing 99.9% values
     quant_dat = pd.DataFrame()
 
@@ -277,11 +316,43 @@ def create_pixel_matrix(fovs, channels, base_dir, tiff_dir, seg_dir,
         channels=channels
     )
 
+    # load existing channel_norm_path if exists, otherwise generate
+    if not os.path.exists(channel_norm_path):
+        print("Generating channel norm data")
+        # compute channel percentiles
+        channel_norm_df = pixel_cluster_utils.calculate_channel_percentiles(
+            tiff_dir=tiff_dir,
+            fovs=fovs,
+            channels=channels,
+            img_sub_folder=img_sub_folder,
+            percentile=channel_percentile
+        )
+        # save output
+        feather.write_dataframe(channel_norm_df, channel_norm_path, compression='uncompressed')
+    else:
+        # load previously generated output
+        channel_norm_df = feather.read_dataframe(channel_norm_path)
+
+    # load existing pixel_thresh_path if exists, otherwise generate
+    if not os.path.exists(pixel_thresh_path):
+        print("Generating pixel norm data")
+        # compute pixel percentiles
+        pixel_thresh_val = pixel_cluster_utils.calculate_pixel_intensity_percentile(
+            tiff_dir=tiff_dir, fovs=fovs, channels=channels,
+            img_sub_folder=img_sub_folder, channel_percentiles=channel_norm_df
+        )
+
+        pixel_thresh_df = pd.DataFrame({'pixel_thresh_val': [pixel_thresh_val]})
+        feather.write_dataframe(pixel_thresh_df, pixel_thresh_path, compression='uncompressed')
+    else:
+        pixel_thresh_df = feather.read_dataframe(pixel_thresh_path)
+        pixel_thresh_val = pixel_thresh_df['pixel_thresh_val'].values[0]
+
     # define the partial function to iterate over
     fov_data_func = partial(
         preprocess_fov, base_dir, tiff_dir, data_dir, subset_dir,
         seg_dir, seg_suffix, img_sub_folder, is_mibitiff, channels, blur_factor,
-        subset_proportion, seed
+        subset_proportion, pixel_thresh_val, seed, channel_norm_df
     )
 
     # define variable to keep track of number of fovs processed
