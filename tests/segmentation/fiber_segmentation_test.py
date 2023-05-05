@@ -3,11 +3,13 @@ import shutil
 import tempfile
 import math
 import random
+import itertools
 
 import numpy as np
 import pandas as pd
 import pytest
 from alpineer import io_utils
+from pytest_mock import MockerFixture
 
 import ark.settings as settings
 from ark.segmentation import fiber_segmentation
@@ -142,3 +144,60 @@ def test_calculate_density(areas):
                                                                         total_pixels=50**2)
     assert pixel_density == (np.sum(areas) / 50**2) * 100
     assert fiber_density == (len(areas) / 50**2) * 100
+
+
+def test_generate_summary_stats(mocker: MockerFixture):
+    fov_length = 16
+    mocker.patch('skimage.io.imread', return_value=np.zeros((fov_length, fov_length)))
+
+    fiber_object_table = pd.DataFrame({
+        'fov': ['fov1', 'fov1', 'fov1', 'fov2', 'fov2', 'fov2'],
+        'label': list(range(1, 7)),
+        'alignment_score': [30, 50, 30, 15, 0, 20],
+        'centroid-0': [0, 5, 19, 0, 0, 5],
+        'centroid-1': [0, 5, 19, 0, 5, 0],
+        'major_axis_length': [2, 4, 5, 3, 1, 6],
+        'area': [1]*6
+    })
+
+    with tempfile.TemporaryDirectory() as temp_dir:
+        # bad tile size should raise an error
+        with pytest.raises(ValueError, match="Tile length must be a factor"):
+            _, _ = fiber_segmentation.generate_summary_stats(None, temp_dir, tile_length=5)
+
+        # test success
+        tile_length = 8
+        fov_stats, tile_stats = fiber_segmentation.generate_summary_stats(
+            fiber_object_table, temp_dir, tile_length=tile_length, save_tiles=True)
+
+        assert os.path.exists(os.path.join(temp_dir, 'fiber_stats_table.csv'))
+        tile_dir = os.path.join(temp_dir, f'tile_stats_{tile_length}')
+        assert os.path.exists(os.path.join(temp_dir, tile_dir,
+                                           f'fiber_stats_table-tile_{tile_length}.csv'))
+
+        # only confirm avg length and alignment, densities are tested above
+        assert fov_stats[fov_stats.fov == 'fov1'].avg_length == 11/3
+        assert fov_stats[fov_stats.fov == 'fov2'].avg_length == 10/3
+
+        tile_corners = [tile_length * i for i in range(int(fov_length / tile_length))]
+        fov1_tile_length = {(0, 0): (2+4)/2, (0, 10): 0, (10, 0): 0, (10, 10): 5}
+        fov2_tile_length = {(0, 0): (3+1+6)/3, (0, 10): 0, (10, 0): 0, (10, 10): 0}
+        fov1_tile_align = {(0, 0): (30+50)/2, (0, 10): 0, (10, 0): 0, (10, 10): 30}
+        fov2_tile_align = {(0, 0): (15+0+20) / 3, (0, 10): 0, (10, 0): 0, (10, 10): 0}
+        for x, y in itertools.product(tile_corners, tile_corners):
+            tile_fov1 = tile_stats[tile_stats.fov == 'fov1']
+            assert tile_fov1[tile_fov1.tile_y == y and tile_fov1.tile_x == x].avg_length \
+                   == fov1_tile_length[(y, x)]
+            assert tile_fov1[tile_fov1.tile_y == y and tile_fov1.tile_x == x].alignment \
+                   == fov1_tile_align[(y, x)]
+
+            tile_fov2 = tile_stats[tile_stats.fov == 'fov2']
+            assert tile_fov2[tile_fov2.tile_y == y and tile_fov2.tile_x == x].avg_length \
+                   == fov2_tile_length[(y, x)]
+            assert tile_fov2[tile_fov2.tile_y == y and tile_fov2.tile_x == x].alignment \
+                   == fov2_tile_align[(y, x)]
+
+        # check for saved tile images
+        for x, y, fov in \
+                itertools.product(tile_corners, tile_corners, np.uniqe(fiber_object_table.fov)):
+            assert os.path.exists(os.path.join(tile_dir, f'tile_{y},{x}.tiff'))

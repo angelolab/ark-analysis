@@ -401,12 +401,19 @@ def generate_summary_stats(fiber_object_table, fibseg_dir, tile_length=512, save
          fibseg_dir (string):
             path to directory containing the fiber segmentation masks
          tile_length (int):
-            length of tile size, must be a multiple of the total image size (default to 512)
+            length of tile size, must be a factor of the total image size (default to 512)
          save_tiles (bool):
             whether to save cropped images (default to False)
+
+     Returns:
+        tuple (pd.DataFrame, pd.DataFrame):
+         - returns the both fov and tile stats
     """
 
     io_utils.validate_paths(fibseg_dir)
+    # this makes sure tile length is a factor of 1024 and 2048
+    if 1024 % tile_length != 0:
+        raise ValueError("Tile length must be a factor of the minimum image size.")
 
     save_dir = os.path.join(fibseg_dir, f'tile_stats_{tile_length}')
     fovs = np.unique(fiber_object_table.fov)
@@ -436,12 +443,12 @@ def generate_summary_stats(fiber_object_table, fibseg_dir, tile_length=512, save
             y_range = (i*tile_length, (i + 1) * tile_length)
             for j in range(int(fov_length / tile_length)):
                 x_range = (j * tile_length, (j + 1) * tile_length)
-                tile_fiber_img = fov_fiber_img[y_range[0]:y_range[1], x_range[0]:x_range[1]]
-
                 fov_list.append(fov)
                 tile_x.append(x_range[0])
                 tile_y.append(y_range[0])
 
+                tile_fiber_img = fov_fiber_img[y_range[0]:y_range[1], x_range[0]:x_range[1]]
+                tile_fiber_img[tile_fiber_img > 0] = 1
                 if save_tiles:
                     if not os.path.exists(os.path.join(save_dir, fov)):
                         os.makedirs(os.path.join(save_dir, fov))
@@ -474,18 +481,20 @@ def generate_summary_stats(fiber_object_table, fibseg_dir, tile_length=512, save
 
         fov_tile_stats = pd.DataFrame(zip(
             fov_list, tile_y, tile_x, t_alignment, t_length, t_pixel_density, t_fiber_density),
-            columns=['fov', 'tile_y', 'tile_x', 'tile_alignment', 'tile_avg_length',
-                     'tile_pixel_density', 'tile_fiber_density'])
+            columns=['fov', 'tile_y', 'tile_x', 'alignment', 'avg_length',
+                     'pixel_density', 'fiber_density'])
         tile_stats.append(fov_tile_stats)
 
     fov_stats = pd.DataFrame({
         'fov': fovs,
-        'fov_alignment': fov_alignment,
-        'fov_avg_length': fov_avg_length,
-        'fov_pixel_density': fov_pixel_density,
-        'fov_fiber_density': fov_fiber_density
+        'alignment': fov_alignment,
+        'avg_length': fov_avg_length,
+        'pixel_density': fov_pixel_density,
+        'fiber_density': fov_fiber_density
         })
     fov_stats.to_csv(os.path.join(fibseg_dir, f'fiber_stats_table.csv'))
 
     tile_stats = pd.concat(tile_stats)
     tile_stats.to_csv(os.path.join(save_dir, f'fiber_stats_table-tile_{tile_length}.csv'))
+
+    return fov_stats, tile_stats
