@@ -297,7 +297,7 @@ def generate_pixel_cluster_mask(fov, base_dir, tiff_dir, chan_file_path,
     y_coords = fov_data['column_index'].values
 
     # convert to 1D indexing
-    coordinates = x_coords * img_data.shape[0] + y_coords
+    coordinates = x_coords * img_data.shape[1] + y_coords
 
     # get the cooresponding cluster labels for each pixel
     cluster_labels = list(fov_data[pixel_cluster_col])
