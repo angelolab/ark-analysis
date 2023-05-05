@@ -176,8 +176,8 @@ def test_generate_summary_stats(mocker: MockerFixture):
                                            f'fiber_stats_table-tile_{tile_length}.csv'))
 
         # only confirm avg length and alignment, densities are tested above
-        assert fov_stats[fov_stats.fov == 'fov1'].avg_length == 11/3
-        assert fov_stats[fov_stats.fov == 'fov2'].avg_length == 10/3
+        assert fov_stats[fov_stats.fov == 'fov1'].avg_lengt[0] == 11/3
+        assert fov_stats[fov_stats.fov == 'fov2'].avg_length[0] == 10/3
 
         tile_corners = [tile_length * i for i in range(int(fov_length / tile_length))]
         fov1_tile_length = {(0, 0): (2+4)/2, (0, 10): 0, (10, 0): 0, (10, 10): 5}
@@ -186,15 +186,15 @@ def test_generate_summary_stats(mocker: MockerFixture):
         fov2_tile_align = {(0, 0): (15+0+20) / 3, (0, 10): 0, (10, 0): 0, (10, 10): 0}
         for x, y in itertools.product(tile_corners, tile_corners):
             tile_fov1 = tile_stats[tile_stats.fov == 'fov1']
-            assert tile_fov1[tile_fov1.tile_y == y and tile_fov1.tile_x == x].avg_length \
+            assert tile_fov1[tile_fov1.tile_y == y and tile_fov1.tile_x == x].avg_length[0] \
                    == fov1_tile_length[(y, x)]
-            assert tile_fov1[tile_fov1.tile_y == y and tile_fov1.tile_x == x].alignment \
+            assert tile_fov1[tile_fov1.tile_y == y and tile_fov1.tile_x == x].alignment[0] \
                    == fov1_tile_align[(y, x)]
 
             tile_fov2 = tile_stats[tile_stats.fov == 'fov2']
-            assert tile_fov2[tile_fov2.tile_y == y and tile_fov2.tile_x == x].avg_length \
+            assert tile_fov2[tile_fov2.tile_y == y and tile_fov2.tile_x == x].avg_length[0] \
                    == fov2_tile_length[(y, x)]
-            assert tile_fov2[tile_fov2.tile_y == y and tile_fov2.tile_x == x].alignment \
+            assert tile_fov2[tile_fov2.tile_y == y and tile_fov2.tile_x == x].alignment[0] \
                    == fov2_tile_align[(y, x)]
 
         # check for saved tile images
