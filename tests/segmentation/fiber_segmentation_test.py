@@ -176,7 +176,7 @@ def test_generate_summary_stats(mocker: MockerFixture):
                                            f'fiber_stats_table-tile_{tile_length}.csv'))
 
         # only confirm avg length and alignment, densities are tested above
-        assert fov_stats[fov_stats.fov == 'fov1'].avg_lengt[0] == 11/3
+        assert fov_stats[fov_stats.fov == 'fov1'].avg_length[0] == 11/3
         assert fov_stats[fov_stats.fov == 'fov2'].avg_length[0] == 10/3
 
         tile_corners = [tile_length * i for i in range(int(fov_length / tile_length))]
