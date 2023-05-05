@@ -154,8 +154,8 @@ def test_generate_summary_stats(mocker: MockerFixture):
         'fov': ['fov1', 'fov1', 'fov1', 'fov2', 'fov2', 'fov2'],
         'label': list(range(1, 7)),
         'alignment_score': [30, 50, 30, 15, 0, 20],
-        'centroid-0': [0, 5, 19, 0, 0, 5],
-        'centroid-1': [0, 5, 19, 0, 5, 0],
+        'centroid-0': [0, 1, 9, 0, 0, 1],
+        'centroid-1': [0, 1, 9, 0, 1, 0],
         'major_axis_length': [2, 4, 5, 3, 1, 6],
         'area': [1]*6
     })
@@ -180,10 +180,10 @@ def test_generate_summary_stats(mocker: MockerFixture):
         assert fov_stats[fov_stats.fov == 'fov2'].avg_length[0] == 10/3
 
         tile_corners = [tile_length * i for i in range(int(fov_length / tile_length))]
-        fov1_tile_length = {(0, 0): (2+4)/2, (0, 10): 0, (10, 0): 0, (10, 10): 5}
-        fov2_tile_length = {(0, 0): (3+1+6)/3, (0, 10): 0, (10, 0): 0, (10, 10): 0}
-        fov1_tile_align = {(0, 0): (30+50)/2, (0, 10): 0, (10, 0): 0, (10, 10): 30}
-        fov2_tile_align = {(0, 0): (15+0+20) / 3, (0, 10): 0, (10, 0): 0, (10, 10): 0}
+        fov1_tile_length = {(0, 0): (2+4)/2, (0, 8): 0, (8, 0): 0, (8, 8): 5}
+        fov2_tile_length = {(0, 0): (3+1+6)/3, (0, 8): 0, (8, 0): 0, (8, 8): 0}
+        fov1_tile_align = {(0, 0): (30+50)/2, (0, 8): 0, (8, 0): 0, (8, 8): 30}
+        fov2_tile_align = {(0, 0): (15+0+20) / 3, (0, 8): 0, (8, 0): 0, (8, 8): 0}
         for x, y in itertools.product(tile_corners, tile_corners):
             tile_fov1 = tile_stats[tile_stats.fov == 'fov1']
             assert tile_fov1[tile_fov1.tile_y == y and tile_fov1.tile_x == x].avg_length[0] \
