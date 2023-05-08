@@ -176,13 +176,15 @@ def test_generate_summary_stats(mocker: MockerFixture):
         assert os.path.exists(os.path.join(temp_dir, tile_dir,
                                            f'fiber_stats_table-tile_{tile_length}.csv'))
 
+        # check fov-level values
         # only confirm avg length and alignment, densities are tested above
         assert fov_stats[fov_stats.fov == 'fov1'].avg_length[0] == \
-               np.mean(fiber_object_table.major_axis_length[0:5])
+               np.mean(fiber_object_table.major_axis_length[0:6])
         assert fov_stats[fov_stats.fov == 'fov2'].avg_length[0] == \
-               np.mean(fiber_object_table.major_axis_length[7:12])
+               np.mean(fiber_object_table.major_axis_length[6:12])
 
-        # check 0,0 tile, everywhere else should have a nan value
+        # check tile level values
+        # 0,0 tile, fov1 should exclude fiber 6 since located in different tile
         tile_fov1 = tile_stats[tile_stats.fov == 'fov1']
         tile_0_0 = tile_fov1[np.logical_and(tile_fov1.tile_y == 0, tile_fov1.tile_x == 0)]
         assert tile_0_0.avg_length[0] \
@@ -193,11 +195,11 @@ def test_generate_summary_stats(mocker: MockerFixture):
         tile_fov2 = tile_stats[tile_stats.fov == 'fov2']
         tile_0_0 = tile_fov2[np.logical_and(tile_fov2.tile_y == 0, tile_fov2.tile_x == 0)]
         assert tile_0_0.avg_length[0] \
-               == np.mean(fiber_object_table.major_axis_length[7:12])
+               == np.mean(fiber_object_table.major_axis_length[6:12])
         assert tile_0_0.alignment[0] \
-               == np.mean(fiber_object_table.alignment_score[7:12])
+               == np.mean(fiber_object_table.alignment_score[6:12])
 
-        # make sure tile 8,8 has nan since there's only 1 fiber (5 required for stat value)
+        # make sure tile 8,8 has nan since there's only 1 fiber (5 required for stat calc)
         tile_fov1 = tile_stats[tile_stats.fov == 'fov1']
         tile_8_8 = tile_fov1[np.logical_and(tile_fov1.tile_y == 8, tile_fov1.tile_x == 8)]
         assert math.isnan(tile_8_8.avg_length[0])
