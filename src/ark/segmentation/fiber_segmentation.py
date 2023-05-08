@@ -14,7 +14,6 @@ from skimage.morphology import remove_small_objects
 from skimage.segmentation import watershed
 from alpineer import image_utils, io_utils, load_utils, misc_utils
 from scipy.spatial.distance import cdist
-import statistics as stats
 import skimage.io as io
 
 from ark import settings
@@ -196,13 +195,13 @@ def calculate_fiber_alignment(fiber_object_table, k=4, axis_thresh=2):
     """ Calculates an alignment score for each fiber in an image. Based on the angle difference of
     the fiber compared to it's k nearest neighbors.
 
-     Args:
-         fiber_object_table (pd.DataFrame):
+    Args:
+        fiber_object_table (pd.DataFrame):
             dataframe containing the fiber objects and their properties (fov, label, alignment,
              centroid-0, centroid-1, major_axis_length, minor_axis_length)
-         k (int):
+        k (int):
             number of neighbors to check alignment difference for
-         axis_thresh (int):
+        axis_thresh (int):
             threshold for how much longer the length of the fiber must be compared to the width
 
     Returns:
@@ -370,10 +369,10 @@ def calculate_density(fov_fiber_table, total_pixels):
     pixel based = fiber pixel area / total image area
     fiber number based = number of fibers / total image area
 
-     Args:
-         fov_fiber_table (pd.DataFrame):
+    Args:
+        fov_fiber_table (pd.DataFrame):
             the array representation of the fiber segmented mask for an image
-         total_pixels (int):
+        total_pixels (int):
             area of the image
 
     Returns:
@@ -394,18 +393,18 @@ def generate_summary_stats(fiber_object_table, fibseg_dir, tile_length=512, save
     """ Calculates the fov level and tile level statistics for alignment, length, and density.
     Saves them to separate csvs.
 
-     Args:
-         fiber_object_table (pd.DataFrame):
+    Args:
+        fiber_object_table (pd.DataFrame):
             dataframe containing the fiber objects and their properties (fov, label, alignment,
             centroid-0, centroid-1, major_axis_length, minor_axis_length)
-         fibseg_dir (string):
+        fibseg_dir (string):
             path to directory containing the fiber segmentation masks
-         tile_length (int):
+        tile_length (int):
             length of tile size, must be a factor of the total image size (default to 512)
-         save_tiles (bool):
+        save_tiles (bool):
             whether to save cropped images (default to False)
 
-     Returns:
+    Returns:
         tuple (pd.DataFrame, pd.DataFrame):
          - returns the both fov and tile stats
     """
@@ -428,8 +427,8 @@ def generate_summary_stats(fiber_object_table, fibseg_dir, tile_length=512, save
 
         # fov level stats
         fov_align_scores = fov_table['alignment_score'].values
-        fov_alignment.append(float(stats.mean(fov_align_scores[~np.isnan(fov_align_scores)])))
-        fov_avg_length.append(float(stats.mean(fov_table['major_axis_length'].values)))
+        fov_alignment.append(np.mean(fov_align_scores[~np.isnan(fov_align_scores)]))
+        fov_avg_length.append(np.mean(fov_table['major_axis_length'].values))
         fov_p_density, fov_p_density = calculate_density(fov_table, fov_length**2)
         fov_pixel_density.append(fov_p_density)
         fov_fiber_density.append(fov_p_density)
@@ -467,12 +466,11 @@ def generate_summary_stats(fiber_object_table, fibseg_dir, tile_length=512, save
                     # alignment stat
                     align_scores = tile_table['alignment_score'].values
                     align_scores = align_scores[~np.isnan(align_scores)]
-                    avg_alignment = float(stats.mean(align_scores)) \
-                        if len(align_scores) >= 5 else np.nan
+                    avg_alignment = np.mean(align_scores) if len(align_scores) >= 5 else np.nan
                     t_alignment.append(avg_alignment)
 
                     # length stat
-                    avg_length = float(stats.mean(tile_table['major_axis_length'].values))
+                    avg_length = np.mean(tile_table['major_axis_length'].values)
                     t_length.append(avg_length)
 
                     # density stats
