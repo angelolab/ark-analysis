@@ -509,3 +509,37 @@ def compute_mixing_score(fov_neighbors_mat, fov, target_cells, reference_cells, 
         mixing_score = reference_target / (target_target + reference_reference)
 
     return mixing_score
+
+
+def shannon_diversity(proportions):
+    proportions = [prop for prop in proportions if prop > 0]
+    return -np.sum(proportions * np.log2(proportions))
+
+
+def compute_neighborhood_diversity(neighborhood_mat, cell_type_col):
+
+    diversity_data = []
+    for fov in np.unique(neighborhood_mat[settings.FOV_ID]):
+        fov_neighborhoods = neighborhood_mat[neighborhood_mat[settings.FOV_ID] == fov]
+
+        diversity_scores = []
+        cells = fov_neighborhoods[settings.CELL_LABEL]
+        for label in cells:
+            neighbor_proportions = \
+                fov_neighborhoods[fov_neighborhoods[settings.CELL_LABEL] == label].drop(
+                    columns=[settings.FOV_ID, settings.CELL_LABEL, settings.CELL_TYPE]).values[0]
+
+            diversity_scores.append(shannon_diversity(neighbor_proportions))
+
+        fov_data = pd.DataFrame({
+            settings.FOV_ID: [fov] * len(cells),
+            settings.CELL_LABEL: cells,
+            cell_type_col: fov_neighborhoods[settings.CELL_TYPE],
+            f'diversity_{cell_type_col}': diversity_scores
+        })
+
+        diversity_data.append(fov_data)
+
+    diversity_data = pd.concat(diversity_data)
+
+    return diversity_data
