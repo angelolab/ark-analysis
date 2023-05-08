@@ -428,8 +428,8 @@ def generate_summary_stats(fiber_object_table, fibseg_dir, tile_length=512, save
 
         # fov level stats
         fov_align_scores = fov_table['alignment_score'].values
-        fov_alignment.append(stats.mean(fov_align_scores[~np.isnan(fov_align_scores)]))
-        fov_avg_length.append(stats.mean(fov_table['major_axis_length'].values))
+        fov_alignment.append(float(stats.mean(fov_align_scores[~np.isnan(fov_align_scores)])))
+        fov_avg_length.append(float(stats.mean(fov_table['major_axis_length'].values)))
         fov_p_density, fov_p_density = calculate_density(fov_table, fov_length**2)
         fov_pixel_density.append(fov_p_density)
         fov_fiber_density.append(fov_p_density)
@@ -467,11 +467,12 @@ def generate_summary_stats(fiber_object_table, fibseg_dir, tile_length=512, save
                     # alignment stat
                     align_scores = tile_table['alignment_score'].values
                     align_scores = align_scores[~np.isnan(align_scores)]
-                    avg_alignment = stats.mean(align_scores) if len(align_scores) >= 5 else np.nan
+                    avg_alignment = float(stats.mean(align_scores)) \
+                        if len(align_scores) >= 5 else np.nan
                     t_alignment.append(avg_alignment)
 
                     # length stat
-                    avg_length = stats.mean(tile_table['major_axis_length'].values)
+                    avg_length = float(stats.mean(tile_table['major_axis_length'].values))
                     t_length.append(avg_length)
 
                     # density stats

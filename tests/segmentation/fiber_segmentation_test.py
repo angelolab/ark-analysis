@@ -10,6 +10,7 @@ import pandas as pd
 import pytest
 from alpineer import io_utils
 from pytest_mock import MockerFixture
+import statistics as stats
 
 import ark.settings as settings
 from ark.segmentation import fiber_segmentation
@@ -151,13 +152,14 @@ def test_generate_summary_stats(mocker: MockerFixture):
     mocker.patch('skimage.io.imread', return_value=np.zeros((fov_length, fov_length)))
 
     fiber_object_table = pd.DataFrame({
-        'fov': ['fov1', 'fov1', 'fov1', 'fov2', 'fov2', 'fov2'],
-        'label': list(range(1, 7)),
-        'alignment_score': [30, 50, 30, 15, 0, 20],
-        'centroid-0': [0, 1, 9, 0, 0, 1],
-        'centroid-1': [0, 1, 9, 0, 1, 0],
-        'major_axis_length': [2, 4, 5, 3, 1, 6],
-        'area': [1]*6
+        'fov': ['fov1', 'fov1', 'fov1', 'fov1', 'fov1', 'fov1',
+                'fov2', 'fov2', 'fov2', 'fov2', 'fov2', 'fov2'],
+        'label': [1, 2, 3, 4, 5, 6, 1, 2, 3, 4, 5, 6],
+        'alignment_score': random.sample(range(10, 40), 12),
+        'centroid-0': [0, 1, 1, 0, 2, 9, 0, 1, 1, 0, 2, 2],
+        'centroid-1': [0, 1, 0, 1, 2, 9, 0, 1, 0, 1, 2, 0],
+        'major_axis_length': random.sample(range(1, 20), 12),
+        'area': [1]*12
     })
 
     with tempfile.TemporaryDirectory() as temp_dir:
@@ -176,28 +178,34 @@ def test_generate_summary_stats(mocker: MockerFixture):
                                            f'fiber_stats_table-tile_{tile_length}.csv'))
 
         # only confirm avg length and alignment, densities are tested above
-        assert fov_stats[fov_stats.fov == 'fov1'].avg_length[0] == 11/3
-        assert fov_stats[fov_stats.fov == 'fov2'].avg_length[0] == 10/3
+        assert fov_stats[fov_stats.fov == 'fov1'].avg_length[0] == \
+               float(stats.mean(fiber_object_table.major_axis_length[0:5]))
+        assert fov_stats[fov_stats.fov == 'fov2'].avg_length[0] == \
+               float(stats.mean(fiber_object_table.major_axis_length[7:12]))
 
-        tile_corners = [tile_length * i for i in range(int(fov_length / tile_length))]
-        fov1_tile_length = {(0, 0): (2+4)/2, (0, 8): 0, (8, 0): 0, (8, 8): 5}
-        fov2_tile_length = {(0, 0): (3+1+6)/3, (0, 8): 0, (8, 0): 0, (8, 8): 0}
-        fov1_tile_align = {(0, 0): (30+50)/2, (0, 8): 0, (8, 0): 0, (8, 8): 30}
-        fov2_tile_align = {(0, 0): (15+0+20) / 3, (0, 8): 0, (8, 0): 0, (8, 8): 0}
-        for x, y in itertools.product(tile_corners, tile_corners):
-            tile_fov1 = tile_stats[tile_stats.fov == 'fov1']
-            assert tile_fov1[tile_fov1.tile_y == y and tile_fov1.tile_x == x].avg_length[0] \
-                   == fov1_tile_length[(y, x)]
-            assert tile_fov1[tile_fov1.tile_y == y and tile_fov1.tile_x == x].alignment[0] \
-                   == fov1_tile_align[(y, x)]
+        # check 0,0 tile, everywhere else should have a nan value
+        tile_fov1 = tile_stats[tile_stats.fov == 'fov1']
+        tile_0_0 = tile_fov1[np.logical_and(tile_fov1.tile_y == 0, tile_fov1.tile_x == 0)]
+        assert tile_0_0.avg_length[0] \
+               == float(stats.mean(fiber_object_table.major_axis_length[0:5]))
+        assert tile_0_0.alignment[0] \
+               == float(stats.mean(fiber_object_table.alignment_score[0:5]))
 
-            tile_fov2 = tile_stats[tile_stats.fov == 'fov2']
-            assert tile_fov2[tile_fov2.tile_y == y and tile_fov2.tile_x == x].avg_length[0] \
-                   == fov2_tile_length[(y, x)]
-            assert tile_fov2[tile_fov2.tile_y == y and tile_fov2.tile_x == x].alignment[0] \
-                   == fov2_tile_align[(y, x)]
+        tile_fov2 = tile_stats[tile_stats.fov == 'fov2']
+        tile_0_0 = tile_fov2[np.logical_and(tile_fov2.tile_y == 0, tile_fov2.tile_x == 0)]
+        assert tile_0_0.avg_length[0] \
+               == float(stats.mean(fiber_object_table.major_axis_length[7:12]))
+        assert tile_0_0.alignment[0] \
+               == float(stats.mean(fiber_object_table.alignment_score[7:12]))
+
+        # make sure tile 8,8 has nan since there's only 1 fiber (5 required for stat value)
+        tile_fov1 = tile_stats[tile_stats.fov == 'fov1']
+        tile_8_8 = tile_fov1[np.logical_and(tile_fov1.tile_y == 8, tile_fov1.tile_x == 8)]
+        assert math.isnan(tile_8_8.avg_length[0])
+        assert math.isnan(tile_8_8.alignment[0])
 
         # check for saved tile images
+        tile_corners = [tile_length * i for i in range(int(fov_length / tile_length))]
         for x, y, fov in \
                 itertools.product(tile_corners, tile_corners, np.uniqe(fiber_object_table.fov)):
             assert os.path.exists(os.path.join(tile_dir, f'tile_{y},{x}.tiff'))
