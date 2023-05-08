@@ -178,10 +178,8 @@ def test_generate_summary_stats(mocker: MockerFixture):
 
         # check fov-level values
         # only confirm avg length and alignment, densities are tested above
-        assert fov_stats[fov_stats.fov == 'fov1'].avg_length[0] == \
-               np.mean(fiber_object_table.major_axis_length[0:6])
-        assert fov_stats[fov_stats.fov == 'fov2'].avg_length[0] == \
-               np.mean(fiber_object_table.major_axis_length[6:12])
+        assert fov_stats.avg_length[0] == np.mean(fiber_object_table.major_axis_length[0:6])
+        assert fov_stats.avg_length[1] == np.mean(fiber_object_table.major_axis_length[6:12])
 
         # check tile level values
         # 0,0 tile, fov1 should exclude fiber 6 since located in different tile
@@ -202,11 +200,11 @@ def test_generate_summary_stats(mocker: MockerFixture):
         # make sure tile 8,8 has nan since there's only 1 fiber (5 required for stat calc)
         tile_fov1 = tile_stats[tile_stats.fov == 'fov1']
         tile_8_8 = tile_fov1[np.logical_and(tile_fov1.tile_y == 8, tile_fov1.tile_x == 8)]
-        assert math.isnan(tile_8_8.avg_length[0])
-        assert math.isnan(tile_8_8.alignment[0])
+        assert math.isnan(tile_8_8.avg_length)
+        assert math.isnan(tile_8_8.alignment)
 
         # check for saved tile images
         tile_corners = [tile_length * i for i in range(int(fov_length / tile_length))]
         for x, y, fov in \
-                itertools.product(tile_corners, tile_corners, np.uniqe(fiber_object_table.fov)):
-            assert os.path.exists(os.path.join(tile_dir, f'tile_{y},{x}.tiff'))
+                itertools.product(tile_corners, tile_corners, np.unique(fiber_object_table.fov)):
+            assert os.path.exists(os.path.join(tile_dir, fov, f'tile_{y},{x}.tiff'))
