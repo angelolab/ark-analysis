@@ -6,9 +6,10 @@ import matplotlib.pylab as plt
 import numpy as np
 import pandas as pd
 import xarray as xr
-from alpineer import misc_utils
+from math import isclose
 
 import ark.settings as settings
+from alpineer import misc_utils
 from ark.analysis import spatial_analysis_utils
 
 
@@ -528,7 +529,7 @@ def shannon_diversity(proportions):
 def compute_neighborhood_diversity(neighborhood_mat, cell_type_col):
     """ Generates a diversity score for each cell using the neighborhood matrix
     Args:
-        neighborhood_mat (pd.DataFrame): the proportions of each individual group
+        neighborhood_mat (pd.DataFrame): the frequency neighbors matrix
         cell_type_col (string): the specific name of the cell type column the matrix represents
 
     Returns:
@@ -551,7 +552,7 @@ def compute_neighborhood_diversity(neighborhood_mat, cell_type_col):
                 fov_neighborhoods[fov_neighborhoods[settings.CELL_LABEL] == label].drop(
                     columns=[settings.FOV_ID, settings.CELL_LABEL, settings.CELL_TYPE]).values[0]
 
-            if np.sum(neighbor_freqs) != 1:
+            if not isclose(np.sum(neighbor_freqs), 1, abs_tol=1e-8):
                 raise ValueError("Input must be frequency values.")
 
             diversity_scores.append(shannon_diversity(neighbor_freqs))
