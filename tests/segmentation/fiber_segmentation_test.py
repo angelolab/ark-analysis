@@ -147,6 +147,55 @@ def test_calculate_density(areas):
 
 
 @pytest.mark.parametrize("min_fiber_num", [1, 5])
+def test_generate_tile_stats(min_fiber_num):
+    fov_length = 16
+    fov_fiber_img = np.zeros((fov_length, fov_length))
+
+    fov_fiber_table = pd.DataFrame({
+        'fov': ['fov1', 'fov1', 'fov1', 'fov1', 'fov1', 'fov1'],
+        'label': [1, 2, 3, 4, 5, 6],
+        'alignment_score': random.sample(range(10, 40), 6),
+        'centroid-0': [0, 1, 1, 0, 2, 9],
+        'centroid-1': [0, 1, 0, 1, 2, 9],
+        'major_axis_length': random.sample(range(1, 20), 6),
+        'area': [1] * 6
+    })
+
+    with tempfile.TemporaryDirectory() as temp_dir:
+        # test success
+        tile_length = 8
+        tile_stats = fiber_segmentation.generate_tile_stats(
+            fov_fiber_table, fov_fiber_img, fov_length, tile_length, min_fiber_num,
+            temp_dir, save_tiles=True)
+
+        # check tile level values
+        # 0,0 tile, fov1 should exclude fiber 6 since located in different tile
+        tile_0_0 = fov_fiber_table[np.logical_and(fov_fiber_table.tile_y == 0,
+                                                  fov_fiber_table.tile_x == 0)]
+        assert tile_0_0.avg_length[0] \
+               == np.mean(fov_fiber_table.major_axis_length[0:5])
+        assert tile_0_0.alignment[0] \
+               == np.mean(fov_fiber_table.alignment_score[0:5])
+
+        tile_8_8 = fov_fiber_table[np.logical_and(fov_fiber_table.tile_y == 8,
+                                                  fov_fiber_table.tile_x == 8)]
+        # make sure tile 8,8 has nan since there's only 1 fiber (5 fibers required for stat calc)
+        if min_fiber_num == 5:
+            assert math.isnan(tile_8_8.avg_length)
+            assert math.isnan(tile_8_8.alignment)
+        # check the correct value (1 fiber required for stat calc)
+        elif min_fiber_num == 1:
+            assert tile_0_0.avg_length[0] == fov_fiber_table.major_axis_length[5]
+            assert tile_0_0.alignment[0] == fov_fiber_table.alignment_score[5]
+
+        # check for saved tile images
+        tile_corners = [tile_length * i for i in range(int(fov_length / tile_length))]
+        for x, y, fov in \
+                itertools.product(tile_corners, tile_corners, np.unique(fov_fiber_table.fov)):
+            assert os.path.exists(os.path.join(temp_dir, fov, f'tile_{y},{x}.tiff'))
+
+
+@pytest.mark.parametrize("min_fiber_num", [1, 5])
 def test_generate_summary_stats(mocker: MockerFixture, min_fiber_num):
     fov_length = 16
     mocker.patch('skimage.io.imread', return_value=np.zeros((fov_length, fov_length)))
@@ -156,8 +205,8 @@ def test_generate_summary_stats(mocker: MockerFixture, min_fiber_num):
                 'fov2', 'fov2', 'fov2', 'fov2', 'fov2', 'fov2'],
         'label': [1, 2, 3, 4, 5, 6, 1, 2, 3, 4, 5, 6],
         'alignment_score': random.sample(range(10, 40), 12),
-        'centroid-0': [0, 1, 1, 0, 2, 9, 0, 1, 1, 0, 2, 2],
-        'centroid-1': [0, 1, 0, 1, 2, 9, 0, 1, 0, 1, 2, 0],
+        'centroid-0': random.sample(range(0, 15), 12),
+        'centroid-1': random.sample(range(0, 15), 12),
         'major_axis_length': random.sample(range(1, 20), 12),
         'area': [1]*12
     })
@@ -181,36 +230,3 @@ def test_generate_summary_stats(mocker: MockerFixture, min_fiber_num):
         # only confirm avg length and alignment, densities are tested above
         assert fov_stats.avg_length[0] == np.mean(fiber_object_table.major_axis_length[0:6])
         assert fov_stats.avg_length[1] == np.mean(fiber_object_table.major_axis_length[6:12])
-
-        # check tile level values
-        # 0,0 tile, fov1 should exclude fiber 6 since located in different tile
-        tile_fov1 = tile_stats[tile_stats.fov == 'fov1']
-        tile_0_0 = tile_fov1[np.logical_and(tile_fov1.tile_y == 0, tile_fov1.tile_x == 0)]
-        assert tile_0_0.avg_length[0] \
-               == np.mean(fiber_object_table.major_axis_length[0:5])
-        assert tile_0_0.alignment[0] \
-               == np.mean(fiber_object_table.alignment_score[0:5])
-
-        tile_fov2 = tile_stats[tile_stats.fov == 'fov2']
-        tile_0_0 = tile_fov2[np.logical_and(tile_fov2.tile_y == 0, tile_fov2.tile_x == 0)]
-        assert tile_0_0.avg_length[0] \
-               == np.mean(fiber_object_table.major_axis_length[6:12])
-        assert tile_0_0.alignment[0] \
-               == np.mean(fiber_object_table.alignment_score[6:12])
-
-        tile_fov1 = tile_stats[tile_stats.fov == 'fov1']
-        tile_8_8 = tile_fov1[np.logical_and(tile_fov1.tile_y == 8, tile_fov1.tile_x == 8)]
-        # make sure tile 8,8 has nan since there's only 1 fiber (5 fibers required for stat calc)
-        if min_fiber_num == 5:
-            assert math.isnan(tile_8_8.avg_length)
-            assert math.isnan(tile_8_8.alignment)
-        # check the correct value (1 fiber required for stat calc)
-        elif min_fiber_num == 1:
-            assert tile_0_0.avg_length[0] == fiber_object_table.major_axis_length[5]
-            assert tile_0_0.alignment[0] == fiber_object_table.alignment_score[5]
-
-        # check for saved tile images
-        tile_corners = [tile_length * i for i in range(int(fov_length / tile_length))]
-        for x, y, fov in \
-                itertools.product(tile_corners, tile_corners, np.unique(fiber_object_table.fov)):
-            assert os.path.exists(os.path.join(tile_dir, fov, f'tile_{y},{x}.tiff'))
