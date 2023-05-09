@@ -536,6 +536,9 @@ def compute_neighborhood_diversity(neighborhood_mat, cell_type_col):
             contains the fov, label, cell_type, and diversity_cell_type values for each cell
     """
 
+    misc_utils.verify_in_list(cell_type_column=cell_type_col,
+                              neighbor_matrix_columns=neighborhood_mat.columns)
+
     diversity_data = []
     for fov in np.unique(neighborhood_mat[settings.FOV_ID]):
         fov_neighborhoods = neighborhood_mat[neighborhood_mat[settings.FOV_ID] == fov]
@@ -547,6 +550,9 @@ def compute_neighborhood_diversity(neighborhood_mat, cell_type_col):
             neighbor_freqs = \
                 fov_neighborhoods[fov_neighborhoods[settings.CELL_LABEL] == label].drop(
                     columns=[settings.FOV_ID, settings.CELL_LABEL, settings.CELL_TYPE]).values[0]
+
+            if np.sum(neighbor_freqs) != 1:
+                raise ValueError("Input must be frequency values.")
 
             diversity_scores.append(shannon_diversity(neighbor_freqs))
 

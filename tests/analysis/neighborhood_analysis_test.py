@@ -314,3 +314,44 @@ def test_compute_mixing_score():
         cell_neighbors_mat, 'fov1', target_cells=['cell4'], reference_cells=['cell2'],
         cell_count_thresh=0, mixing_type='homogeneous')
     assert math.isnan(cold_score)
+
+
+def test_shannon_diversity():
+
+    props1 = np.array([0, 0, 1])
+    assert neighborhood_analysis.shannon_diversity(props1) == 0
+
+    props2 = np.array([0, 0.25, 0, 0.15, 0.6])
+    assert neighborhood_analysis.shannon_diversity(props2) == \
+           -(0.25*np.log2(0.25)+0.15*np.log2(0.15)+0.6*np.log2(0.6))
+
+
+def test_compute_neighborhood_diversity():
+
+    neighbor_counts = pd.DataFrame({
+        settings.FOV_ID: ['fov1', 'fov1', 'fov1'],
+        settings.CELL_LABEL: list(range(1, 4)),
+        settings.CELL_TYPE: ['cell1', 'cell2', 'cell3'],
+        'cell1': [1, 0, 2],
+        'cell2': [1, 2, 0],
+    })
+
+    with pytest.raises(ValueError, match="Input must be frequency values."):
+        neighborhood_analysis.compute_neighborhood_diversity(neighbor_counts, settings.CELL_TYPE)
+
+    neighbor_freqs = pd.DataFrame({
+        settings.FOV_ID: ['fov1', 'fov1', 'fov1'],
+        settings.CELL_LABEL: list(range(1, 4)),
+        settings.CELL_TYPE: ['cell1', 'cell2', 'cell3'],
+        'cell1': [0.7, 0, 0.5],
+        'cell2': [0.3, 1, 0.5],
+    })
+
+    diversity_data = neighborhood_analysis.compute_neighborhood_diversity(
+        neighbor_freqs, settings.CELL_TYPE)
+
+    # check for shannon diversity column
+    assert f'diversity_{settings.CELL_TYPE}' in diversity_data.columns
+
+    # check each cell is in the new dataframe
+    assert diversity_data.shape[0] == neighbor_freqs.shape[0]
