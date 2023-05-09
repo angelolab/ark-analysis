@@ -512,11 +512,29 @@ def compute_mixing_score(fov_neighbors_mat, fov, target_cells, reference_cells, 
 
 
 def shannon_diversity(proportions):
+    """ Calculates the shannon diversity index for the provided proportions of a community
+    Args:
+        proportions (np.array): the proportions of each individual group
+
+    Returns:
+        float:
+            the diversity of neighborhood
+    """
+
     proportions = [prop for prop in proportions if prop > 0]
     return -np.sum(proportions * np.log2(proportions))
 
 
 def compute_neighborhood_diversity(neighborhood_mat, cell_type_col):
+    """ Generates a diversity score for each cell using the neighborhood matrix
+    Args:
+        neighborhood_mat (pd.DataFrame): the proportions of each individual group
+        cell_type_col (string): the specific name of the cell type column the matrix represents
+
+    Returns:
+        pd.DataFrame:
+            contains the fov, label, cell_type, and diversity_cell_type values for each cell
+    """
 
     diversity_data = []
     for fov in np.unique(neighborhood_mat[settings.FOV_ID]):
@@ -525,12 +543,14 @@ def compute_neighborhood_diversity(neighborhood_mat, cell_type_col):
         diversity_scores = []
         cells = fov_neighborhoods[settings.CELL_LABEL]
         for label in cells:
-            neighbor_proportions = \
+            # retrieve an array of only the neighbor frequencies for the cell
+            neighbor_freqs = \
                 fov_neighborhoods[fov_neighborhoods[settings.CELL_LABEL] == label].drop(
                     columns=[settings.FOV_ID, settings.CELL_LABEL, settings.CELL_TYPE]).values[0]
 
-            diversity_scores.append(shannon_diversity(neighbor_proportions))
+            diversity_scores.append(shannon_diversity(neighbor_freqs))
 
+        # combine the data for cells in the image
         fov_data = pd.DataFrame({
             settings.FOV_ID: [fov] * len(cells),
             settings.CELL_LABEL: cells,
@@ -540,6 +560,7 @@ def compute_neighborhood_diversity(neighborhood_mat, cell_type_col):
 
         diversity_data.append(fov_data)
 
+    # dataframe containing all fovs
     diversity_data = pd.concat(diversity_data)
 
     return diversity_data
