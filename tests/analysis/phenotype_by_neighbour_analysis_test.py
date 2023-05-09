@@ -7,7 +7,7 @@ from ark.analysis import phenotype_by_neighbour_analysis
 
 
 def generate_test_celldf():
-	# create cell data frame 
+	# create cell data frame
 	celldf = pd.DataFrame({
 		'ECAD': [0.01, 0.003, 0.009, 0.001, 0.01],
 		'CD45': [0.001, 0.01, 0.01, 0.01, 0.004],
@@ -36,7 +36,7 @@ def generate_test_distance_matrix():
 
 
 def test_calculate_median_distance_to_cell_type():
-	# create cell data frame 
+	# create cell data frame
 	celldf = generate_test_celldf()
 
 	# create distance matrix
@@ -45,13 +45,14 @@ def test_calculate_median_distance_to_cell_type():
 	# test calculate distance to cell type
 	cancer_dist = phenotype_by_neighbour_analysis.calculate_median_distance_to_cell_type(
 		celldf, distdf, cell_cluster='Cancer', k=2)
+
 	# check that distances are close to expected
 	actual_dist = [0.56, 0.07, 0.295, 0.51, 0.685]
 	assert np.all(np.isclose(cancer_dist, actual_dist))
 
 
 def test_calculate_median_distance_to_all_cell_types():
-	# create cell data frame 
+	# create cell data frame
 	celldf = generate_test_celldf()
 
 	# create distance matrix
@@ -60,11 +61,10 @@ def test_calculate_median_distance_to_all_cell_types():
 	# test calculate distance to all cell types
 	cancer_dist = phenotype_by_neighbour_analysis.calculate_median_distance_to_all_cell_types(
 		celldf, distdf, k=2)
+
 	# set expected results
 	actual_dist = pd.DataFrame({
 		'Cancer': [0.560, 0.070, 0.295, 0.510, 0.685],
 		'Immune': [0.745, 0.575, 0.760, 0.745, 0.225]
 		})
 	assert np.all(np.isclose(cancer_dist, actual_dist))
-
-
