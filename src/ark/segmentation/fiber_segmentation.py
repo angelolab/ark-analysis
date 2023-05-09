@@ -416,6 +416,7 @@ def generate_tile_stats(fov_table, fov_fiber_img, fov_length, tile_length, min_f
              - a dataframe specifying each tile in the image and its calculated stats
         """
 
+    fov_table = fov_table.reset_index(drop=True)
     fov = fov_table.fov[0]
     alignment, length, pixel_density, fiber_density = [], [], [], []
     fov_list, tile_x, tile_y = [], [], []
@@ -452,7 +453,7 @@ def generate_tile_stats(fov_table, fov_fiber_img, fov_length, tile_length, min_f
             # alignment
             align_scores = tile_table['alignment_score'].values
             align_scores = align_scores[~np.isnan(align_scores)]
-            avg_alignment = np.mean(align_scores) if len(align_scores) >= 5 else np.nan
+            avg_alignment = np.mean(align_scores) if len(align_scores) >= min_fiber_num else np.nan
             alignment.append(avg_alignment)
 
             # length
