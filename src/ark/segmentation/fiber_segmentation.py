@@ -460,9 +460,9 @@ def generate_tile_stats(fov_table, fov_fiber_img, fov_length, tile_length, min_f
             length.append(avg_length)
 
             # density
-            pixel_density, fiber_density = calculate_density(tile_table, tile_length ** 2)
-            pixel_density.append(pixel_density)
-            fiber_density.append(fiber_density)
+            p_density, f_density = calculate_density(tile_table, tile_length ** 2)
+            pixel_density.append(p_density)
+            fiber_density.append(f_density)
 
     fov_tile_stats = pd.DataFrame(zip(
         fov_list, tile_y, tile_x, alignment, length, pixel_density, fiber_density),
