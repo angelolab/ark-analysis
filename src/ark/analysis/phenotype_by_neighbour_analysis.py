@@ -1,26 +1,30 @@
 import numpy as np
 import pandas as pd
-import xarray as xr
 
-import scipy
-import netCDF4
+import ark.settings as settings
 
 
-# calculate median distance from a specific cell to all other cells of a specified cell cluster
-def calculate_median_distance_to_cell_type(cell_df, dist_xr, cell_cluster, N, cell_cluster_column = 'cell_cluster', cell_id_column = 'label'):
-    """Function to calculate median distance of all cels to a specified cell type
+def calculate_median_distance_to_cell_type(
+        cell_df, dist_xr, cell_cluster, k, cell_type_col=settings.CELL_TYPE,
+        cell_label_col=settings.CELL_LABEL):
+    """Function to calculate median distance of all cells to a specified cell type
     Args:
-        cell_df (pandas.DataFrame):
-            Dataframe containg all cells and their cell type
-        dist_xr (xrarray):
-            Cell by cell distance xrarray all cells
+        cell_df (pd.DataFrame):
+            Dataframe containing all cells and their cell type
+        dist_xr (xr.array):
+            Cell by cell distances for all cells
         cell_cluster (str):
             Cell cluster to calculate distance to
-        N (int):
+        k (int):
             Number of nearest neighbours
+        cell_type_col (str):
+            column with the cell phenotype
+        cell_label_col (str):
+            column with the cell labels
     """
+
     # get cell ids for all cells of specific cluster
-    j = cell_df.loc[cell_df[cell_cluster_column] == cell_cluster,cell_id_column]
+    j = cell_df.loc[cell_df[cell_type_col] == cell_cluster, cell_label_col]
     # get all cells that match specified cell cluster
     dist_xr = dist_xr.loc[:, dist_xr.dim_1.isin(j)]
     # convert self to nans 
@@ -28,28 +32,33 @@ def calculate_median_distance_to_cell_type(cell_df, dist_xr, cell_cluster, N, ce
     # sort values 
     sorted_dist = np.sort(dist_xr.values, axis=1)
     # keep the closest N values
-    sorted_dist = sorted_dist[:, :N]
+    sorted_dist = sorted_dist[:, :k]
     # take the median
     mean_dist = sorted_dist.mean(axis=1)
-    return(mean_dist)
+
+    return mean_dist
 
 
-# create function that wraps above function to analyze all cell clusters 
-def calculate_median_distance_to_all_cell_types(cell_df, dist_xr, N, cell_cluster_column = 'cell_cluster'):
+def calculate_median_distance_to_all_cell_types(
+        cell_df, dist_xr, k, cell_type_col=settings.CELL_TYPE):
     """Wrapper function to calculate median distance of all cells against all cell types
     Args:
-        cell_df (pandas.DataFrame):
-            Dataframe containg all cells and their cell type
-        dist_xr (xrarray):
-            Cell by cell distance xrarray all cells
-        N (int):
+        cell_df (pd.DataFrame):
+            Dataframe containing all cells and their cell type
+        dist_xr (xr.array):
+            Cell by cell distances for all cells
+        k (int):
             Number of nearest neighbours
+        cell_type_col (str):
+            column with the cell phenotype
     """
+
     # get all cell clusters in cell table
-    all_clusters = np.unique(cell_df[cell_cluster_column])
+    all_clusters = np.unique(cell_df[cell_type_col])
     # call calculate_median_distance_to_cell_type for all cell clusters
-    avgdists = pd.DataFrame(index = cell_df.index.values, columns = all_clusters)
+    avg_dists = pd.DataFrame(index=cell_df.index.values, columns=all_clusters)
     for cell_cluster in all_clusters:
-        avgdists.loc[:,cell_cluster] = calculate_median_distance_to_cell_type(cell_df, dist_xr, cell_cluster, N)
+        avg_dists.loc[:, cell_cluster] = calculate_median_distance_to_cell_type(
+            cell_df, dist_xr, cell_cluster, k, cell_type_col)
         
-    return(avgdists)
+    return avg_dists
