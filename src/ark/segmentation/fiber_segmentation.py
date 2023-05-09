@@ -538,9 +538,10 @@ def generate_summary_stats(fiber_object_table, fibseg_dir, tile_length=512, min_
         'pixel_density': fov_pixel_density,
         'fiber_density': fov_fiber_density
         })
-    fov_stats.to_csv(os.path.join(fibseg_dir, f'fiber_stats_table.csv'))
+    fov_stats.to_csv(os.path.join(fibseg_dir, f'fiber_stats_table.csv'), index=False)
 
     tile_stats = pd.concat(tile_stats)
-    tile_stats.to_csv(os.path.join(save_dir, f'fiber_stats_table-tile_{tile_length}.csv'))
+    tile_stats.to_csv(os.path.join(save_dir, f'fiber_stats_table-tile_{tile_length}.csv'),
+                      index=False)
 
     return fov_stats, tile_stats
