@@ -146,7 +146,8 @@ def test_calculate_density(areas):
     assert fiber_density == (len(areas) / 50**2) * 100
 
 
-def test_generate_summary_stats(mocker: MockerFixture):
+@pytest.mark.parametrize("min_fiber_num", [1, 5])
+def test_generate_summary_stats(mocker: MockerFixture, min_fiber_num):
     fov_length = 16
     mocker.patch('skimage.io.imread', return_value=np.zeros((fov_length, fov_length)))
 
@@ -197,11 +198,16 @@ def test_generate_summary_stats(mocker: MockerFixture):
         assert tile_0_0.alignment[0] \
                == np.mean(fiber_object_table.alignment_score[6:12])
 
-        # make sure tile 8,8 has nan since there's only 1 fiber (5 required for stat calc)
         tile_fov1 = tile_stats[tile_stats.fov == 'fov1']
         tile_8_8 = tile_fov1[np.logical_and(tile_fov1.tile_y == 8, tile_fov1.tile_x == 8)]
-        assert math.isnan(tile_8_8.avg_length)
-        assert math.isnan(tile_8_8.alignment)
+        # make sure tile 8,8 has nan since there's only 1 fiber (5 fibers required for stat calc)
+        if min_fiber_num == 5:
+            assert math.isnan(tile_8_8.avg_length)
+            assert math.isnan(tile_8_8.alignment)
+        # check the correct value (1 fiber required for stat calc)
+        elif min_fiber_num == 1:
+            assert tile_0_0.avg_length[0] == fiber_object_table.major_axis_length[5]
+            assert tile_0_0.alignment[0] == fiber_object_table.alignment_score[5]
 
         # check for saved tile images
         tile_corners = [tile_length * i for i in range(int(fov_length / tile_length))]
