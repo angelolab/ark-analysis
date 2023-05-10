@@ -446,24 +446,21 @@ def generate_tile_stats(fov_table, fov_fiber_img, fov_length, tile_length, min_f
             tile_table['centroid-1'] >= x_range[0], tile_table['centroid-1'] < x_range[1])]
 
         # tile must have a certain number of fibers to receive values, otherwise NaN
-        if len(tile_table) < min_fiber_num:
-            for stat_list in [alignment, length, pixel_density, fiber_density]:
-                stat_list.append(np.nan)
-        else:
-            # alignment
+        avg_alignment, avg_length, p_density, f_density = [np.nan]*4
+
+        if len(tile_table) >= min_fiber_num:
             align_scores = tile_table['alignment_score'].values
             align_scores = align_scores[~np.isnan(align_scores)]
             avg_alignment = np.mean(align_scores) if len(align_scores) >= min_fiber_num else np.nan
-            alignment.append(avg_alignment)
 
-            # length
             avg_length = np.mean(tile_table['major_axis_length'].values)
-            length.append(avg_length)
 
-            # density
             p_density, f_density = calculate_density(tile_table, tile_length ** 2)
-            pixel_density.append(p_density)
-            fiber_density.append(f_density)
+
+        alignment.append(avg_alignment)
+        length.append(avg_length)
+        pixel_density.append(p_density)
+        fiber_density.append(f_density)
 
     fov_tile_stats = pd.DataFrame(zip(
         fov_list, tile_y, tile_x, alignment, length, pixel_density, fiber_density),
