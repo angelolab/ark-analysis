@@ -529,7 +529,7 @@ def test_split_img_stack():
         assert np.array_equal(sample_chan_2, data_xr[0, :, :, 1].values)
 
 
-@pytest.fixture(scope="function", params=["no_prefix", "run_prefix"])
+@pytest.fixture(scope="function", params=["no_prefix", "single_prefix", "multiple_prefixes"])
 def stitching_fovs(request: str) -> Iterator[List[str]]:
     """
     A Fixture which yields a list of FOVs.
@@ -545,9 +545,12 @@ def stitching_fovs(request: str) -> Iterator[List[str]]:
     param = request.param
 
     if param == "no_prefix":
-        fovs: List[str] = [f"R{n}C{m}" for n in range(13) for m in range(13)]
+        fovs: List[str] = [f"R{n}C{m}" for n in range(1, 14) for m in range(1, 14)]
+    elif param == "single_prefix":
+        fovs = [f"run_1_R{n}C{m}" for n in range(1, 14) for m in range(1, 14)]
     else:
-        fovs = [f"run_{random.randint(1,10)}_R{n}C{m}" for n in range(13) for m in range(13)]
+        fovs = [f"run_1_R{n}C{m}" for n in range(1, 14) for m in range(1, 14)]
+        fovs = fovs + [f"run_2_R{n}C{m}" for n in range(1, 14) for m in range(1, 14)]
     yield fovs
 
 
@@ -621,23 +624,35 @@ def test_stitch_images_by_shape(segmentation, clustering, subdir, stitching_fovs
                                               clustering=clustering)
 
         # test successful stitching
+        if len(stitching_fovs) == 13*13*2:
+            prefixes = ["run_1", "run_2"]
+        elif stitching_fovs[0] == "R1C1":
+            prefixes = ["unnamed_tile"]
+        else:
+            prefixes = ["run_1"]
+
         data_utils.stitch_images_by_shape(data_dir, stitched_dir, img_sub_folder=subdir,
                                           segmentation=segmentation, clustering=clustering)
-        assert sorted(io_utils.list_files(stitched_dir)) == \
-            [chan + '_stitched.tiff' for chan in chans]
+        for prefix in prefixes:
+            stitched_subdir = os.path.join(stitched_dir, prefix)
+            assert sorted(io_utils.list_files(stitched_subdir)) == \
+                [chan + '_stitched.tiff' for chan in chans]
 
-        # stitched image is 12 x 12 fovs with max_img_size = 10, so the image is 120 x 120 pixels
-        stitched_data = load_utils.load_imgs_from_dir(stitched_dir,
-                                                      files=[chans[0] + '_stitched.tiff'])
-        assert stitched_data.shape == (1, 120, 120, 1)
+            # stitched image is 13 x 13 fovs with max_img_size = 10, so the image is 130 x 130
+            stitched_data = load_utils.load_imgs_from_dir(stitched_subdir,
+                                                          files=[chans[0] + '_stitched.tiff'])
+            assert stitched_data.shape == (1, 130, 130, 1)
         shutil.rmtree(stitched_dir)
 
         # test successful stitching for select channels
-        random_channel = chans[random.randint(0, len(chans)-1)]
+        random_channel = chans[random.randint(0, len(chans) - 1)]
         data_utils.stitch_images_by_shape(data_dir, stitched_dir, img_sub_folder=subdir,
                                           channels=[random_channel], segmentation=segmentation,
                                           clustering=clustering)
-        assert sorted(io_utils.list_files(stitched_dir)) == [random_channel + '_stitched.tiff']
+        for prefix in prefixes:
+            stitched_subdir = os.path.join(stitched_dir, prefix)
+            assert sorted(io_utils.list_files(stitched_subdir)) == \
+                   [random_channel + '_stitched.tiff']
 
         # remove stitched_images from fov list
         if not segmentation and not clustering:
