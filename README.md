@@ -1,8 +1,3 @@
-[![CI](https://github.com/angelolab/ark-analysis/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/angelolab/ark-analysis/actions/workflows/ci.yml)
-[![Coverage Status](https://coveralls.io/repos/github/angelolab/ark-analysis/badge.svg?branch=main)](https://coveralls.io/github/angelolab/ark-analysis?branch=main)
-![Docker Image Version (latest by date)](https://img.shields.io/docker/v/angelolab/ark-analysis?arch=amd64&color=%23469ae5&label=Docker%20Version&sort=date)
-[![Read the Docs](https://readthedocs.org/projects/ark-analysis/badge/?version=latest)](https://ark-analysis.readthedocs.io/en/latest/)
-
 # ark-analysis
 
 <div align="center">
