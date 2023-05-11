@@ -343,7 +343,7 @@ def test_compute_neighborhood_diversity():
         settings.FOV_ID: ['fov1', 'fov1', 'fov1', 'fov2'],
         settings.CELL_LABEL: [1, 2, 3, 1],
         settings.CELL_TYPE: ['cell1', 'cell2', 'cell2', 'cell1'],
-        'cell1': [0.7, 0, 0.5, 0.99999],
+        'cell1': [0.7, 0, 0.5, 0.999999999],
         'cell2': [0.3, 1, 0.5, 0],
     })
 
