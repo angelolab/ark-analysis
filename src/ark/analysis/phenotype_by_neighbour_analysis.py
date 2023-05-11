@@ -107,7 +107,7 @@ def cell_neighbor_distance_analysis(
 
     cell_dists = []
     for fov in fov_list:
-        fov_cell_table = cell_table[cell_table.fov_col == fov]
+        fov_cell_table = cell_table[cell_table[fov_col] == fov]
         fov_dist_xr = xr.load_dataarray(os.path.join(dist_mat_dir, str(fov) + '_dist_mat.xr'))
 
         # get the average distances between cell types
@@ -116,12 +116,12 @@ def cell_neighbor_distance_analysis(
 
         # add the fov name and cell phenotypes to the dataframe
         fov_cell_dists.insert(0, fov_col, fov)
-        fov_cell_dists.insert(1, cell_label_col, fov_cell_table.cell_label_col)
-        fov_cell_dists.insert(2, cell_type_col, fov_cell_table.cell_type_col)
+        fov_cell_dists.insert(1, cell_label_col, fov_cell_table[cell_label_col])
+        fov_cell_dists.insert(2, cell_type_col, fov_cell_table[cell_type_col])
         cell_dists.append(fov_cell_dists)
 
     # combine data for all fovs and save to csv
     all_cell_dists = pd.concat(cell_dists)
-    all_cell_dists.to_csv(save_path)
+    all_cell_dists.to_csv(save_path, index=False)
 
     return all_cell_dists

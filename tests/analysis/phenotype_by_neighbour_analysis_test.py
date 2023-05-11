@@ -75,7 +75,7 @@ def test_calculate_median_distance_to_all_cell_types():
 
 
 def test_cell_neighbor_distance_analysis(mocker: MockerFixture, ):
-    mocker.patch('xr.load_dataarray', generate_test_distance_matrix())
+    mocker.patch('xarray.xr.load_dataarray', generate_test_distance_matrix())
 
     cell_table = pd.concat([generate_test_celldf('fov1'), generate_test_celldf('fov2')])
 
