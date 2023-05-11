@@ -545,8 +545,8 @@ def generate_summary_stats(fiber_object_table, fibseg_dir, tile_length=512, min_
 
 
 def color_fibers_by_stat(fiber_object_table, fibseg_dir, save_dir, stat_name):
-    """ Calculates the fov level and tile level statistics for alignment, length, and density.
-    Saves them to separate csvs.
+    """ Creates colored fiber masks based on values from a user-specified column of the
+    fiber_object_table.
 
     Args:
         fiber_object_table (pd.DataFrame):

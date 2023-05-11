@@ -247,7 +247,7 @@ def test_color_fibers_by_stat(mocker: MockerFixture):
         })
 
         stat_name = 'alignment_score'
-        save_dir = os.path.join(temp_dir, f'color_{stat_name}')
+        save_dir = os.path.join(temp_dir, f'colored_{stat_name}')
 
         # test success
         fiber_segmentation.color_fibers_by_stat(fov_fiber_table, temp_dir, save_dir, stat_name)
