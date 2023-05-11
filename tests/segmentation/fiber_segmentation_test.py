@@ -4,10 +4,11 @@ import tempfile
 import math
 import random
 import itertools
+import pytest
 
 import numpy as np
 import pandas as pd
-import pytest
+import skimage.io as io
 from alpineer import io_utils
 from pytest_mock import MockerFixture
 
@@ -228,3 +229,34 @@ def test_generate_summary_stats(mocker: MockerFixture, min_fiber_num):
         # only confirm avg length and alignment, densities are tested above
         assert fov_stats.avg_length[0] == np.mean(fiber_object_table.major_axis_length[0:6])
         assert fov_stats.avg_length[1] == np.mean(fiber_object_table.major_axis_length[6:12])
+
+
+def test_color_fibers_by_stat(mocker: MockerFixture):
+
+    # check for colored mask generation
+    with tempfile.TemporaryDirectory() as temp_dir:
+        fov_length = 16
+        fov_mask = np.zeros((fov_length, fov_length))
+        io.imsave(os.path.join(temp_dir, 'fov1_fiber_labels.tiff'), fov_mask)
+        io.imsave(os.path.join(temp_dir, 'fov2_fiber_labels.tiff'), fov_mask)
+
+        fov_fiber_table = pd.DataFrame({
+            'fov': ['fov1', 'fov1', 'fov1', 'fov2', 'fov2', 'fov2'],
+            'label': [1, 2, 3, 1, 2, 3],
+            'alignment_score': random.sample(range(10, 40), 6),
+        })
+
+        stat_name = 'alignment_score'
+        save_dir = os.path.join(temp_dir, f'color_{stat_name}')
+
+        # test success
+        fiber_segmentation.color_fibers_by_stat(fov_fiber_table, temp_dir, save_dir, stat_name)
+
+        for fov in np.unique(fov_fiber_table.fov):
+            # check for image write
+            color_mask_path = os.path.join(save_dir, f'{fov}_{stat_name}.tiff')
+            assert os.path.exists(color_mask_path)
+
+            # check for third dimension indicating color
+            color_mask = io.imread(color_mask_path)
+            assert color_mask.shape == (fov_length, fov_length, 4)
