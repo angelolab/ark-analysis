@@ -47,7 +47,7 @@ dependencies = [
 ]
 name = "ark-analysis"
 authors = [{ name = "Angelo Lab", email = "theangelolab@gmail.com" }]
-description = "Toolbox for analysis on segmented images from MIBI"
+description = "Toolbox for analysis on segmented images from MIBI."
 readme = "README.md"
 requires-python = ">=3.8"
 license = { text = "Modified Apache License 2.0" }
