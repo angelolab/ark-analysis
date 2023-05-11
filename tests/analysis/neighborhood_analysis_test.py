@@ -329,22 +329,22 @@ def test_shannon_diversity():
 def test_compute_neighborhood_diversity():
 
     neighbor_counts = pd.DataFrame({
-        settings.FOV_ID: ['fov1', 'fov1', 'fov1'],
-        settings.CELL_LABEL: list(range(1, 4)),
-        settings.CELL_TYPE: ['cell1', 'cell2', 'cell3'],
-        'cell1': [1, 0, 2],
-        'cell2': [1, 2, 0],
+        settings.FOV_ID: ['fov1', 'fov1'],
+        settings.CELL_LABEL: list(range(1, 3)),
+        settings.CELL_TYPE: ['cell1', 'cell2'],
+        'cell1': [1, 0],
+        'cell2': [1, 2],
     })
 
     with pytest.raises(ValueError, match="Input must be frequency values."):
         neighborhood_analysis.compute_neighborhood_diversity(neighbor_counts, settings.CELL_TYPE)
 
     neighbor_freqs = pd.DataFrame({
-        settings.FOV_ID: ['fov1', 'fov1', 'fov1'],
-        settings.CELL_LABEL: list(range(1, 4)),
-        settings.CELL_TYPE: ['cell1', 'cell2', 'cell3'],
-        'cell1': [0.7, 0, 0.5],
-        'cell2': [0.3, 1, 0.5],
+        settings.FOV_ID: ['fov1', 'fov1', 'fov1, fov2'],
+        settings.CELL_LABEL: [1, 2, 3, 1],
+        settings.CELL_TYPE: ['cell1', 'cell2', 'cell2', 'cell1'],
+        'cell1': [0.7, 0, 0.5, 0.99999],
+        'cell2': [0.3, 1, 0.5, 0],
     })
 
     diversity_data = neighborhood_analysis.compute_neighborhood_diversity(
@@ -353,5 +353,5 @@ def test_compute_neighborhood_diversity():
     # check for shannon diversity column
     assert f'diversity_{settings.CELL_TYPE}' in diversity_data.columns
 
-    # check each cell is in the new dataframe
+    # check every cell is in the new dataframe
     assert diversity_data.shape[0] == neighbor_freqs.shape[0]

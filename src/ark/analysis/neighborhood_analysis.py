@@ -552,7 +552,7 @@ def compute_neighborhood_diversity(neighborhood_mat, cell_type_col):
                 fov_neighborhoods[fov_neighborhoods[settings.CELL_LABEL] == label].drop(
                     columns=[settings.FOV_ID, settings.CELL_LABEL, settings.CELL_TYPE]).values[0]
 
-            if not isclose(np.sum(neighbor_freqs), 1, abs_tol=1e-8):
+            if not isclose(np.sum(neighbor_freqs), 1):
                 raise ValueError("Input must be frequency values.")
 
             diversity_scores.append(shannon_diversity(neighbor_freqs))
