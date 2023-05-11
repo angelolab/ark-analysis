@@ -1,7 +1,7 @@
 # ANY CHANGES REQURIE A NEW RELEASE
 
-# Stage 1: Start from the official Python 3.8 Image: https://hub.docker.com/_/python
-FROM python:3.8 AS base
+# Stage 1: Start from the official Python 3.11 Image: https://hub.docker.com/_/python
+FROM python:3.11-slim-bullseye AS base
 
 # Set environment variable 
 ENV RUNNING_IN_DOCKER true
@@ -44,7 +44,15 @@ FROM move_templates AS install_ark
 # Install the package via setup.py
 RUN cd /opt/ark-analysis && python -m pip install .
 
-# Stage 5: Set the working directory, and open Jupyter Lab
+# Stage 5: Install and Activate Jupyter Lab Extensions
+RUN pip install jupyterlab-lsp \
+    pip install 'python-lsp-server[all]' \
+    pip install jupyterlab-git \
+    pip install jupyterlab_execute_time \
+    pip install jupyterlab-skip-traceback \
+    pip install lckr-jupyterlab-variableinspector
+
+# Stage 6: Set the working directory, and open Jupyter Lab
 FROM install_ark AS open_for_user
 WORKDIR /opt/ark-analysis
 

@@ -39,3 +39,4 @@ coverage.lcov
 data/*
 .venv
 .venv/
+.virtual_documents
