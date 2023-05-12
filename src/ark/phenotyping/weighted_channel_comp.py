@@ -282,8 +282,9 @@ def generate_wc_avg_files(fovs, channels, base_dir, cell_cc, cell_som_input_data
         "across cell SOM clusters"
     )
     cell_som_cluster_channel_avg = pd.merge_asof(
-        cell_som_cluster_channel_avg, cell_cc.mapping, on='cell_som_cluster'
-    )
+        cell_som_cluster_channel_avg.astype(np.int64),
+        cell_cc.mapping.astype(np.int64),
+        on='cell_som_cluster')
 
     # save the weighted channel average expression per cell cluster
     cell_som_cluster_channel_avg.to_csv(
