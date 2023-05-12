@@ -58,7 +58,6 @@ def compute_cell_som_cluster_cols_avg(cell_cluster_data, cell_som_cluster_cols,
         ).size().to_frame('count')
         cell_cluster_totals = cell_cluster_totals.reset_index(drop=True)
         mean_count_totals['count'] = cell_cluster_totals['count']
-    
     return mean_count_totals
 
 

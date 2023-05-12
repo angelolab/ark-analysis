@@ -37,9 +37,7 @@ def templates_dir() -> Iterator[pathlib.Path]:
     Yields:
         Iterator[pathlib.Path]: The directory of the templates relative to this test file.
     """
-    templates_dir: pathlib.Path = (pathlib.Path(__file__).resolve()).parents[
-        2
-    ] / "templates"
+    templates_dir: pathlib.Path = (pathlib.Path(__file__).resolve()).parents[2] / "templates"
     yield templates_dir
 
 
@@ -188,9 +186,7 @@ def nbfib_seg_context(
     EXAMPLE_FIBER_SEGMENTATION: pathlib.Path = (
         templates_dir / "example_fiber_segmentation.ipynb"
     )
-    with testbook(
-        EXAMPLE_FIBER_SEGMENTATION, timeout=6000, execute=False
-    ) as nb_context_manager:
+    with testbook(EXAMPLE_FIBER_SEGMENTATION, timeout=6000, execute=False) as nb_context_manager:
         yield nb_context_manager, base_dir_generator / "efs"
     shutil.rmtree(base_dir_generator / "efs")
 
@@ -216,7 +212,7 @@ def nbmixing_context(
     EXAMPLE_MIXING: pathlib.Path = templates_dir / "Calculate_Mixing_Scores.ipynb"
     with testbook(EXAMPLE_MIXING, timeout=6000, execute=False) as nb_context_manager:
         yield nb_context_manager, base_dir_generator / "cms"
-    shutil.rmtree(base_dir_generator / "cms")
+    shutil.util.rmtree(base_dir_generator / "cms")
 
 
 class Test_1_Segment_Image_Data:

@@ -33,10 +33,10 @@ jobs:
         uses: actions/cache@v3
         with:
           path: ~/.cache/huggingface/datasets
-          key: huggingface-${{ hashFiles('*.lock') }}
+          key: huggingface-${{ hashFiles('**/*.lock') }}
+          enableCrossOsArchive: true
           restore-keys: |
-            huggingface-${{ hashFiles('*.lock') }}
-            huggingface-${{ runner.os }}
+            huggingface-${{ hashFiles('**/*.lock') }}
 
       - name: Install Dependencies and ${{ github.repository }}
         run: |
