@@ -370,7 +370,7 @@ def test_neighborhood_diversity_analysis(mocker: MockerFixture):
     })
     mocker.patch('ark.analysis.neighborhood_analysis.compute_neighborhood_diversity',
                  return_value=diversity_data)
-    mocker.patch('pandas.read_csv', return_value=np.zeros_like(10, 10))
+    mocker.patch('pandas.read_csv', return_value=np.zeros(10, 10))
 
     with tempfile.TemporaryDirectory() as temp_dir:
         radius = 50
