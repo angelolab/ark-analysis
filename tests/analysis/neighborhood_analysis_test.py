@@ -10,7 +10,7 @@ import ark.settings as settings
 from ark.analysis import neighborhood_analysis
 import test_utils
 from pytest_mock import MockerFixture
-import alpineer.test_utils as test_utils
+from alpineer.test_utils import _make_blank_file
 
 
 def test_create_neighborhood_matrix():
@@ -370,12 +370,13 @@ def test_neighborhood_diversity_analysis(mocker: MockerFixture):
     })
     mocker.patch('ark.analysis.neighborhood_analysis.compute_neighborhood_diversity',
                  return_value=diversity_data)
+    mocker.patch('pandas.read_csv', return_value=np.zeros_like(10, 10))
 
     with tempfile.TemporaryDirectory() as temp_dir:
         radius = 50
         cell_type_cols = ['cell_meta_cluster', 'cell_cluster']
         for col in cell_type_cols:
-            test_utils._make_blank_file(temp_dir, f"neighborhood_freqs-{col}_radius{radius}.csv")
+            _make_blank_file(temp_dir, f"neighborhood_freqs-{col}_radius{radius}.csv")
 
         # test success
         all_data = neighborhood_analysis.neighborhood_diversity_analysis(
