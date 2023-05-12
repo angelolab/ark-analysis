@@ -9,6 +9,8 @@ import pytest
 import ark.settings as settings
 from ark.analysis import neighborhood_analysis
 import test_utils
+from pytest_mock import MockerFixture
+import alpineer.test_utils as test_utils
 
 
 def test_create_neighborhood_matrix():
@@ -336,6 +338,7 @@ def test_compute_neighborhood_diversity():
         'cell2': [1, 2],
     })
 
+    # counts matrix instead of freq should raise an error
     with pytest.raises(ValueError, match="Input must be frequency values."):
         neighborhood_analysis.compute_neighborhood_diversity(neighbor_counts, settings.CELL_TYPE)
 
@@ -355,3 +358,34 @@ def test_compute_neighborhood_diversity():
 
     # check every cell is in the new dataframe
     assert diversity_data.shape[0] == neighbor_freqs.shape[0]
+
+
+def test_neighborhood_diversity_analysis(mocker: MockerFixture):
+
+    diversity_data = pd.DataFrame({
+        settings.FOV_ID: ['fov1', 'fov1', 'fov1'],
+        settings.CELL_LABEL: [1, 2, 3],
+        settings.CELL_TYPE: ['cell1', 'cell2', 'cell2'],
+        f'diversity_{settings.CELL_TYPE}': [0, 1, 0.5],
+    })
+    mocker.patch('ark.analysis.neighborhood_analysis.compute_neighborhood_diversity',
+                 return_value=diversity_data)
+
+    with tempfile.TemporaryDirectory() as temp_dir:
+        radius = 50
+        cell_type_cols = ['cell_meta_cluster', 'cell_cluster']
+        for col in cell_type_cols:
+            test_utils._make_blank_file(temp_dir, f"neighborhood_freqs-{col}_radius{radius}.csv")
+
+        # test success
+        all_data = neighborhood_analysis.neighborhood_diversity_analysis(
+           neighbors_mat_dir=temp_dir, pixel_radius=radius, cell_type_columns=cell_type_cols)
+
+        # check for multiple cell cluster columns
+        assert cell_type_cols in all_data.columns
+
+        diversity_columns = [f"diversity_{col}" for col in cell_type_cols]
+        assert diversity_columns in all_data.columns
+
+        # check every cell is in the new dataframe
+        assert all_data.shape[0] == diversity_data.shape[0]
