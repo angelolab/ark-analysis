@@ -1,4 +1,3 @@
-from typing import Dict, List
 
 # hope u like capital letters
 

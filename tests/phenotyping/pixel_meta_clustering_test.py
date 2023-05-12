@@ -6,7 +6,7 @@ import feather
 import numpy as np
 import pandas as pd
 import pytest
-from alpineer import io_utils, misc_utils, test_utils
+from alpineer import io_utils, misc_utils
 
 import ark.phenotyping.cluster_helpers as cluster_helpers
 import ark.phenotyping.pixel_cluster_utils as pixel_cluster_utils

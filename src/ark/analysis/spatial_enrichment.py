@@ -2,7 +2,6 @@ import os
 from itertools import combinations_with_replacement
 
 import numpy as np
-import pandas as pd
 import xarray as xr
 from tqdm.notebook import tqdm
 from alpineer import io_utils, load_utils, misc_utils

@@ -1,7 +1,5 @@
 import multiprocessing
 import os
-import random
-from shutil import rmtree
 
 import feather
 from functools import partial

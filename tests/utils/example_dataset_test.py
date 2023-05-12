@@ -1,6 +1,5 @@
-import os
 import pathlib
-from typing import Callable, Dict, Generator, Iterator, List
+from typing import Callable, Generator, Iterator, List
 
 import pytest
 from alpineer import test_utils

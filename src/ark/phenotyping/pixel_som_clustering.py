@@ -2,7 +2,6 @@ import multiprocessing
 import os
 from functools import partial
 from shutil import rmtree, move
-import sys
 from typing import Any, Callable, Tuple
 
 import feather
