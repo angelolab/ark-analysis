@@ -360,33 +360,31 @@ def test_compute_neighborhood_diversity():
     assert diversity_data.shape[0] == neighbor_freqs.shape[0]
 
 
-def test_neighborhood_diversity_analysis(mocker: MockerFixture):
-
-    diversity_data = pd.DataFrame({
-        settings.FOV_ID: ['fov1', 'fov1', 'fov1'],
-        settings.CELL_LABEL: [1, 2, 3],
-        settings.CELL_TYPE: ['cell1', 'cell2', 'cell2'],
-        f'diversity_{settings.CELL_TYPE}': [0, 1, 0.5],
-    })
-    mocker.patch('ark.analysis.neighborhood_analysis.compute_neighborhood_diversity',
-                 return_value=diversity_data)
-    mocker.patch('pandas.read_csv', return_value=np.zeros(10, 10))
+def test_neighborhood_diversity_analysis():
 
     with tempfile.TemporaryDirectory() as temp_dir:
         radius = 50
         cell_type_cols = ['cell_meta_cluster', 'cell_cluster']
         for col in cell_type_cols:
-            _make_blank_file(temp_dir, f"neighborhood_freqs-{col}_radius{radius}.csv")
+            neighbor_freqs = pd.DataFrame({
+                settings.FOV_ID: ['fov1', 'fov1', 'fov1', 'fov2'],
+                settings.CELL_LABEL: [1, 2, 3, 1],
+                col: ['cell1', 'cell2', 'cell2', 'cell1'],
+                'cell1': [0, 0, 0.5, 0.999999999],
+                'cell2': [0.3, 1, 0.5, 0],
+            })
+            neighbor_freqs.to_csv(os.path.join(
+                temp_dir, f"neighborhood_freqs-{col}_radius{radius}.csv"), index=False)
 
         # test success
         all_data = neighborhood_analysis.neighborhood_diversity_analysis(
            neighbors_mat_dir=temp_dir, pixel_radius=radius, cell_type_columns=cell_type_cols)
 
         # check for multiple cell cluster columns
-        assert cell_type_cols in all_data.columns
+        assert np.isin(cell_type_cols, all_data.columns).all()
 
         diversity_columns = [f"diversity_{col}" for col in cell_type_cols]
-        assert diversity_columns in all_data.columns
+        assert np.isin(diversity_columns, all_data.columns).all()
 
         # check every cell is in the new dataframe
-        assert all_data.shape[0] == diversity_data.shape[0]
+        assert all_data.shape[0] == all_data.shape[0]
