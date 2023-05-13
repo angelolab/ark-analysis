@@ -212,7 +212,7 @@ def nbmixing_context(
     EXAMPLE_MIXING: pathlib.Path = templates_dir / "Calculate_Mixing_Scores.ipynb"
     with testbook(EXAMPLE_MIXING, timeout=6000, execute=False) as nb_context_manager:
         yield nb_context_manager, base_dir_generator / "cms"
-    shutil.util.rmtree(base_dir_generator / "cms")
+    shutil.rmtree(base_dir_generator / "cms")
 
 
 class Test_1_Segment_Image_Data:
