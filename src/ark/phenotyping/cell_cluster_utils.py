@@ -2,10 +2,8 @@ import os
 import warnings
 
 import feather
-import numpy as np
 import pandas as pd
 from alpineer import io_utils, misc_utils
-
 
 
 def compute_cell_som_cluster_cols_avg(cell_cluster_data, cell_som_cluster_cols,

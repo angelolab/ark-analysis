@@ -30,13 +30,23 @@ jobs:
           cache: "pip"
 
       - name: Get Example Dataset Cache
+        id: dataset-cache
+        env:
+          cache-name: dataset
         uses: actions/cache@v3
         with:
-          path: ~/.cache/huggingface/datasets
-          key: huggingface-${{ hashFiles('**/*.lock') }}
+          path: /data/
+          key: huggingface-${{ env.cache-name }}-${{ hashFiles('**/*.lock') }}
           enableCrossOsArchive: true
           restore-keys: |
-            huggingface-${{ hashFiles('**/*.lock') }}
+            huggingface-${{ env.cache-name }}
+      
+      - name: Download the Example Dataset Cache
+        if: ${{ steps.dataset-cache.outputs.cache-hit != 'true' }}
+        continue-on-error: true
+        run: |
+          pip install datasets
+          python ./.github/scripts/get_example_dataset.py
 
       - name: Install Dependencies and ${{ github.repository }}
         run: |

@@ -1,3 +1,4 @@
+import os
 import pathlib
 from typing import Callable, Generator, Iterator, List
 
@@ -30,11 +31,17 @@ def dataset_download(request) -> Iterator[ExampleDataset]:
     Yields:
         Iterator[ExampleDataset]: The iterable Example Dataset.
     """
+    
+    # Change cache directory if running on CI
+    if os.environ.get("CI", False):
+        cache_dir = pathlib.Path("./data/cache/")
+    else:
+        cache_dir = pathlib.Path("~/.cache/huggingface/datasets/").expanduser()
 
     # Set up ExampleDataset class
     example_dataset: ExampleDataset = ExampleDataset(
         dataset=request.param,
-        cache_dir=None,  # Use the default cache
+        cache_dir=cache_dir,  # Use the default cache
         revision=EXAMPLE_DATASET_REVISION
     )
     # Download example data for a particular notebook
