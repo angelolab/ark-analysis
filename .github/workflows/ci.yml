@@ -28,7 +28,6 @@ jobs:
         with:
           fetch-depth: 0
 
-          
       - name: Get Example Dataset Cache
         id: dataset-cache
         env:
@@ -41,8 +40,7 @@ jobs:
           restore-keys: |
             huggingface-${{ env.cache-name }}
               
-      - name: Download the Example Dataset Cache
-        if: ${{ steps.dataset-cache.outputs.cache-hit != 'true' }}
+      - name: Check the Example Dataset Cache
         uses: actions/setup-python@v3
         with:
           python-version: "3.x"
@@ -59,6 +57,7 @@ jobs:
       contents: read
       pull-requests: write
     secrets: inherit
+    cache: inherit
     uses: ./.github/workflows/test.yml
   
   build:

@@ -1,6 +1,7 @@
 import datasets
 import pathlib
 
+datasets.disable_progress_bar()
 
 valid_datasets = [
     "segment_image_data",

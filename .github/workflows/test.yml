@@ -22,6 +22,18 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Get Example Dataset Cache
+        id: dataset-cache
+        env:
+          cache-name: dataset
+        uses: actions/cache@v3
+        with:
+          path: ./data/
+          key: huggingface-${{ env.cache-name }}-${{ hashFiles('**/*.lock') }}
+          enableCrossOsArchive: true
+          restore-keys: |
+            huggingface-${{ env.cache-name }}
+
       - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v4
         with:
