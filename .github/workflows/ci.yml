@@ -55,7 +55,6 @@ jobs:
           key: huggingface-${{ env.cache-name }}
           enableCrossOsArchive: true
 
-
   test:
     needs: [get_dataset]
     name: Test
@@ -91,4 +90,3 @@ jobs:
         uses: coverallsapp/github-action@v2
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
-
