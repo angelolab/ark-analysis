@@ -31,7 +31,7 @@ def dataset_download(request) -> Iterator[ExampleDataset]:
     Yields:
         Iterator[ExampleDataset]: The iterable Example Dataset.
     """
-    
+
     # Change cache directory if running on CI
     if os.environ.get("CI", False):
         cache_dir = pathlib.Path("./data/cache/")
