@@ -35,7 +35,7 @@ jobs:
           cache-name: dataset
         uses: actions/cache@v3
         with:
-          path: /data/
+          path: ./data/
           key: huggingface-${{ env.cache-name }}-${{ hashFiles('**/*.lock') }}
           enableCrossOsArchive: true
           restore-keys: |
