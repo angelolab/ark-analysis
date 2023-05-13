@@ -49,7 +49,7 @@ def compute_cell_som_cluster_cols_avg(cell_cluster_data, cell_som_cluster_cols,
 
     # average each column grouped by the cell cluster column
     mean_count_totals = cell_cluster_data_subset.groupby(cell_cluster_col).mean().reset_index()
-    mean_count_totals[cell_cluster_col] = mean_count_totals[cell_cluster_col].astype(dtype=np.int64)
+    mean_count_totals[cell_cluster_col] = mean_count_totals[cell_cluster_col].astype(int)
 
     # if keep_count is included, add the count column to the cell table
     if keep_count:
