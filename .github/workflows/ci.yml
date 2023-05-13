@@ -37,6 +37,7 @@ jobs:
         with:
           path: ./data/cache/
           key: huggingface-${{ env.cache-name }}
+          enableCrossOsArchive: true
 
       - name: Check the Example Dataset Cache
         uses: actions/setup-python@v3
@@ -52,6 +53,8 @@ jobs:
         with:
           path: ./data/cache/
           key: huggingface-${{ env.cache-name }}
+          enableCrossOsArchive: true
+
 
   test:
     needs: [get_dataset]

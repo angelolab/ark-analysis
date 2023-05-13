@@ -23,12 +23,9 @@ def load_dataset(cache_dir: pathlib.Path, name: str):
         name=name,
         use_auth_token=False,
     )
-datasets.download.DownloadConfig().storage_options
 
 # Make the cache directory if it doesn't exist.
 cache_dir = pathlib.Path("./data/cache/")
 cache_dir.mkdir(parents=True, exist_ok=True)
 for dataset_config in valid_datasets:
-    load_dataset(cache_dir=cache_dir, name=dataset_config)
-
-# print(f'::set-output name=test_report::{result}')
+    load_dataset(cache_dir=cache_dir.as_posix(), name=dataset_config)
