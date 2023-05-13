@@ -19,7 +19,42 @@ permissions:
   contents: read # to fetch code (actions/checkout)
 
 jobs:
+  get_dataset:
+    name: Get / Update Example Dataset
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout ${{github.repository }}
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Install Python for Cache
+        uses: actions/setup-python@v3
+        with:
+          python-version: '3.x'
+          cache: 'pip'
+  
+      - name: Get Example Dataset Cache
+        id: dataset-cache
+        env:
+          cache-name: dataset
+        uses: actions/cache@v3
+        with:
+          path: /data/
+          key: huggingface-${{ env.cache-name }}-${{ hashFiles('**/*.lock') }}
+          enableCrossOsArchive: true
+          restore-keys: |
+            huggingface-${{ env.cache-name }}
+      
+      - name: Download the Example Dataset Cache
+        if: ${{ steps.dataset-cache.outputs.cache-hit != 'true' }}
+        continue-on-error: true
+        run: |
+          pip install datasets
+          python ./.github/scripts/get_example_dataset.py
+
   test:
+    needs: [get_dataset]
     name: Test
     permissions:
       contents: read
