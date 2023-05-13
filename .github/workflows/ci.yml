@@ -28,12 +28,7 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Install Python for Cache
-        uses: actions/setup-python@v3
-        with:
-          python-version: '3.x'
-          cache: 'pip'
-  
+          
       - name: Get Example Dataset Cache
         id: dataset-cache
         env:
@@ -45,11 +40,15 @@ jobs:
           enableCrossOsArchive: true
           restore-keys: |
             huggingface-${{ env.cache-name }}
-      
+              
       - name: Download the Example Dataset Cache
         if: ${{ steps.dataset-cache.outputs.cache-hit != 'true' }}
-        continue-on-error: true
-        run: |
+        uses: actions/setup-python@v3
+        with:
+          python-version: :3.x
+          cache-dependency-path: "**/pyproject.toml"
+          cache: "pip"
+      - run: |
           pip install datasets
           python ./.github/scripts/get_example_dataset.py
 
