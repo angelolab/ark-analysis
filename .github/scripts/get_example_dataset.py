@@ -16,7 +16,6 @@ valid_datasets = [
     "ome_tiff",
 ]
 
-
 def load_dataset(cache_dir: pathlib.Path, name: str):
     _ = datasets.load_dataset(
         path="angelolab/ark_example",
@@ -24,7 +23,7 @@ def load_dataset(cache_dir: pathlib.Path, name: str):
         name=name,
         use_auth_token=False,
     )
-
+datasets.download.DownloadConfig().storage_options
 
 # Make the cache directory if it doesn't exist.
 cache_dir = pathlib.Path("./data/cache/")
@@ -32,4 +31,4 @@ cache_dir.mkdir(parents=True, exist_ok=True)
 for dataset_config in valid_datasets:
     load_dataset(cache_dir=cache_dir, name=dataset_config)
 
-print("done")
+# print(f'::set-output name=test_report::{result}')

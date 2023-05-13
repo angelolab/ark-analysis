@@ -28,7 +28,7 @@ jobs:
         env:
           cache-name: dataset
         with:
-          path: ./data/
+          path: ./data/cache/
           key: huggingface-${{ env.cache-name }}
 
       - name: Set up Python ${{ matrix.python-version }}

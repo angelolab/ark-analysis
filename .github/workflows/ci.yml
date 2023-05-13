@@ -35,7 +35,7 @@ jobs:
         uses: actions/cache/restore@v3
         id: dataset-cache
         with:
-          path: ./data/
+          path: ./data/cache/
           key: huggingface-${{ env.cache-name }}
 
       - name: Check the Example Dataset Cache
@@ -50,7 +50,7 @@ jobs:
 
       - uses: actions/cache/save@v3
         with:
-          path: ./data/
+          path: ./data/cache/
           key: huggingface-${{ env.cache-name }}
 
   test:
