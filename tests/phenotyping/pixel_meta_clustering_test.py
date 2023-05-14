@@ -294,8 +294,8 @@ def test_generate_meta_avg_files(capsys):
 
         # define a sample SOM to meta cluster map
         som_to_meta_data = {
-            'pixel_som_cluster': np.arange(1, 4, dtype=np.int64),
-            'pixel_meta_cluster': np.arange(10, 40, 10, dtype=np.int64)
+            'pixel_som_cluster': np.arange(1, 4, dtype=int),
+            'pixel_meta_cluster': np.arange(10, 40, 10, dtype=int)
         }
         som_to_meta_data = pd.DataFrame.from_dict(som_to_meta_data)
 
