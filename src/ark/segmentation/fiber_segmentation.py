@@ -1,4 +1,5 @@
 import os
+import itertools
 from typing import Dict, Optional
 
 import matplotlib.pyplot as plt
@@ -8,18 +9,20 @@ import pandas as pd
 import scipy.ndimage as ndi
 from scipy.ndimage.morphology import distance_transform_edt
 from skimage.exposure import equalize_adapthist
-from skimage.filters import meijering, sobel, threshold_multiotsu
+from skimage.filters import frangi, sobel, threshold_multiotsu
 from skimage.measure import regionprops_table
 from skimage.morphology import remove_small_objects
 from skimage.segmentation import watershed
 from alpineer import image_utils, io_utils, load_utils, misc_utils
+from scipy.spatial.distance import cdist
+import skimage.io as io
 
 from ark import settings
 from ark.utils.plot_utils import set_minimum_color_for_colormap
 
 
 def plot_fiber_segmentation_steps(data_dir, fov_name, fiber_channel, img_sub_folder=None, blur=2,
-                                  contrast_scaling_divisor=128, fiber_widths=(2, 4),
+                                  contrast_scaling_divisor=128, fiber_widths=range(1, 10, 2),
                                   ridge_cutoff=0.1, sobel_blur=1, min_fiber_size=15,
                                   img_cmap=plt.cm.bone, labels_cmap=plt.cm.cool):
     """Plots output from each fiber segmentation step for single FoV
@@ -43,7 +46,7 @@ def plot_fiber_segmentation_steps(data_dir, fov_name, fiber_channel, img_sub_fol
             Widths of fibers to filter for.  Be aware that adding larger fiber widths can join
             close, narrow branches into one thicker fiber.
         ridge_cutoff (float):
-            Threshold for ridge inclusion post-meijering filtering.
+            Threshold for ridge inclusion post-frangi filtering.
         sobel_blur (float):
             Gaussian blur radius for sobel driven elevation map creation
         min_fiber_size (int):
@@ -89,9 +92,10 @@ def plot_fiber_segmentation_steps(data_dir, fov_name, fiber_channel, img_sub_fol
     axes[0, 2].imshow(contrast_adjusted, cmap=img_cmap)
     axes[0, 2].set_title(f"Contrast Adjuisted, CSD={contrast_scaling_divisor}")
 
-    ridges = meijering(contrast_adjusted, sigmas=fiber_widths, black_ridges=False)
+    ridges = frangi(contrast_adjusted, sigmas=fiber_widths, black_ridges=False)*10000
+
     axes[1, 0].imshow(ridges, cmap=img_cmap)
-    axes[1, 0].set_title(f"Meijering Filter, fiber_widths={fiber_widths}")
+    axes[1, 0].set_title("Frangi Filter")
 
     distance_transformed = ndi.gaussian_filter(
         distance_transform_edt(ridges > ridge_cutoff),
@@ -188,8 +192,64 @@ def run_fiber_segmentation(data_dir, fiber_channel, out_dir, img_sub_folder=None
     return fiber_object_table
 
 
+def calculate_fiber_alignment(fiber_object_table, k=4, axis_thresh=2):
+    """ Calculates an alignment score for each fiber in an image. Based on the angle difference of
+    the fiber compared to it's k nearest neighbors.
+
+    Args:
+        fiber_object_table (pd.DataFrame):
+            dataframe containing the fiber objects and their properties (fov, label, alignment,
+             centroid-0, centroid-1, major_axis_length, minor_axis_length)
+        k (int):
+            number of neighbors to check alignment difference for
+        axis_thresh (int):
+            threshold for how much longer the length of the fiber must be compared to the width
+
+    Returns:
+        pd.DataFrame:
+         - Dataframe with the alignment scores appended
+    """
+
+    fovs = np.unique(fiber_object_table.fov)
+    fov_data = []
+
+    # process one fov at a time
+    for fov in fovs:
+        fov_fiber_table = fiber_object_table[fiber_object_table.fov == fov]
+
+        # only grab fibers of specified length to width ratio
+        filtered_lengths = fov_fiber_table[(fov_fiber_table['major_axis_length'].values /
+                                            fov_fiber_table['minor_axis_length'].values)
+                                           >= axis_thresh]
+        filtered_lengths = filtered_lengths.reset_index()
+
+        # create a distance matrix between fiber centroids
+        centroids = np.vstack((filtered_lengths['centroid-0'].values,
+                               filtered_lengths['centroid-1'].values)).T
+        fiber_dist_mat = cdist(centroids, centroids)
+
+        # compute alignment scores for each individual fiber
+        fiber_scores = []
+        for indx, angle in enumerate(filtered_lengths.orientation):
+            # find index for smallest distances, excluding itself
+            indy = fiber_dist_mat[indx, :].argsort()[1:1+k]
+            neighbor_angles = filtered_lengths.orientation[indy]
+            fiber_scores.append(1 / (np.sqrt(np.sum((neighbor_angles - angle) ** 2)) / k))
+
+        fov_alignments = pd.DataFrame(
+            zip([fov] * len(fiber_scores), filtered_lengths.label, fiber_scores),
+            columns=['fov', 'label', 'alignment_score'])
+        fov_data.append(fov_alignments)
+
+    # append alignment score to fiber object table
+    alignment_data = pd.concat(fov_data)
+    fiber_object_table_adj = fiber_object_table.merge(alignment_data, 'left')
+
+    return fiber_object_table_adj
+
+
 def segment_fibers(data_xr, fiber_channel, out_dir, fov, blur=2, contrast_scaling_divisor=128,
-                   fiber_widths=(2, 4), ridge_cutoff=0.1, sobel_blur=1, min_fiber_size=15,
+                   fiber_widths=range(1, 10, 2), ridge_cutoff=0.1, sobel_blur=1, min_fiber_size=15,
                    object_properties=settings.FIBER_OBJECT_PROPS, save_csv=True, debug=False):
     """ Segments fiber objects from image data
 
@@ -212,7 +272,7 @@ def segment_fibers(data_xr, fiber_channel, out_dir, fov, blur=2, contrast_scalin
             Widths of fibers to filter for.  Be aware that adding larger fiber widths can join
             close, narrow branches into one thicker fiber.
         ridge_cutoff (float):
-            Threshold for ridge inclusion post-meijering filtering.
+            Threshold for ridge inclusion post-frangi filtering.
         sobel_blur (float):
             Gaussian blur radius for sobel driven elevation map creation
         min_fiber_size (int):
@@ -253,8 +313,8 @@ def segment_fibers(data_xr, fiber_channel, out_dir, fov, blur=2, contrast_scalin
         kernel_size=fov_len / contrast_scaling_divisor
     )
 
-    # meijering filtering
-    ridges = meijering(contrast_adjusted, sigmas=fiber_widths, black_ridges=False)
+    # frangi filtering
+    ridges = frangi(contrast_adjusted, sigmas=fiber_widths, black_ridges=False)*10000
 
     # remove image intensity influence for watershed setup
     distance_transformed = ndi.gaussian_filter(
@@ -284,7 +344,7 @@ def segment_fibers(data_xr, fiber_channel, out_dir, fov, blur=2, contrast_scalin
                                threshed)
         image_utils.save_image(os.path.join(debug_path, f'{fov}_ridges_thresholded.tiff'),
                                distance_transformed)
-        image_utils.save_image(os.path.join(debug_path, f'{fov}_meijering_filter.tiff'),
+        image_utils.save_image(os.path.join(debug_path, f'{fov}_frangi_filter.tiff'),
                                ridges)
         image_utils.save_image(os.path.join(debug_path, f'{fov}_contrast_adjusted.tiff'),
                                contrast_adjusted)
@@ -294,9 +354,239 @@ def segment_fibers(data_xr, fiber_channel, out_dir, fov, blur=2, contrast_scalin
     fiber_object_table = regionprops_table(labeled_filtered, properties=object_properties)
 
     fiber_object_table = pd.DataFrame(fiber_object_table)
-    fiber_object_table[settings.FOV_ID] = fov
+    fiber_object_table.insert(0, settings.FOV_ID, fov)
+
+    # append fiber knn alignment
+    fiber_object_table = calculate_fiber_alignment(fiber_object_table)
 
     if save_csv:
         fiber_object_table.to_csv(os.path.join(out_dir, 'fiber_object_table.csv'))
 
     return fiber_object_table
+
+
+def calculate_density(fov_fiber_table, total_pixels):
+    """ Calculates both pixel area and fiber number based densities.
+    pixel based = fiber pixel area / total image area
+    fiber number based = number of fibers / total image area
+
+    Args:
+        fov_fiber_table (pd.DataFrame):
+            the array representation of the fiber segmented mask for an image
+        total_pixels (int):
+            area of the image
+
+    Returns:
+        tuple (float, float):
+         - returns the both densities scaled up by 100
+    """
+
+    fiber_num = len(np.unique(fov_fiber_table.label))
+    fiber_density = fiber_num / total_pixels
+
+    pixel_sum = np.sum(fov_fiber_table['area'].values)
+    pixel_density = pixel_sum / total_pixels
+
+    return pixel_density * 100, fiber_density * 100
+
+
+def generate_tile_stats(fov_table, fov_fiber_img, fov_length, tile_length, min_fiber_num,
+                        save_dir, save_tiles):
+    """ Calculates the tile level statistics for alignment, length, and density.
+
+        Args:
+            fov_table (pd.DataFrame):
+                dataframe containing the fiber objects and their properties (fov, label, alignment,
+                centroid-0, centroid-1, major_axis_length, minor_axis_length)
+            fov_fiber_img (np.array):
+                represents the fiber mask
+            fov_length (int):
+                length of the image
+            tile_length (int):
+                length of tile size, must be a factor of the total image size (default 512)
+            min_fiber_num (int):
+                the amount of fibers to get tile statistics calculated, if not then NaN (default 5)
+            save_dir (str):
+                directory where to save tiled image folder to
+            save_tiles (bool):
+                whether to save cropped images (default to False)
+
+        Returns:
+            pd.DataFrame:
+             - a dataframe specifying each tile in the image and its calculated stats
+        """
+
+    fov_table = fov_table.reset_index(drop=True)
+    fov = fov_table.fov[0]
+    alignment, length, pixel_density, fiber_density = [], [], [], []
+    fov_list, tile_x, tile_y = [], [], []
+
+    # create tiles based on provided tile_length
+    for i, j in itertools.product(
+            range(int(fov_length / tile_length)), range(int(fov_length / tile_length))):
+        y_range = (i * tile_length, (i + 1) * tile_length)
+        x_range = (j * tile_length, (j + 1) * tile_length)
+
+        fov_list.append(fov)
+        tile_x.append(x_range[0])
+        tile_y.append(y_range[0])
+
+        if save_tiles:
+            tile_fiber_img = fov_fiber_img[y_range[0]:y_range[1], x_range[0]:x_range[1]]
+            tile_fiber_img[tile_fiber_img > 0] = 1
+            if not os.path.exists(os.path.join(save_dir, fov)):
+                os.makedirs(os.path.join(save_dir, fov))
+            io.imsave(os.path.join(save_dir, fov, f'tile_{y_range[0]},{x_range[0]}.tiff'),
+                      tile_fiber_img, check_contrast=False)
+
+        # subset table for only fibers within the tile coords
+        tile_table = fov_table[np.logical_and(
+            fov_table['centroid-0'] >= y_range[0], fov_table['centroid-0'] < y_range[1])]
+        tile_table = tile_table[np.logical_and(
+            tile_table['centroid-1'] >= x_range[0], tile_table['centroid-1'] < x_range[1])]
+
+        # tile must have a certain number of fibers to receive values, otherwise NaN
+        avg_alignment, avg_length, p_density, f_density = [np.nan]*4
+
+        if len(tile_table) >= min_fiber_num:
+            align_scores = tile_table['alignment_score'].values
+            align_scores = align_scores[~np.isnan(align_scores)]
+            avg_alignment = np.mean(align_scores) if len(align_scores) >= min_fiber_num else np.nan
+
+            avg_length = np.mean(tile_table['major_axis_length'].values)
+
+            p_density, f_density = calculate_density(tile_table, tile_length ** 2)
+
+        alignment.append(avg_alignment)
+        length.append(avg_length)
+        pixel_density.append(p_density)
+        fiber_density.append(f_density)
+
+    fov_tile_stats = pd.DataFrame(zip(
+        fov_list, tile_y, tile_x, alignment, length, pixel_density, fiber_density),
+        columns=['fov', 'tile_y', 'tile_x', 'alignment', 'avg_length',
+                 'pixel_density', 'fiber_density'])
+
+    return fov_tile_stats
+
+
+def generate_summary_stats(fiber_object_table, fibseg_dir, tile_length=512, min_fiber_num=5,
+                           save_tiles=False):
+    """ Calculates the fov level and tile level statistics for alignment, length, and density.
+    Saves them to separate csvs.
+
+    Args:
+        fiber_object_table (pd.DataFrame):
+            dataframe containing the fiber objects and their properties (fov, label, alignment,
+            centroid-0, centroid-1, major_axis_length, minor_axis_length)
+        fibseg_dir (string):
+            path to directory containing the fiber segmentation masks
+        tile_length (int):
+            length of tile size, must be a factor of the total image size (default 512)
+        min_fiber_num (int):
+            the amount of fibers to get tile statistics calculated, if not then NaN (default 5)
+        save_tiles (bool):
+            whether to save cropped images (default to False)
+
+    Returns:
+        tuple (pd.DataFrame, pd.DataFrame):
+         - returns the both fov and tile stats
+    """
+
+    io_utils.validate_paths(fibseg_dir)
+    # this makes sure tile length is a factor of 1024 and 2048
+    if 1024 % tile_length != 0:
+        raise ValueError("Tile length must be a factor of the minimum image size.")
+
+    save_dir = os.path.join(fibseg_dir, f'tile_stats_{tile_length}')
+    fovs = np.unique(fiber_object_table.fov)
+    fov_stats, tile_stats = [], []
+    fov_alignment, fov_avg_length, fov_pixel_density, fov_fiber_density = [], [], [], []
+
+    # get fov level and tile level stats for each image
+    for fov in fovs:
+        fov_fiber_img = io.imread(os.path.join(fibseg_dir, fov + '_fiber_labels.tiff'))
+        fov_length = fov_fiber_img.shape[0]
+        fov_table = fiber_object_table[fiber_object_table.fov == fov]
+
+        # fov level stats
+        # alignment
+        fov_align_scores = fov_table['alignment_score'].values
+        fov_alignment.append(np.mean(fov_align_scores[~np.isnan(fov_align_scores)]))
+
+        # length
+        fov_avg_length.append(np.mean(fov_table['major_axis_length'].values))
+
+        # density
+        fov_p_density, fov_p_density = calculate_density(fov_table, fov_length**2)
+        fov_pixel_density.append(fov_p_density)
+        fov_fiber_density.append(fov_p_density)
+
+        # tile level stats
+        fov_tile_stats = generate_tile_stats(fov_table, fov_fiber_img, fov_length, tile_length,
+                                             min_fiber_num, save_dir, save_tiles)
+
+        tile_stats.append(fov_tile_stats)
+
+    fov_stats = pd.DataFrame({
+        'fov': fovs,
+        'alignment': fov_alignment,
+        'avg_length': fov_avg_length,
+        'pixel_density': fov_pixel_density,
+        'fiber_density': fov_fiber_density
+        })
+    fov_stats.to_csv(os.path.join(fibseg_dir, f'fiber_stats_table.csv'), index=False)
+
+    tile_stats = pd.concat(tile_stats)
+    tile_stats.to_csv(os.path.join(save_dir, f'fiber_stats_table-tile_{tile_length}.csv'),
+                      index=False)
+
+    return fov_stats, tile_stats
+
+
+def color_fibers_by_stat(fiber_object_table, fibseg_dir, save_dir, stat_name):
+    """ Creates colored fiber masks based on values from a user-specified column of the
+    fiber_object_table.
+
+    Args:
+        fiber_object_table (pd.DataFrame):
+            dataframe containing the fiber objects and their properties (fov, label, alignment,
+            centroid-0, centroid-1, major_axis_length, minor_axis_length)
+        fibseg_dir (string):
+            path to directory containing the fiber segmentation masks
+        save_dir (str):
+            where to save colored masks to
+        stat_name (int):
+            name of the column to use for fiber coloring
+       """
+
+    io_utils.validate_paths(fibseg_dir)
+    misc_utils.verify_in_list(statistic_name=[stat_name],
+                              fiber_table_columns=fiber_object_table.columns)
+    if not os.path.exists(save_dir):
+        os.makedirs(save_dir)
+
+    cmap = set_minimum_color_for_colormap(plt.cm.Blues)
+    # alignment score needs reversed colormap after taking the inverse
+    if stat_name == 'alignment_score':
+        cmap = set_minimum_color_for_colormap(plt.cm.Blues_r)
+
+    for fov in np.unique(fiber_object_table.fov):
+        fiber_data = fiber_object_table[fiber_object_table.fov == fov]
+        fov_fiber_img = io.imread(os.path.join(fibseg_dir, fov + '_fiber_labels.tiff'))
+        fov_fiber_img = fov_fiber_img.astype('float16')
+
+        # reassign the fiber mask values with the stat values
+        for fiber in fiber_data.label:
+            stat = fiber_data.loc[fiber_data.label == fiber][stat_name].values[0]
+
+            # ignore any fibers without stat value
+            if np.isnan(stat):
+                stat = 0
+            # use inverse of alignment score
+            elif stat_name == 'alignment_score':
+                stat = 1 / stat
+
+            fov_fiber_img[fov_fiber_img == fiber] = stat
+
+        plt.imsave(os.path.join(save_dir, fov + f"_{stat_name}.tiff"), fov_fiber_img, cmap=cmap)
