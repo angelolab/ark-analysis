@@ -2,6 +2,8 @@ import multiprocessing
 import os
 from functools import partial
 from shutil import rmtree, move
+import sys
+from typing import Any, Callable, Tuple
 
 import feather
 from pyarrow.lib import ArrowInvalid
@@ -268,8 +270,24 @@ def cluster_pixels(fovs, channels, base_dir, pixel_pysom, data_dir='pixel_mat_da
                 print("Processed %d fovs" % fovs_processed)
 
     # remove the data directory and rename the temp directory to the data directory
-    rmtree(data_path)
+    rmtree(data_path, onerror=_ignore_extended_attributes)
     move(data_path + '_temp', data_path)
+
+
+def _ignore_extended_attributes(func: Callable, filename: str, exc_info: Tuple[Any, Any, Any]):
+    """
+    Ignore the extended attribute files (prefixed with "._").
+    Read more here: https://tinyurl.com/extended-attributes
+
+    Args:
+        func (Callable): The function which raises the exception.
+        filename (str): The file where an extended attribute file fails to remove.
+        This originally gets passed into `func`.
+        exc_info (OptExcInfo): The exception information returned by `sys.exec_info()`.
+    """
+    is_meta_file: bool = os.path.basename(filename).startswith("._")
+    if not (func is os.unlink and is_meta_file):
+        raise
 
 
 def generate_som_avg_files(fovs, channels, base_dir, pixel_pysom, data_dir='pixel_data_dir',
