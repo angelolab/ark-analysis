@@ -230,7 +230,7 @@ class Test_1_Segment_Image_Data:
         self.tb: testbook = nb1_context[0]
         self.dataset: str = "segment_image_data"
         self.base_dir: str = nb1_context[1].as_posix()
-        self.cache_dir= dataset_cache_dir
+        self.cache_dir = dataset_cache_dir
 
     def test_imports(self):
         self.tb.execute_cell("import")
@@ -311,7 +311,7 @@ class Test_2_Pixel_Clustering:
         self.tb: testbook = nb2_context[0]
         self.dataset: str = "cluster_pixels"
         self.base_dir: str = nb2_context[1].as_posix()
-        self.cache_dir= dataset_cache_dir
+        self.cache_dir = dataset_cache_dir
 
         # Variables
         self.pixel_prefix = "test"
@@ -427,7 +427,7 @@ class Test_3_Cell_Clustering:
         self.tb: testbook = nb3_context[0]
         self.dataset: str = "cluster_cells"
         self.base_dir: str = nb3_context[1].as_posix()
-        self.cache_dir= dataset_cache_dir
+        self.cache_dir = dataset_cache_dir
 
         # Variables
         self.cell_prefix = "test"
@@ -534,7 +534,7 @@ class Test_3b_Generic_Cell_Clustering:
         self.tb: testbook = nb3b_context[0]
         self.dataset: str = "cluster_cells"
         self.base_dir: str = nb3b_context[1].as_posix()
-        self.cache_dir= dataset_cache_dir
+        self.cache_dir = dataset_cache_dir
 
         # Variables
         self.cell_prefix = "test"
@@ -626,7 +626,7 @@ class Test_4_Post_Clustering:
         self.tb: testbook = nb4_context[0]
         self.dataset: str = "post_clustering"
         self.base_dir: str = nb4_context[1].as_posix()
-        self.cache_dir= dataset_cache_dir
+        self.cache_dir = dataset_cache_dir
 
         # Variables
         self.cell_prefix = "test"
@@ -696,7 +696,7 @@ class Test_Fiber_Segmentation:
         self.tb: testbook = nbfib_seg_context[0]
         self.dataset: str = "fiber_segmentation"
         self.base_dir: str = nbfib_seg_context[1].as_posix()
-        self.cache_dir= dataset_cache_dir
+        self.cache_dir = dataset_cache_dir
 
     def test_imports(self):
         self.tb.execute_cell("import")
@@ -739,7 +739,7 @@ class Test_Mixing_Score:
         self.tb: testbook = nbmixing_context[0]
         self.dataset: str = "post_clustering"
         self.base_dir: str = nbmixing_context[1].as_posix()
-        self.cache_dir= dataset_cache_dir
+        self.cache_dir = dataset_cache_dir
 
     def test_imports(self):
         self.tb.execute_cell("import")

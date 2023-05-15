@@ -32,28 +32,23 @@ jobs:
           fetch-depth: 0
 
       - name: Restore Example Dataset Cache
-        uses: actions/cache/restore@v3
+        uses: actions/cache@v3
         id: dataset-cache
         with:
           path: ./data/cache/
           key: huggingface-${{ env.cache-name }}
           enableCrossOsArchive: true
 
-      - name: Check the Example Dataset Cache
+      - name: Set up Python
         uses: actions/setup-python@v3
         with:
           python-version: "3.x"
           cache-dependency-path: "**/pyproject.toml"
           cache: "pip"
-      - run: |
+      - name: Check the Example Dataset Cache
+        run: |
           pip install datasets
           python ./.github/scripts/get_example_dataset.py
-
-      - uses: actions/cache/save@v3
-        with:
-          path: ./data/cache/
-          key: huggingface-${{ env.cache-name }}
-          enableCrossOsArchive: true
 
   test:
     needs: [get_dataset]
