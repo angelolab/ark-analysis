@@ -346,8 +346,9 @@ def test_compute_neighborhood_diversity():
         settings.FOV_ID: ['fov1', 'fov1', 'fov1', 'fov2'],
         settings.CELL_LABEL: [1, 2, 3, 1],
         settings.CELL_TYPE: ['cell1', 'cell2', 'cell2', 'cell1'],
-        'cell1': [0.7, 0, 0.5, 0.999999999],
+        'cell1': [0.4, 0, 0.5, 0.3],
         'cell2': [0.3, 1, 0.5, 0],
+        'cell3': [0.3, 0, 0, 0.7]
     })
 
     diversity_data = neighborhood_analysis.compute_neighborhood_diversity(
@@ -359,6 +360,12 @@ def test_compute_neighborhood_diversity():
     # check every cell is in the new dataframe
     assert diversity_data.shape[0] == neighbor_freqs.shape[0]
 
+    # check for high vs low diversity
+    assert diversity_data[f'diversity_{settings.CELL_TYPE}'].max() == \
+           diversity_data[f'diversity_{settings.CELL_TYPE}'][0]
+    assert diversity_data[f'diversity_{settings.CELL_TYPE}'].min() == \
+           diversity_data[f'diversity_{settings.CELL_TYPE}'][1]
+
 
 def test_neighborhood_diversity_analysis():
 
@@ -366,12 +373,19 @@ def test_neighborhood_diversity_analysis():
         radius = 50
         cell_type_cols = ['cell_meta_cluster', 'cell_cluster']
         for col in cell_type_cols:
+            cell1_freqs = [0.7, 0, 0.5, 0.2]
+            cell2_freqs = [0.3, 1, 0.5, 0.8]
+
+            if col == cell_type_cols[1]:
+                cell1_freqs = [1, 0.9, 0.6, 0.35]
+                cell2_freqs = [0, 0.1, 0.4, 0.55]
+
             neighbor_freqs = pd.DataFrame({
                 settings.FOV_ID: ['fov1', 'fov1', 'fov1', 'fov2'],
                 settings.CELL_LABEL: [1, 2, 3, 1],
                 col: ['cell1', 'cell2', 'cell2', 'cell1'],
-                'cell1': [0, 0, 0.5, 0.999999999],
-                'cell2': [0.3, 1, 0.5, 0],
+                'cell1': cell1_freqs,
+                'cell2': cell2_freqs,
             })
             neighbor_freqs.to_csv(os.path.join(
                 temp_dir, f"neighborhood_freqs-{col}_radius{radius}.csv"), index=False)
@@ -388,3 +402,7 @@ def test_neighborhood_diversity_analysis():
 
         # check every cell is in the new dataframe
         assert all_data.shape[0] == all_data.shape[0]
+
+        # check score calculation by cell cluster
+        for index, row in all_data.iterrows():
+            assert row.diversity_cell_meta_cluster != row.diversity_cell_cluster
