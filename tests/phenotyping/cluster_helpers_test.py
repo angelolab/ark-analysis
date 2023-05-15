@@ -254,6 +254,7 @@ def cell_cc_object(consensus_base_dir) -> PixieConsensusCluster:
     )
 
 
+@pytest.mark.xdist_group("test_pixel_som_cluster")
 class TestPixelSOMCluster:
     @pytest.fixture(autouse=True, scope="function")
     def _setup(self, pixel_pyflowsom_object):
@@ -367,6 +368,7 @@ class TestPixelSOMCluster:
         assert np.all(np.logical_and(som_clusters >= 1, som_clusters <= 200))
 
 
+@pytest.mark.xdist_group("test_cel_som_cluster")
 class TestCellSOMCluster:
     @pytest.fixture(autouse=True, scope="function")
     def _setup(self, cell_pyflowsom_object):
@@ -461,6 +463,7 @@ class TestCellSOMCluster:
         assert np.all(np.logical_and(som_clusters >= 1, som_clusters <= 200))
 
 
+@pytest.mark.xdist_group("test_pixie_consensus_cluster")
 class TestPixieConsensusCluster:
     @pytest.fixture(autouse=True, scope="function")
     def _setup(self, pixel_cc_object, cell_cc_object):

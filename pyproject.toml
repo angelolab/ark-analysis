@@ -70,6 +70,7 @@ test = [
     "pytest-pycodestyle",
     "pytest-randomly",
     "pytest-asyncio",
+    "pytest-xdist",
     "testbook",
 ]
 
@@ -150,6 +151,10 @@ filterwarnings = [
     "ignore::PendingDeprecationWarning",
 ]
 addopts = [
+    "-n",
+    "auto",
+    "--dist",
+    "loadgroup",
     "-v",
     "-s",
     "--durations=20",
