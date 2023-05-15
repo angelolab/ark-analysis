@@ -1,5 +1,5 @@
 import pathlib
-from typing import Iterator
+from typing import Iterator, Union
 import shutil
 import pytest
 from testbook.client import TestbookNotebookClient
@@ -223,7 +223,7 @@ class Test_1_Segment_Image_Data:
     """
 
     @pytest.fixture(autouse=True, scope="function")
-    def _setup(self, nb1_context, dataset_cache_dir: str | None):
+    def _setup(self, nb1_context, dataset_cache_dir: Union[str, None]):
         """
         Sets up necessary data and paths to run the notebooks.
         """
