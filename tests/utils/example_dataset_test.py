@@ -19,7 +19,7 @@ from ark.utils.example_dataset import ExampleDataset, get_example_dataset
                                          "neighborhood_analysis",
                                          "pairwise_spatial_enrichment",
                                          "ome_tiff"])
-def dataset_download(request) -> Iterator[ExampleDataset]:
+def dataset_download(request, dataset_cache_dir) -> Iterator[ExampleDataset]:
     """
     A Fixture which instantiates and downloads the dataset with respect to each
     notebook.
@@ -32,16 +32,10 @@ def dataset_download(request) -> Iterator[ExampleDataset]:
         Iterator[ExampleDataset]: The iterable Example Dataset.
     """
 
-    # Change cache directory if running on CI
-    if os.environ.get("CI", False):
-        cache_dir = pathlib.Path("./data/cache/")
-    else:
-        cache_dir = pathlib.Path("~/.cache/huggingface/datasets/").expanduser()
-
     # Set up ExampleDataset class
     example_dataset: ExampleDataset = ExampleDataset(
         dataset=request.param,
-        cache_dir=cache_dir,  # Use the default cache
+        cache_dir=dataset_cache_dir,  # Use the default cache
         revision=EXAMPLE_DATASET_REVISION
     )
     # Download example data for a particular notebook

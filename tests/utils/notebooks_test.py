@@ -223,12 +223,14 @@ class Test_1_Segment_Image_Data:
     """
 
     @pytest.fixture(autouse=True, scope="function")
-    def _setup(self, nb1_context):
+    def _setup(self, nb1_context, dataset_cache_dir: str | None):
         """
         Sets up necessary data and paths to run the notebooks.
         """
         self.tb: testbook = nb1_context[0]
+        self.dataset: str = "segment_image_data"
         self.base_dir: str = nb1_context[1].as_posix()
+        self.cache_dir: str | None = dataset_cache_dir
 
     def test_imports(self):
         self.tb.execute_cell("import")
@@ -240,7 +242,8 @@ class Test_1_Segment_Image_Data:
         self.tb.inject(base_dir_inject, "base_dir")
 
     def test_ex_data_download(self):
-        self.tb.execute_cell("ex_data_download")
+        notebooks_test_utils._ex_dataset_download(dataset=self.dataset, save_dir=self.base_dir,
+                                                  cache_dir=self.cache_dir)
 
     def test_file_path(self):
         self.tb.execute_cell("file_path")
@@ -301,12 +304,14 @@ class Test_2_Pixel_Clustering:
     """
 
     @pytest.fixture(autouse=True, scope="function")
-    def _setup(self, nb2_context):
+    def _setup(self, nb2_context, dataset_cache_dir):
         """
         Sets up necessary data and paths to run the notebooks.
         """
         self.tb: testbook = nb2_context[0]
+        self.dataset: str = "cluster_pixels"
         self.base_dir: str = nb2_context[1].as_posix()
+        self.cache_dir: str | None = dataset_cache_dir
 
         # Variables
         self.pixel_prefix = "test"
@@ -322,7 +327,8 @@ class Test_2_Pixel_Clustering:
         self.tb.inject(base_dir_inject, "base_dir")
 
     def test_ex_data_download(self):
-        self.tb.execute_cell("ex_data_download")
+        notebooks_test_utils._ex_dataset_download(dataset=self.dataset, save_dir=self.base_dir,
+                                                  cache_dir=self.cache_dir)
 
     def test_file_path(self):
         self.tb.execute_cell("file_path")
@@ -414,12 +420,14 @@ class Test_3_Cell_Clustering:
     """
 
     @pytest.fixture(autouse=True, scope="function")
-    def _setup(self, nb3_context):
+    def _setup(self, nb3_context, dataset_cache_dir):
         """
         Sets up necessary data and paths to run the notebooks.
         """
         self.tb: testbook = nb3_context[0]
+        self.dataset: str = "cluster_cells"
         self.base_dir: str = nb3_context[1].as_posix()
+        self.cache_dir: str | None = dataset_cache_dir
 
         # Variables
         self.cell_prefix = "test"
@@ -434,7 +442,8 @@ class Test_3_Cell_Clustering:
         self.tb.inject(base_dir_inject, "base_dir")
 
     def test_ex_data_download(self):
-        self.tb.execute_cell("ex_data_download")
+        notebooks_test_utils._ex_dataset_download(dataset=self.dataset, save_dir=self.base_dir,
+                                                  cache_dir=self.cache_dir)
 
     def test_dir_set(self):
         self.tb.execute_cell("dir_set")
@@ -518,12 +527,14 @@ class Test_3b_Generic_Cell_Clustering:
     """
 
     @pytest.fixture(autouse=True, scope="function")
-    def _setup(self, nb3b_context):
+    def _setup(self, nb3b_context, dataset_cache_dir):
         """
         Sets up necessary data and paths to run the notebooks.
         """
         self.tb: testbook = nb3b_context[0]
+        self.dataset: str = "cluster_cells"
         self.base_dir: str = nb3b_context[1].as_posix()
+        self.cache_dir: str | None = dataset_cache_dir
 
         # Variables
         self.cell_prefix = "test"
@@ -538,7 +549,8 @@ class Test_3b_Generic_Cell_Clustering:
         self.tb.inject(base_dir_inject, "base_dir")
 
     def test_ex_data_download(self):
-        self.tb.execute_cell("ex_data_download")
+        notebooks_test_utils._ex_dataset_download(dataset=self.dataset, save_dir=self.base_dir,
+                                                  cache_dir=self.cache_dir)
 
     def test_input_set(self):
         self.tb.execute_cell("input_set")
@@ -607,12 +619,14 @@ class Test_4_Post_Clustering:
     """
 
     @pytest.fixture(autouse=True, scope="function")
-    def _setup(self, nb4_context):
+    def _setup(self, nb4_context, dataset_cache_dir):
         """
         Sets up necessary data and paths to run the notebooks.
         """
         self.tb: testbook = nb4_context[0]
+        self.dataset: str = "post_clustering"
         self.base_dir: str = nb4_context[1].as_posix()
+        self.cache_dir: str | None = dataset_cache_dir
 
         # Variables
         self.cell_prefix = "test"
@@ -627,7 +641,8 @@ class Test_4_Post_Clustering:
         self.tb.inject(base_dir_inject, "base_dir")
 
     def test_ex_data_download(self):
-        self.tb.execute_cell("ex_data_download")
+        notebooks_test_utils._ex_dataset_download(dataset=self.dataset, save_dir=self.base_dir,
+                                                  cache_dir=self.cache_dir)
 
     def test_file_path(self):
         self.tb.execute_cell("file_path")
@@ -674,12 +689,14 @@ class Test_Fiber_Segmentation:
     """
 
     @pytest.fixture(autouse=True, scope="function")
-    def _setup(self, nbfib_seg_context):
+    def _setup(self, nbfib_seg_context, dataset_cache_dir):
         """
         Sets up necessary data and paths to run the notebooks.
         """
         self.tb: testbook = nbfib_seg_context[0]
+        self.dataset: str = "fiber_segmentation"
         self.base_dir: str = nbfib_seg_context[1].as_posix()
+        self.cache_dir: str | None = dataset_cache_dir
 
     def test_imports(self):
         self.tb.execute_cell("import")
@@ -691,7 +708,8 @@ class Test_Fiber_Segmentation:
         self.tb.inject(base_dir_inject, "base_dir")
 
     def test_ex_data_download(self):
-        self.tb.execute_cell("ex_data_download")
+        notebooks_test_utils._ex_dataset_download(dataset=self.dataset, save_dir=self.base_dir,
+                                                  cache_dir=self.cache_dir)
 
     def test_file_paths(self):
         self.tb.execute_cell("file_paths")
@@ -714,12 +732,14 @@ class Test_Mixing_Score:
     """
 
     @pytest.fixture(autouse=True, scope="function")
-    def _setup(self, nbmixing_context):
+    def _setup(self, nbmixing_context, dataset_cache_dir):
         """
         Sets up necessary data and paths to run the notebooks.
         """
         self.tb: testbook = nbmixing_context[0]
+        self.dataset: str = "post_clustering"
         self.base_dir: str = nbmixing_context[1].as_posix()
+        self.cache_dir: str | None = dataset_cache_dir
 
     def test_imports(self):
         self.tb.execute_cell("import")
@@ -731,7 +751,8 @@ class Test_Mixing_Score:
         self.tb.inject(base_dir_inject, "base_dir")
 
     def test_ex_data_download(self):
-        self.tb.execute_cell("ex_data_download")
+        notebooks_test_utils._ex_dataset_download(dataset=self.dataset, save_dir=self.base_dir,
+                                                  cache_dir=self.cache_dir)
 
     def test_file_paths(self):
         self.tb.execute_cell("file_path")

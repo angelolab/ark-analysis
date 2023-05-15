@@ -3,6 +3,8 @@ import os
 import numpy as np
 import pandas as pd
 from alpineer import image_utils
+from ark.utils import example_dataset
+from ark.settings import EXAMPLE_DATASET_REVISION
 
 
 def create_pixel_remap_files(base_dir,  pixel_meta_cluster_mapping):
@@ -66,3 +68,15 @@ def generate_sample_feature_tifs(fovs, deepcell_output_dir, img_shape=(50, 50)):
                                rand_img)
         image_utils.save_image(os.path.join(deepcell_output_dir, fov + "_nuclear.tiff"),
                                rand_img)
+
+
+def _ex_dataset_download(dataset: str, save_dir: str, cache_dir: str | None):
+
+    overwrite_existing = True
+    ex_dataset = example_dataset.ExampleDataset(dataset=dataset,
+                                                overwrite_existing=overwrite_existing,
+                                                cache_dir=cache_dir,
+                                                revision=EXAMPLE_DATASET_REVISION)
+    ex_dataset.download_example_dataset()
+
+    ex_dataset.move_example_dataset(move_dir=save_dir)
