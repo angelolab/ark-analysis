@@ -1,4 +1,5 @@
 import os
+from typing import Union
 
 import numpy as np
 import pandas as pd
@@ -70,7 +71,7 @@ def generate_sample_feature_tifs(fovs, deepcell_output_dir, img_shape=(50, 50)):
                                rand_img)
 
 
-def _ex_dataset_download(dataset: str, save_dir: str, cache_dir: str | None):
+def _ex_dataset_download(dataset: str, save_dir: str, cache_dir: Union[str, None]):
 
     overwrite_existing = True
     ex_dataset = example_dataset.ExampleDataset(dataset=dataset,
