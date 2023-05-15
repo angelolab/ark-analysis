@@ -35,7 +35,7 @@ def dataset_download(request, dataset_cache_dir) -> Iterator[ExampleDataset]:
     # Set up ExampleDataset class
     example_dataset: ExampleDataset = ExampleDataset(
         dataset=request.param,
-        cache_dir=dataset_cache_dir,  # Use the default cache
+        cache_dir=dataset_cache_dir,
         revision=EXAMPLE_DATASET_REVISION
     )
     # Download example data for a particular notebook
