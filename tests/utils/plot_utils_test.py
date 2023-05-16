@@ -254,14 +254,14 @@ class _mantis:
     mask_dir: str
     cell_output_dir: str
     fov_path: pathlib.Path
-    img_data_path: pathlib.Path
-    img_sub_folder: pathlib.Path
+    img_data_path: str
+    img_sub_folder: str
     mantis_project_path: pathlib.Path
     mask_output_dir: pathlib.Path
     fovs: List[str]
     mask_suffix: str
     df: pd.DataFrame
-    mapping_path: pathlib.Path
+    mapping_path: str
     data_xr: xr.DataArray
     example_masks: xr.DataArray
 
@@ -303,7 +303,7 @@ def mantis_data(tmp_path) -> Generator[_mantis, None, None]:
     fovs, channels = test_utils.gen_fov_chan_names(num_fovs=fov_count, num_chans=4,
                                                    use_delimiter=False, return_imgs=False)
 
-    fov_path = data_dir / img_data_path
+    fov_path: pathlib.Path = data_dir / img_data_path
     filelocs, data_xr = test_utils.create_paired_xarray_fovs(
         fov_path, fovs, channels, img_shape=(10, 10), mode='tiff', delimiter=None,
         sub_dir=img_sub_folder, fills=True, dtype=np.int16

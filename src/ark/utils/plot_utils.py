@@ -452,14 +452,16 @@ def create_mantis_dir(fovs: List[str], mantis_project_path: Union[str, pathlib.P
             The folder containing all the masks of the fovs.
         mapping (Union[str, pathlib.Path, pd.DataFrame]):
             The location of the mapping file, or the mapping Pandas DataFrame itself.
-        seg_dir (Union[str, pathlib.Path]):
-            The location of the segmentation directory for the fovs.
+        seg_dir (Union[str, pathlib.Path], optional):
+            The location of the segmentation directory for the fovs. If None, then
+            the segmentation file will not be copied over.
         cluster_type (str):
             the type of clustering being done
         mask_suffix (str, optional):
             The suffix used to find the mask tiffs. Defaults to "_mask".
         seg_suffix_name (str, optional):
-            The suffix of the segmentation file and it's file extension.
+            The suffix of the segmentation file and it's file extension. If None, then
+            the segmentation file will not be copied over.
             Defaults to "_whole_cell.tiff".
         img_sub_folder (str, optional):
             The subfolder where the channels exist within the `img_data_path`.
