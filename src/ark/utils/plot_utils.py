@@ -2,7 +2,7 @@ import os
 import pathlib
 import shutil
 from operator import contains
-from typing import List, Union
+from typing import List, Optional, Union
 
 import matplotlib.cm as cm
 import matplotlib.colors as colors
@@ -411,10 +411,10 @@ def create_mantis_dir(fovs: List[str], mantis_project_path: Union[str, pathlib.P
                       img_data_path: Union[str, pathlib.Path],
                       mask_output_dir: Union[str, pathlib.Path],
                       mapping: Union[str, pathlib.Path, pd.DataFrame],
-                      seg_dir: Union[str, pathlib.Path],
+                      seg_dir: Optional[Union[str, pathlib.Path]],
                       cluster_type='pixel',
                       mask_suffix: str = "_mask",
-                      seg_suffix_name: str = "_whole_cell.tiff",
+                      seg_suffix_name: Optional[str] = "_whole_cell.tiff",
                       img_sub_folder: str = ""):
     """Creates a mantis project directory so that it can be opened by the mantis viewer.
     Copies fovs, segmentation files, masks, and mapping csv's into a new directory structure.
@@ -452,14 +452,16 @@ def create_mantis_dir(fovs: List[str], mantis_project_path: Union[str, pathlib.P
             The folder containing all the masks of the fovs.
         mapping (Union[str, pathlib.Path, pd.DataFrame]):
             The location of the mapping file, or the mapping Pandas DataFrame itself.
-        seg_dir (Union[str, pathlib.Path]):
-            The location of the segmentation directory for the fovs.
+        seg_dir (Union[str, pathlib.Path], optional):
+            The location of the segmentation directory for the fovs. If None, then
+            the segmentation file will not be copied over.
         cluster_type (str):
             the type of clustering being done
         mask_suffix (str, optional):
             The suffix used to find the mask tiffs. Defaults to "_mask".
         seg_suffix_name (str, optional):
-            The suffix of the segmentation file and it's file extension.
+            The suffix of the segmentation file and it's file extension. If None, then
+            the segmentation file will not be copied over.
             Defaults to "_whole_cell.tiff".
         img_sub_folder (str, optional):
             The subfolder where the channels exist within the `img_data_path`.
@@ -483,6 +485,9 @@ def create_mantis_dir(fovs: List[str], mantis_project_path: Union[str, pathlib.P
     else:
         ValueError("Mapping must either be a path to an already saved mapping csv, \
                    or a DataFrame that is already loaded in.")
+
+    # Save the segmentation tiff or not
+    save_seg_tiff: bool = all(v is not None for v in [seg_dir, seg_suffix_name])
 
     map_df = map_df.loc[:, [f'{cluster_type}_meta_cluster', f'{cluster_type}_meta_cluster_rename']]
     # remove duplicates from df
@@ -533,9 +538,11 @@ def create_mantis_dir(fovs: List[str], mantis_project_path: Union[str, pathlib.P
                     os.path.join(output_dir, 'population{}.tiff'.format(mask_suffix)))
 
         # copy the segmentation files into the output directory
-        seg_name: str = fov + seg_suffix_name
-        shutil.copy(os.path.join(seg_dir, seg_name),
-                    os.path.join(output_dir, 'cell_segmentation.tiff'))
+        # if `seg_dir` or `seg_name` is none, then skip copying
+        if save_seg_tiff:
+            seg_name: str = fov + seg_suffix_name
+            shutil.copy(os.path.join(seg_dir, seg_name),
+                        os.path.join(output_dir, 'cell_segmentation.tiff'))
 
         # copy mapping into directory
         map_df.to_csv(os.path.join(output_dir, 'population{}.csv'.format(mask_suffix)),
