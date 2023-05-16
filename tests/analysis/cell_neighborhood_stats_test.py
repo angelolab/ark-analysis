@@ -166,7 +166,7 @@ def test_calculate_mean_distance_to_all_cell_types():
 
 
 def test_cell_neighbor_distance_analysis(mocker: MockerFixture, ):
-    mocker.patch('xarray.xr.load_dataarray', generate_test_distance_matrix())
+    mocker.patch('xarray.load_dataarray', return_value=generate_test_distance_matrix())
 
     cell_table = pd.concat([generate_test_celldf('fov1'), generate_test_celldf('fov2')])
 
@@ -180,8 +180,8 @@ def test_cell_neighbor_distance_analysis(mocker: MockerFixture, ):
         assert cell_dists.shape[0] == cell_table.shape[0]
 
         # check columns are correct
-        assert np.unique(cell_dists.settings.CELL_TYPE) in cell_dists.columns
-        assert cell_dists.columns[0:3] == [settings.FOV_ID, settings.CELL_LABEL,
-                                           settings.CELL_TYPE]
+        assert np.isin(np.unique(cell_dists[settings.CELL_TYPE]), cell_dists.columns).all()
+        assert (cell_dists.columns[0:3] == [settings.FOV_ID, settings.CELL_LABEL,
+                                            settings.CELL_TYPE]).all()
         # check file is saved
         assert os.path.exists(save_path)
