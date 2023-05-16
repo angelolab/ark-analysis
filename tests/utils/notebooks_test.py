@@ -205,7 +205,7 @@ def nbcell_neighbors_context(templates_dir, base_dir_generator) -> Iterator[Cont
     """
     EXAMPLE_CELL_NEIGHBORS: pathlib.Path = templates_dir / "Calculate_Mixing_Scores.ipynb"
     with testbook(EXAMPLE_CELL_NEIGHBORS, timeout=6000, execute=False) as nb_context_manager:
-        yield nb_context_manager, base_dir_generator / "cms"
+        yield nb_context_manager, base_dir_generator / "cna"
     shutil.rmtree(base_dir_generator / "cna")
 
 
