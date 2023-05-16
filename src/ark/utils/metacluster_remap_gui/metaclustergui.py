@@ -495,6 +495,22 @@ class MetaClusterGui():
 
     @DEBUG_VIEW.capture(clear_output=False)
     def update_current_metacluster_displayname(self, t):
+        # verify against the other displaynames to ensure no duplicates
+        # NOTE: it's fine if the user renames the current metacluster back to its existing name
+        curr_metacluster_dict = {self.current_metacluster.value: t.new}
+        other_mc_info = dict(
+            self.mcd._metacluster_displaynames_map.items() - curr_metacluster_dict.items()
+        )
+        other_mc_ids = list(other_mc_info.keys())
+        all_mc_names = list(other_mc_info.values())
+
+        if t.new in all_mc_names:
+            disp_index = all_mc_names.index(displayname)
+            raise ValueError(
+                f"The name {displayname} for metacluster {metacluster} already exists for "
+                f"metacluster {other_mc_ids[disp_index]}, please resolve before moving on."
+            )
+
         self.mcd.change_displayname(self.current_metacluster.value, t.new)
         old_current_metacluster = self.current_metacluster.value
 
