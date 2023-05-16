@@ -758,11 +758,13 @@ class Test_Cell_Neighbors():
     def test_imports(self):
         self.tb.execute_cell("import")
 
-    def test_file_paths(self):
+    def test_base_dir(self):
         base_dir_inject = f"""
-                    base_dir = r"{self.base_dir}"
-                """
+                            base_dir = r"{self.base_dir}"
+                        """
         self.tb.inject(base_dir_inject, "base_dir")
+
+    def test_file_paths(self):
         self.tb.execute_cell("file_path")
 
     def test_create_dirs(self):
