@@ -268,6 +268,18 @@ class _mantis:
 
 @pytest.fixture(scope="function")
 def mantis_data(tmp_path) -> Generator[_mantis, None, None]:
+    """Generates a mantis folder, saves images and segmentation labels to
+    an data folder to simulate moving data from the data folder to the mantis
+    folder.
+
+    Args:
+        tmp_path (pathlib.Path): The temporary path for the mantis data to
+        be stored in.
+
+    Yields:
+        Generator[_mantis, None, None]: Yields the `_mantis` dataclass which houses
+        paths, fovs and data for the mantis data.
+    """
 
     data_dir: pathlib.Path = tmp_path / "data"
     data_dir.mkdir(parents=True, exist_ok=True)
