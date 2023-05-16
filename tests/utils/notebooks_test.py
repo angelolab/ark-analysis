@@ -203,7 +203,7 @@ def nbcell_neighbors_context(templates_dir, base_dir_generator) -> Iterator[Cont
         Iterator[ContextManager]: The testbook context manager which will get cleaned up
             afterwords.
     """
-    EXAMPLE_CELL_NEIGHBORS: pathlib.Path = templates_dir / "Calculate_Mixing_Scores.ipynb"
+    EXAMPLE_CELL_NEIGHBORS: pathlib.Path = templates_dir / "cell_neighbors_analysis.ipynb"
     with testbook(EXAMPLE_CELL_NEIGHBORS, timeout=6000, execute=False) as nb_context_manager:
         yield nb_context_manager, base_dir_generator / "cna"
     shutil.rmtree(base_dir_generator / "cna")
@@ -768,7 +768,7 @@ class Test_Cell_Neighbors():
         self.tb.execute_cell("file_path")
 
     def test_create_dirs(self):
-        example_dataset.get_example_dataset("post_clustering", self.base_dir, False)
+        example_dataset.get_example_dataset("post_clustering", self.base_dir, True)
         self.tb.execute_cell("create_dirs")
 
     def test_diversity_args(self):
