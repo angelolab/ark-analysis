@@ -4,7 +4,7 @@
 
 | | | 
 | ---        |    ---  |
-| CI / CD | [![CI](https://github.com/angelolab/ark-analysis/actions/workflows/ci.yml/badge.svg)](https://github.com/angelolab/ark-analysis/actions/workflows/ci.yml) ![Read the Docs](https://img.shields.io/readthedocs/ark-analysis) [![Coverage Status](https://coveralls.io/repos/github/angelolab/ark-analysis/badge.svg?branch=main)](https://coveralls.io/github/angelolab/ark-analysis?branch=main) |
+| CI / CD | [![CI](https://github.com/angelolab/ark-analysis/actions/workflows/ci.yml/badge.svg)](https://github.com/angelolab/ark-analysis/actions/workflows/ci.yml) ![Read the Docs](https://img.shields.io/readthedocs/ark-analysis) [![Coverage Status](https://coveralls.io/repos/github/angelolab/ark-analysis/badge.svg?branch=main)](https://coveralls.io/github/angelolab/ark-analysis?branch=main) ![Docker Image Version (latest by date)](https://img.shields.io/docker/v/angelolab/ark-analysis?arch=amd64&color=%23469ae5&label=Docker%20Version&sort=date) |
 | Package | [![PyPI - Version](https://img.shields.io/pypi/v/ark-analysis.svg?logo=pypi&label=PyPI&logoColor=gold)](https://pypi.org/project/ark-analysis/) [![PyPI - Downloads](https://img.shields.io/pypi/dm/ark-analysis.svg?color=blue&label=Downloads&logo=pypi&logoColor=gold)](https://pypi.org/project/ark-analysis/) [![PyPI - Python Version](https://img.shields.io/pypi/pyversions/ark-analysis.svg?logo=python&label=Python&logoColor=gold)](https://pypi.org/project/ark-analysis/) |
 |Meta | [![PyPI - License](https://img.shields.io/pypi/l/ark-analysis?color=9400d3)](LICENSE) |
 
