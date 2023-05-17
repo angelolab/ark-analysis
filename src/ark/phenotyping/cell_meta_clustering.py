@@ -63,7 +63,7 @@ def cell_consensus_cluster(base_dir, cell_som_cluster_cols, cell_som_input_data,
     if 'cell_meta_cluster' in cell_som_input_data:
         # if cell_meta_cluster column exists and no overwrite set, return immediately
         if not overwrite:
-            print("Meta cluster already assigned to each cell")
+            print("Meta clusters already assigned to each cell")
             return cell_cc, cell_som_input_data
 
         print("Overwrite flag set, reassigning meta cluster labels")

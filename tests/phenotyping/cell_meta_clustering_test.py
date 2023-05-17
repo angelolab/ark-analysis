@@ -14,7 +14,7 @@ parametrize = pytest.mark.parametrize
 
 
 @parametrize('pixel_cluster_prefix', ['pixel_som_cluster', 'pixel_meta_cluster_rename'])
-def test_cell_consensus_cluster(pixel_cluster_prefix):
+def test_cell_consensus_cluster(pixel_cluster_prefix, capsys):
     with tempfile.TemporaryDirectory() as temp_dir:
         # define the cluster column names
         cluster_cols = [f'{pixel_cluster_prefix}_' + str(i) for i in range(3)]
@@ -64,6 +64,39 @@ def test_cell_consensus_cluster(pixel_cluster_prefix):
         ].drop_duplicates().sort_values(by='cell_som_cluster')
 
         assert np.all(sample_mapping.values == cell_mapping.values)
+
+        # assert running without overwrite flag on same cell_pysom object returns immediately
+        capsys.readouterr()
+
+        cell_cc, cell_consensus_data_repeat = cell_meta_clustering.cell_consensus_cluster(
+            base_dir=temp_dir,
+            cell_som_cluster_cols=cluster_cols,
+            cell_som_input_data=cluster_data,
+            cell_som_expr_col_avg_name='cell_som_cluster_avg.csv'
+        )
+
+        output = capsys.readouterr().out
+        desired_status_updates = \
+            "Meta clusters already assigned to each cell\n"
+        assert desired_status_updates in output
+        assert np.all(cell_consensus_data_repeat.values == cell_consensus_data.values)
+
+        # assert running with overwrite flag re-runs pipeline
+        capsys.readouterr()
+
+        cell_cc, cell_consensus_data_repeat = cell_meta_clustering.cell_consensus_cluster(
+            base_dir=temp_dir,
+            cell_som_cluster_cols=cluster_cols,
+            cell_som_input_data=cluster_data,
+            cell_som_expr_col_avg_name='cell_som_cluster_avg.csv',
+            overwrite=True
+        )
+
+        output = capsys.readouterr().out
+        desired_status_updates = \
+            "Overwrite flag set, reassigning meta cluster labels\n"
+        assert desired_status_updates in output
+        assert np.all(cell_consensus_data_repeat.values == cell_consensus_data.values)
 
 
 def test_generate_meta_avg_files(capsys):
