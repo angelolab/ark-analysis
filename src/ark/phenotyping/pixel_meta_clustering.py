@@ -364,16 +364,6 @@ def apply_pixel_meta_cluster_remapping(fovs, channels, base_dir,
         required_cols=['pixel_som_cluster', 'pixel_meta_cluster', 'pixel_meta_cluster_rename']
     )
 
-    # duplicate pixel_meta_cluster_rename values cause issues with aggregation
-    dup_pixel_meta_rename = pixel_remapped_data[
-        pixel_remapped_data.duplicated('pixel_meta_cluster_rename', keep=False)
-    ]['pixel_meta_cluster_rename'].unique().tolist()
-    if len(dup_meta_rename) > 0:
-        raise ValueError(
-            "Duplicate renamed pixel meta cluster values found: %s, "
-            "please re-run remapping GUI to resolve naming conflicts" % str(dup_pixel_meta_rename)
-        )
-
     # create the mapping from pixel SOM to pixel meta cluster
     pixel_remapped_dict = dict(
         pixel_remapped_data[
@@ -381,12 +371,22 @@ def apply_pixel_meta_cluster_remapping(fovs, channels, base_dir,
         ].values
     )
 
+    # verify each pixel meta cluster assigned to a unique renamed meta cluster
+    # duplicates cause issues with aggregation
+    pixel_meta_pairs = pixel_remapped_data[
+        ['pixel_meta_cluster', 'pixel_meta_cluster_rename']
+    ].drop_duplicates()
+    pixel_meta_dups = pixel_meta_pairs[
+        pixel_meta_pairs.duplicated('pixel_meta_cluster_rename', keep=False)
+    ]['pixel_meta_cluster_rename'].unique().tolist()
+    if len(pixel_meta_dups) > 0:
+        raise ValueError(
+            "Duplicate renamed pixel meta cluster values found: %s, "
+            "please re-run remapping GUI to resolve naming conflicts" % str(pixel_meta_dups)
+        )
+
     # create the mapping from pixel meta cluster to renamed pixel meta cluster
-    pixel_renamed_meta_dict = dict(
-        pixel_remapped_data[
-            ['pixel_meta_cluster', 'pixel_meta_cluster_rename']
-        ].drop_duplicates().values
-    )
+    pixel_renamed_meta_dict = dict(pixel_meta_pairs.values)
 
     # define the partial function to iterate over
     fov_data_func = partial(

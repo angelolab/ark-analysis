@@ -191,18 +191,8 @@ def apply_cell_meta_cluster_remapping(base_dir, cell_som_input_data, cell_remapp
         required_cols=['cell_som_cluster', 'cell_meta_cluster', 'cell_meta_cluster_rename']
     )
 
-    # duplicate cell_meta_cluster_rename values cause issues with aggregation
-    dup_cell_meta_rename = cell_remapped_data[
-        cell_remapped_data.duplicated('cell_meta_cluster_rename', keep=False)
-    ]['cell_meta_cluster_rename'].unique().tolist()
-    if len(dup_cell_meta_rename) > 0:
-        raise ValueError(
-            "Duplicate renamed cell meta cluster values found: %s, "
-            "please re-run remapping GUI to resolve naming conflicts" % str(dup_cell_meta_rename)
-        )
-
     # create the mapping from cell SOM to cell meta cluster
-    # TODO: generating cell_remapped_dict and cell_renamed_meta_dict should be returned
+    # TODO: generated cell_remapped_dict and cell_renamed_meta_dict should be returned
     # to prevent repeat computation in summary file generation functions
     cell_remapped_dict = dict(
         cell_remapped_data[
@@ -210,12 +200,22 @@ def apply_cell_meta_cluster_remapping(base_dir, cell_som_input_data, cell_remapp
         ].values
     )
 
+    # verify each cell meta cluster assigned to a unique renamed meta cluster
+    # duplicates cause issues with aggregation
+    cell_meta_pairs = cell_remapped_data[
+        ['cell_meta_cluster', 'cell_meta_cluster_rename']
+    ].drop_duplicates()
+    cell_meta_dups = cell_meta_pairs[
+        cell_meta_pairs.duplicated('cell_meta_cluster_rename', keep=False)
+    ]['cell_meta_cluster_rename'].unique().tolist()
+    if len(cell_meta_dups) > 0:
+        raise ValueError(
+            "Duplicate renamed cell meta cluster values found: %s, "
+            "please re-run remapping GUI to resolve naming conflicts" % str(cell_meta_dups)
+        )
+
     # create the mapping from cell meta cluster to cell renamed meta cluster
-    cell_renamed_meta_dict = dict(
-        cell_remapped_data[
-            ['cell_meta_cluster', 'cell_meta_cluster_rename']
-        ].drop_duplicates().values
-    )
+    cell_renamed_meta_dict = dict(cell_meta_pairs.values)
 
     # load the cell consensus data in
     print("Using re-mapping scheme to re-label cell meta clusters")
