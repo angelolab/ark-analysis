@@ -70,6 +70,7 @@ test = [
     "pytest-pycodestyle",
     "pytest-randomly",
     "pytest-asyncio",
+    "pytest-xdist",
     "testbook",
 ]
 
@@ -152,6 +153,8 @@ filterwarnings = [
 addopts = [
     "-v",
     "-s",
+    "-n=auto",
+    "--dist=loadscope",
     "--durations=20",
     "--randomly-seed=24",
     "--randomly-dont-reorganize",
