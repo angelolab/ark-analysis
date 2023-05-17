@@ -132,12 +132,12 @@ def preprocess_fov(base_dir, tiff_dir, data_dir, subset_dir, seg_dir, seg_suffix
         pixel_mat_chans=img_xr.channels.values
     )
 
-    # if seg_dir is None, leave seg_labels as None
-    seg_labels = None
-
-    # otherwise, load segmentation labels in for fov
+    # if seg_dir is not None, load the segmentation labels in for the fov,
+    # otherwise leave seg_labels as None
     if seg_dir is not None:
         seg_labels = imread(os.path.join(seg_dir, fov + seg_suffix))
+    else:
+        seg_labels = None
 
     # subset for the channel data
     img_data = img_xr.loc[fov, :, :, channels].values.astype(np.float32)
@@ -271,7 +271,7 @@ def create_pixel_matrix(fovs, channels, base_dir, tiff_dir, seg_dir,
 
     # check to make sure correct channels were specified
     pixel_cluster_utils.check_for_modified_channels(
-        tiff_dir=tiff_dir, 
+        tiff_dir=tiff_dir,
         test_fov=fovs[0],
         img_sub_folder=img_sub_folder,
         channels=channels
