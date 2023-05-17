@@ -40,13 +40,14 @@ REGIONPROPS_MULTI_COMP = ['nc_ratio']
 
 # fiber segmentation regionprops extraction
 FIBER_OBJECT_PROPS = (
+    'label',
+    'centroid',
     'major_axis_length',
     'minor_axis_length',
     'orientation',
-    'centroid',
-    'label',
+    'area',
     'eccentricity',
-    'euler_number'
+    'euler_number',
 )
 
 # spatial-LDA minimum required columns

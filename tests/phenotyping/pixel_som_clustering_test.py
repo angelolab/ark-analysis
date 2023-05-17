@@ -1,12 +1,12 @@
 import os
+import pathlib
 import tempfile
-from shutil import rmtree
 
 import feather
 import numpy as np
 import pandas as pd
 import pytest
-from alpineer import io_utils, misc_utils
+from alpineer import io_utils, misc_utils, test_utils
 
 import ark.phenotyping.cluster_helpers as cluster_helpers
 import ark.phenotyping.pixel_som_clustering as pixel_som_clustering
@@ -313,6 +313,30 @@ def test_cluster_pixels_corrupt(multiprocess, capsys):
             data_files=io_utils.list_files(os.path.join(temp_dir, 'pixel_mat_data')),
             written_files=['fov0.feather', 'fov2.feather']
         )
+
+
+def test__ignore_extended_attributes(tmp_path):
+    ignore_attrib_path: pathlib.Path = tmp_path / "ignore_attributes"
+    ignore_attrib_path.mkdir()
+    test_utils._make_blank_file(ignore_attrib_path, "._TEST_FILE.txt")
+    test_utils._make_blank_file(ignore_attrib_path, "TEST_FILE.txt")
+
+    # Raises a runtime error when the function is not `os.unlink` and the file is a hidden file
+    # prefixed with `._`
+    with pytest.raises(RuntimeError):
+        pixel_som_clustering._ignore_extended_attributes(
+            func=os.path.exists, filename="._TEST_FILE.txt", exc_info=(None, None, None))
+
+    # Raises a runtime error when the function is `os.unlink` and the file is not prefixed
+    # with `._`
+    with pytest.raises(RuntimeError):
+        pixel_som_clustering._ignore_extended_attributes(
+            func=os.unlink, filename="TEST_FILE.txt", exc_info=(None, None, None))
+
+    # Do not raise an erorr when the function is `os.unlink` and the file is a hidden file
+    # prefixed with `._`
+    pixel_som_clustering._ignore_extended_attributes(
+        func=os.unlink, filename="._TEST_FILE.txt", exc_info=(None, None, None))
 
 
 def test_generate_som_avg_files(capsys):
