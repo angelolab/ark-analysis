@@ -364,6 +364,16 @@ def apply_pixel_meta_cluster_remapping(fovs, channels, base_dir,
         required_cols=['pixel_som_cluster', 'pixel_meta_cluster', 'pixel_meta_cluster_rename']
     )
 
+    # duplicate pixel_meta_cluster_rename values cause issues with aggregation
+    dup_pixel_meta_rename = pixel_remapped_data[
+        pixel_remapped_data.duplicated('pixel_meta_cluster_rename', keep=False)
+    ]['pixel_meta_cluster_rename'].unique().tolist()
+    if len(dup_meta_rename) > 0:
+        raise ValueError(
+            "Duplicate renamed pixel meta cluster values found: %s, "
+            "please re-run remapping GUI to resolve naming conflicts" % str(dup_pixel_meta_rename)
+        )
+
     # create the mapping from pixel SOM to pixel meta cluster
     pixel_remapped_dict = dict(
         pixel_remapped_data[

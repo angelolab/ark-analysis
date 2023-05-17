@@ -191,6 +191,16 @@ def apply_cell_meta_cluster_remapping(base_dir, cell_som_input_data, cell_remapp
         required_cols=['cell_som_cluster', 'cell_meta_cluster', 'cell_meta_cluster_rename']
     )
 
+    # duplicate cell_meta_cluster_rename values cause issues with aggregation
+    dup_cell_meta_rename = cell_remapped_data[
+        cell_remapped_data.duplicated('cell_meta_cluster_rename', keep=False)
+    ]['cell_meta_cluster_rename'].unique().tolist()
+    if len(dup_cell_meta_rename) > 0:
+        raise ValueError(
+            "Duplicate renamed cell meta cluster values found: %s, "
+            "please re-run remapping GUI to resolve naming conflicts" % str(dup_cell_meta_rename)
+        )
+
     # create the mapping from cell SOM to cell meta cluster
     # TODO: generating cell_remapped_dict and cell_renamed_meta_dict should be returned
     # to prevent repeat computation in summary file generation functions
