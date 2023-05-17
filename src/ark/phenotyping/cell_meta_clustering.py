@@ -9,7 +9,7 @@ from ark.phenotyping import cell_cluster_utils
 
 
 def cell_consensus_cluster(base_dir, cell_som_cluster_cols, cell_som_input_data,
-                           cell_som_expr_col_avg_name, max_k=20, cap=3, seed=42):
+                           cell_som_expr_col_avg_name, max_k=20, cap=3, seed=42, overwrite=False):
     """Run consensus clustering algorithm on cell-level data averaged across each cell SOM cluster.
 
     Saves data with consensus cluster labels to cell_consensus_name.
@@ -30,6 +30,8 @@ def cell_consensus_cluster(base_dir, cell_som_cluster_cols, cell_som_input_data,
             z-score cap to use when hierarchical clustering
         seed (int):
             The random seed to set for consensus clustering
+        overwrite (bool):
+            If set, overwrites the meta cluster assignments if they exist
 
     Returns:
         tuple:
@@ -37,6 +39,7 @@ def cell_consensus_cluster(base_dir, cell_som_cluster_cols, cell_som_input_data,
               SOM to meta mapping
             - pandas.DataFrame: the input data used for SOM training with meta labels attached
     """
+
     # define the paths to the data
     som_expr_col_avg_path = os.path.join(base_dir, cell_som_expr_col_avg_name)
 
@@ -56,6 +59,15 @@ def cell_consensus_cluster(base_dir, cell_som_cluster_cols, cell_som_input_data,
     cell_cc = cluster_helpers.PixieConsensusCluster(
         'cell', som_expr_col_avg_path, cell_som_cluster_cols, max_k=max_k, cap=cap
     )
+
+    if 'cell_meta_cluster' in cell_som_input_data:
+        # if cell_meta_cluster column exists and no overwrite set, return immediately
+        if not overwrite:
+            print("Meta cluster already assigned to each cell")
+            return cell_cc, cell_som_input_data
+
+        print("Overwrite flag set, reassigning meta cluster labels")
+        cell_som_input_data = cell_som_input_data.drop(columns='cell_meta_cluster')
 
     # z-score and cap the data
     print("z-score scaling and capping data")

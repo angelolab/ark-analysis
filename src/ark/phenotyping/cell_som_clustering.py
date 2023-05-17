@@ -74,7 +74,7 @@ def train_cell_som(fovs, base_dir, cell_table_path, cell_som_cluster_cols,
     return cell_pysom
 
 
-def cluster_cells(base_dir, cell_pysom, cell_som_cluster_cols):
+def cluster_cells(base_dir, cell_pysom, cell_som_cluster_cols, overwrite=False):
     """Uses trained SOM weights to assign cluster labels on full cell data.
 
     Saves data with cluster labels to `cell_cluster_name`.
@@ -86,6 +86,8 @@ def cluster_cells(base_dir, cell_pysom, cell_som_cluster_cols):
             The SOM cluster object containing the cell SOM weights
         cell_som_cluster_cols (list):
             The list of columns used for SOM training
+        overwrite (bool):
+            If set, overwrites the SOM cluster assignments if they exist
 
     Returns:
         pandas.DataFrame:
@@ -101,10 +103,13 @@ def cluster_cells(base_dir, cell_pysom, cell_som_cluster_cols):
     if 'cell_size' in cell_pysom.cell_data.columns.values:
         cols_to_drop.append('cell_size')
 
-    # ensure the weights columns are valid indexes, do so by ensuring
-    # the cluster_counts_norm and weights columns are the same
-    # minus the metadata columns (and possibly cluster col) that appear in cluster_counts_norm
     if 'cell_som_cluster' in cell_pysom.cell_data.columns.values:
+        # if cell_som_cluster column exists and no overwrite set, return immediately
+        if not overwrite:
+            print("SOM clusters already assigned to each cell")
+            return cell_pysom.cell_data
+
+        print("Overwrite flag set, reassigning SOM cluster labels")
         cols_to_drop.append('cell_som_cluster')
 
     # the cell_som_input_data and weights columns are the same
