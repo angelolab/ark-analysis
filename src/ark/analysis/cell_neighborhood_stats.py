@@ -181,8 +181,8 @@ def calculate_mean_distance_to_all_cell_types(
 
 
 def cell_neighbor_distance_analysis(
-        cell_table, dist_mat_dir, save_path, k, fov_col=settings.FOV_ID,
-        cell_type_col=settings.CELL_TYPE, cell_label_col=settings.CELL_LABEL):
+        cell_table, dist_mat_dir, save_path, k, cell_type_col=settings.CELL_TYPE,
+        fov_col=settings.FOV_ID, cell_label_col=settings.CELL_LABEL):
     """ Creates a dataframe containing the average distance between a cell and other cells of each
     phenotype, based on the specified cell_type_col.
     Args:
