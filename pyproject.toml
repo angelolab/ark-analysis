@@ -73,6 +73,14 @@ test = [
     "pytest-xdist",
     "testbook",
 ]
+lab_ext = [
+    "jupyterlab-lsp",
+    "python-lsp-server[all]",
+    "jupyterlab-git",
+    "jupyterlab_execute_time",
+    "jupyterlab-skip-traceback",
+    "lckr-jupyterlab-variableinspector"
+]
 
 [tool.setuptools_scm]
 version_scheme = "release-branch-semver"
