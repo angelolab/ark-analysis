@@ -145,6 +145,14 @@ def test_calculate_mean_distance_to_cell_type():
     actual_dist = [0.56, 0.07, 0.295, 0.51, 0.685]
     assert np.all(np.isclose(cancer_dist, actual_dist))
 
+    # test for insufficient number of Cancer cells in the image
+    cancer_dist = cell_neighborhood_stats.calculate_mean_distance_to_cell_type(
+        celldf, distdf, cell_cluster='Cancer', k=3)
+
+    # check for nan values
+    nan_dist = [np.nan] * 5
+    assert np.equal(cancer_dist, nan_dist).all()
+
 
 def test_calculate_mean_distance_to_all_cell_types():
     # create cell data frame

@@ -131,17 +131,21 @@ def calculate_mean_distance_to_cell_type(
     """
 
     # get cell ids for all cells of specific cluster
-    j = cell_table.loc[cell_table[cell_type_col] == cell_cluster, cell_label_col]
+    cluster_labels = cell_table.loc[cell_table[cell_type_col] == cell_cluster, cell_label_col]
 
     # get all cells that match specified cell cluster
-    dist_xr = dist_xr.loc[:, dist_xr.dim_1.isin(j)]
+    dist_xr = dist_xr.loc[:, dist_xr.dim_1.isin(cluster_labels)]
 
-    # keep the closest k values, not included itself
+    # keep the closest k values, not including itself
     dist_xr = dist_xr.where(dist_xr > 0)
+    if dist_xr.shape[1] < k:
+        # image must contain at least k cell_cluster cells to receive an average dist
+        return [np.nan] * len(dist_xr)
+
     sorted_dist = np.sort(dist_xr.values, axis=1)
     sorted_dist = sorted_dist[:, :k]
 
-    # take the median
+    # take the mean
     mean_dists = sorted_dist.mean(axis=1)
 
     return mean_dists
@@ -171,7 +175,7 @@ def calculate_mean_distance_to_all_cell_types(
     # get all cell clusters in cell table
     all_clusters = np.unique(cell_table[cell_type_col])
 
-    # call calculate_median_distance_to_cell_type for all cell clusters
+    # call calculate_mean_distance_to_cell_type for all cell clusters
     avg_dists = pd.DataFrame(index=cell_table.index.values, columns=all_clusters)
     for cell_cluster in all_clusters:
         avg_dists.loc[:, cell_cluster] = calculate_mean_distance_to_cell_type(
