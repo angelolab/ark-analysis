@@ -214,7 +214,7 @@ def run_deepcell_direct(input_dir, output_dir, host='https://deepcell.org',
     retry_strategy = Retry(
         total=num_retries,
         status_forcelist=[404, 500, 502, 503, 504],
-        method_whitelist=['HEAD', 'GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'TRACE']
+        allowed_methods=['HEAD', 'GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'TRACE']
     )
     adapter = HTTPAdapter(max_retries=retry_strategy)
 
