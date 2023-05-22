@@ -150,8 +150,7 @@ def test_calculate_mean_distance_to_cell_type():
         celldf, distdf, cell_cluster='Cancer', k=3)
 
     # check for nan values
-    nan_dist = [np.nan] * 5
-    assert np.equal(cancer_dist, nan_dist).all()
+    assert np.isnan(cancer_dist).all()
 
 
 def test_calculate_mean_distance_to_all_cell_types():
