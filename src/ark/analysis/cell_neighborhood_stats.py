@@ -75,7 +75,7 @@ def compute_neighborhood_diversity(neighborhood_mat, cell_type_col):
     return diversity_data
 
 
-def neighborhood_diversity_analysis(neighbors_mat_dir, pixel_radius, cell_type_columns):
+def generate_neighborhood_diversity_analysis(neighbors_mat_dir, pixel_radius, cell_type_columns):
     """ Generates a diversity score for each cell using the neighborhood matrix
     Args:
         neighbors_mat_dir (str):
@@ -184,7 +184,7 @@ def calculate_mean_distance_to_all_cell_types(
     return avg_dists
 
 
-def cell_neighbor_distance_analysis(
+def generate_cell_distance_analysis(
         cell_table, dist_mat_dir, save_path, k, cell_type_col=settings.CELL_TYPE,
         fov_col=settings.FOV_ID, cell_label_col=settings.CELL_LABEL):
     """ Creates a dataframe containing the average distance between a cell and other cells of each

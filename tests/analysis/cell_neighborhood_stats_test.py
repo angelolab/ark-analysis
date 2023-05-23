@@ -59,7 +59,7 @@ def test_compute_neighborhood_diversity():
            diversity_data[f'diversity_{settings.CELL_TYPE}'][1]
 
 
-def test_neighborhood_diversity_analysis():
+def test_generate_neighborhood_diversity_analysis():
 
     with tempfile.TemporaryDirectory() as temp_dir:
         radius = 50
@@ -83,7 +83,7 @@ def test_neighborhood_diversity_analysis():
                 temp_dir, f"neighborhood_freqs-{col}_radius{radius}.csv"), index=False)
 
         # test success
-        all_data = cell_neighborhood_stats.neighborhood_diversity_analysis(
+        all_data = cell_neighborhood_stats.generate_neighborhood_diversity_analysis(
            neighbors_mat_dir=temp_dir, pixel_radius=radius, cell_type_columns=cell_type_cols)
 
         # check for multiple cell cluster columns
@@ -172,7 +172,7 @@ def test_calculate_mean_distance_to_all_cell_types():
     assert np.all(np.isclose(cancer_dist, actual_dist))
 
 
-def test_cell_neighbor_distance_analysis(mocker: MockerFixture, ):
+def test_generate_cell_distance_analysis(mocker: MockerFixture, ):
     mocker.patch('xarray.load_dataarray', return_value=generate_test_distance_matrix())
 
     cell_table = pd.concat([generate_test_celldf('fov1'), generate_test_celldf('fov2')])
@@ -180,7 +180,7 @@ def test_cell_neighbor_distance_analysis(mocker: MockerFixture, ):
     with tempfile.TemporaryDirectory() as temp_dir:
         save_path = os.path.join(temp_dir, 'neighbor_distances.csv')
 
-        cell_dists = cell_neighborhood_stats.cell_neighbor_distance_analysis(
+        cell_dists = cell_neighborhood_stats.generate_cell_distance_analysis(
             cell_table, temp_dir, save_path, k=2)
 
         # check all cells in dataframe
