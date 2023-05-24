@@ -416,8 +416,8 @@ def compute_cell_ratios(neighbors_mat, target_cells, reference_cells, fov_list, 
     return ratio_data
 
 
-def compute_mixing_score(fov_neighbors_mat, fov, target_cells, reference_cells, mixing_type,
-                         ratio_threshold=5, cell_count_thresh=0,
+def compute_mixing_score(fov_neighbors_mat, target_cells, reference_cells, mixing_type,
+                         ratio_threshold=5, cell_count_thresh=200,
                          cell_col=settings.CELL_TYPE, fov_col=settings.FOV_ID,
                          label_col=settings.CELL_LABEL):
     """ Compute and return the mixing score for the specified target/reference cell types
@@ -425,8 +425,6 @@ def compute_mixing_score(fov_neighbors_mat, fov, target_cells, reference_cells, 
     Args:
         fov_neighbors_mat (pandas.DataFrame):
             a neighborhood matrix, created from create_neighborhood_matrix and subsetted for 1 fov
-        fov (str):
-            single fov to compute mixing score for
         target_cells (list):
             invading cell phenotypes
         reference_cells (list):
@@ -437,7 +435,7 @@ def compute_mixing_score(fov_neighbors_mat, fov, target_cells, reference_cells, 
             maximum ratio of cell_types required to calculate a mixing score,
             under this labeled "cold"
         cell_count_thresh (int):
-            minimum number of cells in each population to calculate a mixing score,
+            minimum number of total cells from both populations to calculate a mixing score,
             under this labeled "cold"
         cell_col (str):
             column with the cell phenotype
@@ -470,14 +468,16 @@ def compute_mixing_score(fov_neighbors_mat, fov, target_cells, reference_cells, 
     # get number of target and reference cells in sample
     target_total = fov_neighbors_mat[fov_neighbors_mat[cell_col].isin(target_cells)].shape[0]
     ref_total = fov_neighbors_mat[fov_neighbors_mat[cell_col].isin(reference_cells)].shape[0]
-    if ref_total < cell_count_thresh or target_total < cell_count_thresh:
-        return np.nan
-    elif ref_total == 0 or target_total == 0:
-        return np.nan
 
-    # check threshold
+    # check cell count threshold
+    if (target_total + ref_total) < cell_count_thresh:
+        return np.nan, (target_total + ref_total)
+    elif ref_total == 0 or target_total == 0:
+        return np.nan, (target_total + ref_total)
+
+    # check ratio threshold
     if ref_total/target_total > ratio_threshold or target_total/ref_total > ratio_threshold:
-        return np.nan
+        return np.nan, (target_total + ref_total)
 
     # condense to total number of cell type interactions
     fov_neighbors_mat[cell_col] = fov_neighbors_mat[cell_col].replace(target_cells, 'target')
@@ -508,4 +508,4 @@ def compute_mixing_score(fov_neighbors_mat, fov, target_cells, reference_cells, 
         # homogenous mixing
         mixing_score = reference_target / (target_target + reference_reference)
 
-    return mixing_score
+    return mixing_score, (target_total + ref_total)

@@ -306,7 +306,7 @@ def test_compute_mixing_score():
     # test cell count threshold
     cold_score = neighborhood_analysis.compute_mixing_score(
         cell_neighbors_mat, 'fov1', target_cells=['cell1'], reference_cells=['cell2'],
-        cell_count_thresh=5, mixing_type='homogeneous')
+        cell_count_thresh=7, mixing_type='homogeneous')
     assert math.isnan(cold_score)
 
     # check zero cells denominator
