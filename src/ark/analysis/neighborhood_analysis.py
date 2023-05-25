@@ -6,10 +6,9 @@ import matplotlib.pylab as plt
 import numpy as np
 import pandas as pd
 import xarray as xr
-from functools import reduce
 
 import ark.settings as settings
-from alpineer import misc_utils, io_utils
+from alpineer import misc_utils
 from ark.analysis import spatial_analysis_utils
 
 
@@ -510,102 +509,3 @@ def compute_mixing_score(fov_neighbors_mat, fov, target_cells, reference_cells, 
         mixing_score = reference_target / (target_target + reference_reference)
 
     return mixing_score
-
-
-def shannon_diversity(proportions):
-    """ Calculates the shannon diversity index for the provided proportions of a community
-    Args:
-        proportions (np.array):
-            the proportions of each individual group
-
-    Returns:
-        float:
-            the diversity of neighborhood
-    """
-
-    prop_index = proportions > 0
-    return -np.sum(proportions[prop_index] * np.log2(proportions[prop_index]))
-
-
-def compute_neighborhood_diversity(neighborhood_mat, cell_type_col):
-    """ Generates a diversity score for each cell using the neighborhood matrix
-    Args:
-        neighborhood_mat (pd.DataFrame):
-            the frequency neighbors matrix
-        cell_type_col (string):
-            the specific name of the cell type column the matrix represents
-
-    Returns:
-        pd.DataFrame:
-            contains the fov, label, cell_type, and diversity_cell_type values for each cell
-    """
-
-    misc_utils.verify_in_list(cell_type_column=cell_type_col,
-                              neighbor_matrix_columns=neighborhood_mat.columns)
-
-    # check input values
-    neighborhood_mat_values = np.array(neighborhood_mat.drop(
-            columns=[settings.FOV_ID, settings.CELL_LABEL, cell_type_col]))
-    if (neighborhood_mat_values > 1).any():
-        raise ValueError("Input must be frequency values.")
-
-    diversity_data = []
-    for fov in np.unique(neighborhood_mat[settings.FOV_ID]):
-        fov_neighborhoods = neighborhood_mat[neighborhood_mat[settings.FOV_ID] == fov]
-
-        diversity_scores = []
-        cells = fov_neighborhoods[settings.CELL_LABEL]
-        for label in cells:
-            # retrieve an array of only the neighbor frequencies for the cell
-            neighbor_freqs = \
-                fov_neighborhoods[fov_neighborhoods[settings.CELL_LABEL] == label].drop(
-                    columns=[settings.FOV_ID, settings.CELL_LABEL, cell_type_col]).values[0]
-
-            diversity_scores.append(shannon_diversity(neighbor_freqs))
-
-        # combine the data for cells in the image
-        fov_data = pd.DataFrame({
-            settings.FOV_ID: [fov] * len(cells),
-            settings.CELL_LABEL: cells,
-            cell_type_col: fov_neighborhoods[cell_type_col],
-            f'diversity_{cell_type_col}': diversity_scores
-        })
-
-        diversity_data.append(fov_data)
-
-    # dataframe containing all fovs
-    diversity_data = pd.concat(diversity_data)
-
-    return diversity_data
-
-
-def neighborhood_diversity_analysis(neighbors_mat_dir, pixel_radius, cell_type_columns):
-    """ Generates a diversity score for each cell using the neighborhood matrix
-    Args:
-        neighbors_mat_dir (str):
-            directory containing the neighbors matrices
-        pixel_radius (int):
-            radius used to define the neighbors of each cell
-        cell_type_columns (list):
-            list of cell cluster columns to read in neighbors matrices for
-
-    Returns:
-        pd.DataFrame:
-            contains diversity data calculated at each specified cell cluster level
-    """
-
-    freqs_mat_paths = [os.path.join(neighbors_mat_dir,
-                                    f"neighborhood_freqs-{cell_type_col}_radius{pixel_radius}.csv")
-                       for cell_type_col in cell_type_columns]
-    io_utils.validate_paths(freqs_mat_paths)
-
-    diversity_data = []
-    for cell_type_col, freqs_path in zip(cell_type_columns, freqs_mat_paths):
-        neighbor_freqs = pd.read_csv(freqs_path)
-        diversity_data.append(compute_neighborhood_diversity(neighbor_freqs, cell_type_col))
-
-    all_diversity_data = reduce(
-        lambda left, right: pd.merge(left, right, on=[settings.FOV_ID, settings.CELL_LABEL]),
-        diversity_data)
-
-    return all_diversity_data
