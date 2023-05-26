@@ -215,6 +215,12 @@ def test_generate_meta_avg_files(capsys):
             "Overwrite flag set, regenerating average expression file for cell meta clusters\n"
         assert desired_status_updates in output
 
+        # ensure that the cell meta cluster column in the SOM average file gets written properly
+        som_cluster_avg = pd.read_csv(
+            os.path.join(temp_dir, 'cell_som_cluster_avg.csv')
+        )
+        assert 'cell_meta_cluster' in som_cluster_avg.columns.values
+
 
 @parametrize('weighted_cell_channel_exists', [True, False])
 def test_apply_cell_meta_cluster_remapping(weighted_cell_channel_exists):
