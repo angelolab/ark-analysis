@@ -186,6 +186,9 @@ def run_fiber_segmentation(data_dir, fiber_channel, out_dir, img_sub_folder=None
         fiber_object_table.append(subtable)
 
     fiber_object_table = pd.concat(fiber_object_table)
+
+    # append fiber knn alignment and save table to csv
+    fiber_object_table = calculate_fiber_alignment(fiber_object_table)
     fiber_object_table.to_csv(os.path.join(out_dir, 'fiber_object_table.csv'), index=False,
                               compression=csv_compression)
 
@@ -355,9 +358,6 @@ def segment_fibers(data_xr, fiber_channel, out_dir, fov, blur=2, contrast_scalin
 
     fiber_object_table = pd.DataFrame(fiber_object_table)
     fiber_object_table.insert(0, settings.FOV_ID, fov)
-
-    # append fiber knn alignment
-    fiber_object_table = calculate_fiber_alignment(fiber_object_table)
 
     if save_csv:
         fiber_object_table.to_csv(os.path.join(out_dir, 'fiber_object_table.csv'))
