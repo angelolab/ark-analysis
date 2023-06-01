@@ -6,6 +6,7 @@ from testbook.client import TestbookNotebookClient
 from testbook import testbook
 
 from . import notebooks_test_utils
+from ark.utils import example_dataset
 
 
 # Sets a shared notebook testing temporary directory. Saves all notebook related files in a
@@ -213,6 +214,27 @@ def nbmixing_context(
     with testbook(EXAMPLE_MIXING, timeout=6000, execute=False) as nb_context_manager:
         yield nb_context_manager, base_dir_generator / "cms"
     shutil.rmtree(base_dir_generator / "cms")
+
+
+@pytest.fixture(scope="class")
+def nbcell_neighbors_context(templates_dir, base_dir_generator) -> Iterator[ContextManager]:
+    """
+    Creates a testbook context manager for the cell neighbor analysis notebook.
+
+    Args:
+        templates_dir (pytest.Fixture): The fixture which yields the directory of the notebook
+            templates
+        base_dir_generator (pytest.Fixture): The fixture which yields the temporary directory
+            to store all notebook input / output.
+
+    Yields:
+        Iterator[ContextManager]: The testbook context manager which will get cleaned up
+            afterwords.
+    """
+    EXAMPLE_CELL_NEIGHBORS: pathlib.Path = templates_dir / "cell_neighbors_analysis.ipynb"
+    with testbook(EXAMPLE_CELL_NEIGHBORS, timeout=6000, execute=False) as nb_context_manager:
+        yield nb_context_manager, base_dir_generator / "cna"
+    shutil.rmtree(base_dir_generator / "cna")
 
 
 class Test_1_Segment_Image_Data:
@@ -780,3 +802,49 @@ class Test_Mixing_Score:
 
     def test_mixing_score(self):
         self.tb.execute_cell("mixing_score")
+
+
+class Test_Cell_Neighbors():
+    """
+    Tests Cell Neighbors Analysis for completion.
+    NOTE: When modifying the tests, make sure the test are in the
+    same order as the tagged cells in the notebook.
+    """
+    @pytest.fixture(autouse=True, scope="function")
+    def _setup(self, nbcell_neighbors_context):
+        """
+        Sets up necessary data and paths to run the notebooks.
+        """
+        self.tb: testbook = nbcell_neighbors_context[0]
+        self.base_dir: pathlib.Path = nbcell_neighbors_context[1]
+
+    def test_imports(self):
+        self.tb.execute_cell("import")
+
+    def test_base_dir(self):
+        base_dir_inject = f"""
+                            base_dir = r"{self.base_dir}"
+                        """
+        self.tb.inject(base_dir_inject, "base_dir")
+
+    def test_file_paths(self):
+        self.tb.execute_cell("file_path")
+
+    def test_create_dirs(self):
+        example_dataset.get_example_dataset("post_clustering", self.base_dir, True)
+        self.tb.execute_cell("create_dirs")
+
+    def test_diversity_args(self):
+        self.tb.execute_cell("diversity_args")
+
+    def test_neighbors_mat(self):
+        self.tb.execute_cell("neighbors_mat")
+
+    def test_shannon_diversity(self):
+        self.tb.execute_cell("shannon_diversity")
+
+    def test_dist_args(self):
+        self.tb.execute_cell("dist_args")
+
+    def test_dist_analysis(self):
+        self.tb.execute_cell("dist_analysis")
