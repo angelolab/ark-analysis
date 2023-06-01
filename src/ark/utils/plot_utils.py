@@ -646,7 +646,6 @@ def save_colored_masks(
             visualization found in `metacluster_remap_gui`.
         metacluster_colors (Dict): Maps each metacluster id to a color.
         cluster_type (Literal["cell", "pixel"]): The type of clustering being done.
-        image_type (Literal["png", "tiff"]): The image type to save the colored masks as.
     """
 
     # Input validation
