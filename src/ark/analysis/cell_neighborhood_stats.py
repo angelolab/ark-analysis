@@ -41,7 +41,7 @@ def compute_neighborhood_diversity(neighborhood_mat, cell_type_col):
 
     # check input values
     neighborhood_mat_values = np.array(neighborhood_mat.drop(
-            columns=[settings.FOV_ID, settings.CELL_LABEL, cell_type_col]))
+        columns=[settings.FOV_ID, settings.CELL_LABEL, cell_type_col]))
     if (neighborhood_mat_values > 1).any():
         raise ValueError("Input must be frequency values.")
 
@@ -180,7 +180,7 @@ def calculate_mean_distance_to_all_cell_types(
     for cell_cluster in all_clusters:
         avg_dists.loc[:, cell_cluster] = calculate_mean_distance_to_cell_type(
             cell_table, dist_xr, cell_cluster, k, cell_type_col, cell_label_col)
-        
+
     return avg_dists
 
 
