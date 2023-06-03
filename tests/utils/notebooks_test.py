@@ -385,11 +385,11 @@ class Test_2_Pixel_Clustering:
     def test_pixel_mask_gen_save(self):
         self.tb.execute_cell("pixel_mask_gen_save")
 
-    def test_pixel_overlay_gen(self):
-        self.tb.execute_cell("pixel_overlay_gen")
-
     def test_save_pixel_masks(self):
         self.tb.execute_cell("save_pixel_masks")
+
+    def test_pixel_overlay_gen(self):
+        self.tb.execute_cell("pixel_overlay_gen")
 
     def test_cell_param_save(self):
         self.tb.execute_cell("cell_param_save")
@@ -486,11 +486,11 @@ class Test_3_Cell_Clustering:
     def test_cell_mask_gen_save(self):
         self.tb.execute_cell("cell_mask_gen_save")
 
-    def test_cell_overlay_gen(self):
-        self.tb.execute_cell("cell_overlay_gen")
-
     def test_save_cell_masks(self):
         self.tb.execute_cell("save_cell_masks")
+
+    def test_cell_overlay_gen(self):
+        self.tb.execute_cell("cell_overlay_gen")
 
     def test_cell_append_meta(self):
         self.tb.execute_cell("cell_append_meta")
