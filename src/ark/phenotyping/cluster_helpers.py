@@ -4,7 +4,7 @@ import pathlib
 import warnings
 from abc import ABC, abstractmethod
 from itertools import combinations
-from typing import List, Protocol, runtime_checkable
+from typing import List, Literal, Protocol, runtime_checkable
 
 import feather
 import numpy as np
@@ -16,13 +16,14 @@ from alpineer.io_utils import list_files, validate_paths
 from alpineer.misc_utils import verify_in_list
 
 
-def verify_unique_meta_clusters(pixie_remapped_data: pd.DataFrame, meta_cluster_type: str):
+def verify_unique_meta_clusters(pixie_remapped_data: pd.DataFrame,
+                                meta_cluster_type: Literal["pixel", "cell"]):
     """Verifies that a mapping contains a unique renamed meta cluster for every base meta cluster
 
     Args:
         pixie_remapped_data (pandas.DataFrame):
             Must have `{pixel/cell}_meta_cluster` and `{pixel/cell}_meta_cluster_rename` columns
-        meta_cluster_type (str):
+        meta_cluster_type (Literal["pixel", "cell"]):
             Whether pixel or cell meta clusters are being validated
 
     Raises:
