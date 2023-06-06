@@ -371,12 +371,13 @@ def apply_pixel_meta_cluster_remapping(fovs, channels, base_dir,
         ].values
     )
 
+    # ensure no duplicated renamed meta clusters make it in
+    cluster_helpers.verify_unique_meta_clusters(pixel_remapped_data, meta_cluster_type="pixel")
+
     # create the mapping from pixel meta cluster to renamed pixel meta cluster
-    pixel_renamed_meta_dict = dict(
-        pixel_remapped_data[
-            ['pixel_meta_cluster', 'pixel_meta_cluster_rename']
-        ].drop_duplicates().values
-    )
+    pixel_renamed_meta_dict = dict(pixel_remapped_data[
+        ['pixel_meta_cluster', 'pixel_meta_cluster_rename']
+    ].drop_duplicates().values)
 
     # define the partial function to iterate over
     fov_data_func = partial(

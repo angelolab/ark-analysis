@@ -581,6 +581,29 @@ def test_apply_pixel_meta_cluster_remapping_base(multiprocess):
                 'bad_sample_pixel_remapping.csv'
             )
 
+        # duplicate pixel_meta_cluster_rename values found across pixel_meta_clusters
+        with pytest.raises(ValueError):
+            sample_pixel_remapping = pd.read_csv(
+                os.path.join(temp_dir, 'sample_pixel_remapping.csv')
+            )
+            bad_sample_pixel_remapping = sample_pixel_remapping.copy()
+            bad_sample_pixel_remapping.loc[
+                bad_sample_pixel_remapping['pixel_meta_cluster_rename'] == 'meta1',
+                'pixel_meta_cluster_rename'
+            ] = 'meta0'
+            bad_sample_pixel_remapping.to_csv(
+                os.path.join(temp_dir, 'bad_sample_pixel_remapping.csv'),
+                index=False
+            )
+
+            pixel_meta_clustering.apply_pixel_meta_cluster_remapping(
+                fovs,
+                chans,
+                temp_dir,
+                'pixel_mat_data',
+                'bad_sample_pixel_remapping.csv'
+            )
+
         # error check: mapping does not contain every SOM label
         with pytest.raises(ValueError):
             bad_sample_pixel_remapping = {

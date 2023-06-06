@@ -244,6 +244,27 @@ def test_apply_cell_meta_cluster_remapping(weighted_cell_channel_exists):
                 'bad_sample_cell_remapping.csv'
             )
 
+        # duplicate cell_meta_cluster_rename values found across cell_meta_clusters
+        with pytest.raises(ValueError):
+            sample_cell_remapping = pd.read_csv(
+                os.path.join(temp_dir, 'sample_cell_remapping.csv')
+            )
+            bad_sample_cell_remapping = sample_cell_remapping.copy()
+            bad_sample_cell_remapping.loc[
+                bad_sample_cell_remapping['cell_meta_cluster_rename'] == 'meta1',
+                'cell_meta_cluster_rename'
+            ] = 'meta0'
+            bad_sample_cell_remapping.to_csv(
+                os.path.join(temp_dir, 'bad_sample_cell_remapping.csv'),
+                index=False
+            )
+
+            cell_meta_clustering.apply_cell_meta_cluster_remapping(
+                temp_dir,
+                cluster_data,
+                'bad_sample_cell_remapping.csv'
+            )
+
         # error check: mapping does not contain every SOM label
         with pytest.raises(ValueError):
             bad_sample_cell_remapping = {
