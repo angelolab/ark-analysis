@@ -2,6 +2,7 @@ import os
 import warnings
 
 import feather
+import numpy as np
 import pandas as pd
 from alpineer import io_utils, misc_utils
 
@@ -47,7 +48,7 @@ def compute_cell_som_cluster_cols_avg(cell_cluster_data, cell_som_cluster_cols,
 
     # average each column grouped by the cell cluster column
     mean_count_totals = cell_cluster_data_subset.groupby(cell_cluster_col).mean().reset_index()
-    mean_count_totals[cell_cluster_col] = mean_count_totals[cell_cluster_col].astype(int)
+    mean_count_totals[cell_cluster_col] = mean_count_totals[cell_cluster_col].astype(np.int64)
 
     # if keep_count is included, add the count column to the cell table
     if keep_count:
