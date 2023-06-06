@@ -4,6 +4,7 @@ channels:
 dependencies:
   - python=3.11
   - pip
+  - hdf5
   - jupyterlab
   - ipywidgets
   - tqdm
@@ -14,13 +15,7 @@ dependencies:
   - scikit-image
   - matplotlib
   - seaborn
-  - jupyterlab-lsp
-  - python-lsp-server[all]
-  - jupyterlab-git
-  - jupyterlab_execute_time
   - pip:
-    - jupyterlab-skip-traceback
-    - lckr-jupyterlab-variableinspector
-    - alpineer==0.1.7
-    - pyFlowSOM==0.1.15
-    - .
+    - alpineer>=0.1.8
+    - pyFlowSOM>=0.1.5
+    - .[lab_ext]
