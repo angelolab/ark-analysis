@@ -41,18 +41,10 @@ COPY src /opt/ark-analysis/src
 # Stage 4: Install Ark Analysis
 FROM move_templates AS install_ark
 
-# Install the package via setup.py
-RUN cd /opt/ark-analysis && python -m pip install .
+# Install the package and the jupyter-lab extensions
+RUN cd /opt/ark-analysis && python -m pip install .[lab_ext]
 
-# Stage 5: Install and Activate Jupyter Lab Extensions
-RUN pip install jupyterlab-lsp \
-    pip install 'python-lsp-server[all]' \
-    pip install jupyterlab-git \
-    pip install jupyterlab_execute_time \
-    pip install jupyterlab-skip-traceback \
-    pip install lckr-jupyterlab-variableinspector
-
-# Stage 6: Set the working directory, and open Jupyter Lab
+# Stage 5: Set the working directory, and open Jupyter Lab
 FROM install_ark AS open_for_user
 WORKDIR /opt/ark-analysis
 
