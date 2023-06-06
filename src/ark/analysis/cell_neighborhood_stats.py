@@ -177,7 +177,7 @@ def calculate_mean_distance_to_all_cell_types(
     all_clusters = np.unique(cell_table[cell_type_col])
 
     # call calculate_mean_distance_to_cell_type for all cell clusters
-    avg_dists = pd.DataFrame(index=cell_table.index.values, columns=all_clusters)
+    avg_dists = pd.DataFrame(index=cell_table.index.values, columns=all_clusters, dtype=np.float64)
     for cell_cluster in all_clusters:
         avg_dists.loc[:, cell_cluster] = calculate_mean_distance_to_cell_type(
             cell_table, dist_xr, cell_cluster, k, cell_type_col, cell_label_col)

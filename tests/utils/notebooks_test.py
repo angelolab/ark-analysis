@@ -217,7 +217,9 @@ def nbmixing_context(
 
 
 @pytest.fixture(scope="class")
-def nbcell_neighbors_context(templates_dir, base_dir_generator) -> Tuple[Iterator[TestbookNotebookClient], pathlib.Path]:
+def nbcell_neighbors_context(
+    templates_dir, base_dir_generator
+) -> Tuple[Iterator[TestbookNotebookClient], pathlib.Path]:
     """
     Creates a testbook context manager for the cell neighbor analysis notebook.
 
