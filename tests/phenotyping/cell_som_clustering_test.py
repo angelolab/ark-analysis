@@ -131,7 +131,7 @@ def test_train_cell_som():
 # NOTE: overwrite functionality tested in cluster_helpers_test.py
 @parametrize('pixel_cluster_prefix', ['pixel_som_cluster', 'pixel_meta_cluster_rename'])
 @parametrize('existing_som_col', [False, True])
-def test_cluster_cells(pixel_cluster_prefix, existing_som_col):
+def test_cluster_cells(pixel_cluster_prefix, existing_som_col, capsys):
     with tempfile.TemporaryDirectory() as temp_dir:
         # define the cluster column names
         cluster_cols = [f'{pixel_cluster_prefix}_' + str(i) for i in range(3)]
@@ -190,6 +190,37 @@ def test_cluster_cells(pixel_cluster_prefix, existing_som_col):
         # assert we didn't assign any cluster 100 or above
         cluster_ids = cell_data_som_labels['cell_som_cluster']
         assert np.all(cluster_ids < 100)
+
+        # assert running without overwrite flag on same cell_pysom object returns immediately
+        capsys.readouterr()
+
+        cell_data_som_labels_repeat = cell_som_clustering.cluster_cells(
+            base_dir=temp_dir,
+            cell_pysom=cell_pysom,
+            cell_som_cluster_cols=cluster_cols
+        )
+
+        output = capsys.readouterr().out
+        desired_status_updates = \
+            "SOM clusters already assigned to each cell\n"
+        assert desired_status_updates in output
+        assert np.all(cell_data_som_labels.values == cell_data_som_labels_repeat.values)
+
+        # assert running with overwrite flag re-runs pipeline
+        capsys.readouterr()
+
+        cell_data_som_labels_repeat = cell_som_clustering.cluster_cells(
+            base_dir=temp_dir,
+            cell_pysom=cell_pysom,
+            cell_som_cluster_cols=cluster_cols,
+            overwrite=True
+        )
+
+        output = capsys.readouterr().out
+        desired_status_updates = \
+            "Overwrite flag set, reassigning SOM cluster labels\n"
+        assert desired_status_updates in output
+        assert np.all(cell_data_som_labels.values == cell_data_som_labels_repeat.values)
 
 
 def test_generate_som_avg_files(capsys):

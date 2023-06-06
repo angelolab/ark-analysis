@@ -4,7 +4,7 @@ import pathlib
 import warnings
 from abc import ABC, abstractmethod
 from itertools import combinations
-from typing import List, Protocol, runtime_checkable
+from typing import List, Literal, Protocol, runtime_checkable
 
 import feather
 import numpy as np
@@ -14,6 +14,39 @@ from scipy.stats import zscore
 from sklearn.cluster import AgglomerativeClustering
 from alpineer.io_utils import list_files, validate_paths
 from alpineer.misc_utils import verify_in_list
+
+
+def verify_unique_meta_clusters(pixie_remapped_data: pd.DataFrame,
+                                meta_cluster_type: Literal["pixel", "cell"]):
+    """Verifies that a mapping contains a unique renamed meta cluster for every base meta cluster
+
+    Args:
+        pixie_remapped_data (pandas.DataFrame):
+            Must have `{pixel/cell}_meta_cluster` and `{pixel/cell}_meta_cluster_rename` columns
+        meta_cluster_type (Literal["pixel", "cell"]):
+            Whether pixel or cell meta clusters are being validated
+
+    Raises:
+        ValueError:
+            If there are duplicate `{pixel/cell}_meta_cluster_rename` entries for multiple
+            `{pixel/cell}_meta_cluster` values
+    """
+    verify_in_list(
+        specified_meta_cluster=meta_cluster_type,
+        acceptable_meta_clusters=["pixel", "cell"]
+    )
+
+    meta_pairs = pixie_remapped_data[
+        [f"{meta_cluster_type}_meta_cluster", f"{meta_cluster_type}_meta_cluster_rename"]
+    ].drop_duplicates()
+    meta_dups = meta_pairs[
+        meta_pairs.duplicated(f"{meta_cluster_type}_meta_cluster_rename", keep=False)
+    ][f"{meta_cluster_type}_meta_cluster_rename"].unique().tolist()
+    if len(meta_dups) > 0:
+        raise ValueError(
+            f"Duplicate renamed {meta_cluster_type} meta cluster values found: %s, "
+            "please re-run remapping GUI to resolve naming conflicts" % str(meta_dups)
+        )
 
 
 class PixieSOMCluster(ABC):
