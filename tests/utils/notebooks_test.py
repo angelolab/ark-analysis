@@ -1,6 +1,6 @@
 import pathlib
 import shutil
-from typing import Iterator, Union
+from typing import Iterator, Tuple, Union
 
 import pytest
 from testbook import testbook
@@ -47,7 +47,7 @@ def templates_dir() -> Iterator[pathlib.Path]:
 @pytest.fixture(scope="class")
 def nb1_context(
     templates_dir, base_dir_generator
-) -> tuple[Iterator[TestbookNotebookClient], pathlib.Path]:
+) -> Tuple[Iterator[TestbookNotebookClient], pathlib.Path]:
     """
     Creates a testbook context manager for notebook 1.
 
@@ -58,15 +58,13 @@ def nb1_context(
             to store all notebook input / output.
 
     Yields:
-        Iterator[tuple[Iterator[TestbookNotebookClient], pathlib.Path]]:
+        Iterator[Tuple[Iterator[TestbookNotebookClient], pathlib.Path]]:
         The testbook notebook client context manager and the temporary directory where the
             notebook input / output is stored.
     """
 
     SEGMENT_IMAGE_DATA_PATH: pathlib.Path = templates_dir / "1_Segment_Image_Data.ipynb"
-    with testbook(
-        SEGMENT_IMAGE_DATA_PATH, timeout=6000, execute=False
-    ) as nb_context_manager:
+    with testbook(SEGMENT_IMAGE_DATA_PATH, timeout=6000, execute=False) as nb_context_manager:
         yield nb_context_manager, base_dir_generator / "nb1"
     shutil.rmtree(base_dir_generator / "nb1")
 
@@ -74,7 +72,7 @@ def nb1_context(
 @pytest.fixture(scope="class")
 def nb2_context(
     templates_dir, base_dir_generator
-) -> tuple[Iterator[TestbookNotebookClient], pathlib.Path]:
+) -> Tuple[Iterator[TestbookNotebookClient], pathlib.Path]:
     """
     Creates a testbook context manager for notebook 2.
 
@@ -85,7 +83,7 @@ def nb2_context(
             to store all notebook input / output.
 
     Yields:
-        Iterator[tuple[Iterator[TestbookNotebookClient], pathlib.Path]]:
+        Iterator[Tuple[Iterator[TestbookNotebookClient], pathlib.Path]]:
         The testbook notebook client context manager and the temporary directory where the
         notebook input / output is stored.
     """
@@ -99,7 +97,7 @@ def nb2_context(
 @pytest.fixture(scope="class")
 def nb3_context(
     templates_dir, base_dir_generator
-) -> tuple[Iterator[TestbookNotebookClient], pathlib.Path]:
+) -> Tuple[Iterator[TestbookNotebookClient], pathlib.Path]:
     """
     Creates a testbook context manager for notebook 3.
 
@@ -110,7 +108,7 @@ def nb3_context(
             to store all notebook input / output.
 
     Yields:
-        Iterator[tuple[Iterator[TestbookNotebookClient], pathlib.Path]]:
+        Iterator[Tuple[Iterator[TestbookNotebookClient], pathlib.Path]]:
             The testbook notebook client context manager and the temporary directory where the
             notebook input / output is stored.
     """
@@ -123,7 +121,7 @@ def nb3_context(
 @pytest.fixture(scope="class")
 def nb3b_context(
     templates_dir, base_dir_generator
-) -> tuple[Iterator[TestbookNotebookClient], pathlib.Path]:
+) -> Tuple[Iterator[TestbookNotebookClient], pathlib.Path]:
     """
     Creates a testbook context manager for notebook 3 (generic cell clustering).
 
@@ -134,7 +132,7 @@ def nb3b_context(
             to store all notebook input / output.
 
     Yields:
-        Iterator[tuple[Iterator[TestbookNotebookClient], pathlib.Path]]:
+        Iterator[Tuple[Iterator[TestbookNotebookClient], pathlib.Path]]:
             The testbook notebook client context manager and the temporary directory where the
             notebook input / output is stored.
     """
@@ -147,7 +145,7 @@ def nb3b_context(
 @pytest.fixture(scope="class")
 def nb4_context(
     templates_dir, base_dir_generator
-) -> tuple[Iterator[TestbookNotebookClient], pathlib.Path]:
+) -> Tuple[Iterator[TestbookNotebookClient], pathlib.Path]:
     """
     Creates a testbook context manager for notebook 4.
 
@@ -158,7 +156,7 @@ def nb4_context(
             to store all notebook input / output.
 
     Yields:
-        Iterator[tuple[Iterator[TestbookNotebookClient], pathlib.Path]]:
+        Iterator[Tuple[Iterator[TestbookNotebookClient], pathlib.Path]]:
             The testbook notebook client context manager and the temporary directory where the
             notebook input / output is stored.
     """
@@ -171,7 +169,7 @@ def nb4_context(
 @pytest.fixture(scope="class")
 def nbfib_seg_context(
     templates_dir, base_dir_generator
-) -> tuple[Iterator[TestbookNotebookClient], pathlib.Path]:
+) -> Tuple[Iterator[TestbookNotebookClient], pathlib.Path]:
     """
     Creates a testbook context manager for the fiber segmentation notebook.
 
@@ -182,7 +180,7 @@ def nbfib_seg_context(
             to store all notebook input / output.
 
     Yields:
-        Iterator[tuple[Iterator[TestbookNotebookClient], pathlib.Path]]:
+        Iterator[Tuple[Iterator[TestbookNotebookClient], pathlib.Path]]:
             The testbook notebook client context manager and the temporary directory where the
             notebook input / output is stored.
     """
@@ -197,7 +195,7 @@ def nbfib_seg_context(
 @pytest.fixture(scope="class")
 def nbmixing_context(
     templates_dir, base_dir_generator
-) -> tuple[Iterator[TestbookNotebookClient], pathlib.Path]:
+) -> Tuple[Iterator[TestbookNotebookClient], pathlib.Path]:
     """
     Creates a testbook context manager for the mixing score notebook.
 
@@ -208,7 +206,7 @@ def nbmixing_context(
             to store all notebook input / output.
 
     Yields:
-        Iterator[tuple[Iterator[TestbookNotebookClient], pathlib.Path]]:
+        Iterator[Tuple[Iterator[TestbookNotebookClient], pathlib.Path]]:
             The testbook notebook client context manager and the temporary directory where the
             notebook input / output is stored.
     """
@@ -219,7 +217,7 @@ def nbmixing_context(
 
 
 @pytest.fixture(scope="class")
-def nbcell_neighbors_context(templates_dir, base_dir_generator) -> Iterator[ContextManager]:
+def nbcell_neighbors_context(templates_dir, base_dir_generator) -> Tuple[Iterator[TestbookNotebookClient], pathlib.Path]:
     """
     Creates a testbook context manager for the cell neighbor analysis notebook.
 
@@ -230,8 +228,9 @@ def nbcell_neighbors_context(templates_dir, base_dir_generator) -> Iterator[Cont
             to store all notebook input / output.
 
     Yields:
-        Iterator[ContextManager]: The testbook context manager which will get cleaned up
-            afterwords.
+        Iterator[Tuple[Iterator[TestbookNotebookClient], pathlib.Path]]:
+            The testbook notebook client context manager and the temporary directory where the
+            notebook input / output is stored.
     """
     EXAMPLE_CELL_NEIGHBORS: pathlib.Path = templates_dir / "cell_neighbors_analysis.ipynb"
     with testbook(EXAMPLE_CELL_NEIGHBORS, timeout=6000, execute=False) as nb_context_manager:

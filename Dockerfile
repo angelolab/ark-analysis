@@ -36,12 +36,13 @@ FROM move_ark AS move_templates
 
 # copy the scripts over
 # this should catch changes to the scripts from updates
-COPY src /opt/ark-analysis/src
+COPY templates /opt/ark-analysis/templates
 
 # Stage 4: Install Ark Analysis
 FROM move_templates AS install_ark
 
 # Install the package and the jupyter-lab extensions
+COPY src /opt/ark-analysis/src
 RUN cd /opt/ark-analysis && python -m pip install .[lab_ext]
 
 # Stage 5: Set the working directory, and open Jupyter Lab
