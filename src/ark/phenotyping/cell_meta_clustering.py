@@ -208,7 +208,7 @@ def apply_cell_meta_cluster_remapping(base_dir, cell_som_input_data, cell_remapp
     )
 
     # create the mapping from cell SOM to cell meta cluster
-    # TODO: generating cell_remapped_dict and cell_renamed_meta_dict should be returned
+    # TODO: generated cell_remapped_dict and cell_renamed_meta_dict should be returned
     # to prevent repeat computation in summary file generation functions
     cell_remapped_dict = dict(
         cell_remapped_data[
@@ -216,12 +216,13 @@ def apply_cell_meta_cluster_remapping(base_dir, cell_som_input_data, cell_remapp
         ].values
     )
 
+    # ensure no duplicated renamed meta clusters make it in
+    cluster_helpers.verify_unique_meta_clusters(cell_remapped_data, meta_cluster_type="cell")
+
     # create the mapping from cell meta cluster to cell renamed meta cluster
-    cell_renamed_meta_dict = dict(
-        cell_remapped_data[
-            ['cell_meta_cluster', 'cell_meta_cluster_rename']
-        ].drop_duplicates().values
-    )
+    cell_renamed_meta_dict = dict(cell_remapped_data[
+        ['cell_meta_cluster', 'cell_meta_cluster_rename']
+    ].drop_duplicates().values)
 
     # load the cell consensus data in
     print("Using re-mapping scheme to re-label cell meta clusters")
