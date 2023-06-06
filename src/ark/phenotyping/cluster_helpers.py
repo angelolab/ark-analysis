@@ -9,11 +9,11 @@ from typing import List, Literal, Protocol, runtime_checkable
 import feather
 import numpy as np
 import pandas as pd
+from alpineer.io_utils import list_files, validate_paths
+from alpineer.misc_utils import verify_in_list
 from pyFlowSOM import map_data_to_nodes, som
 from scipy.stats import zscore
 from sklearn.cluster import AgglomerativeClustering
-from alpineer.io_utils import list_files, validate_paths
-from alpineer.misc_utils import verify_in_list
 
 
 def verify_unique_meta_clusters(pixie_remapped_data: pd.DataFrame,

@@ -3,8 +3,8 @@ from itertools import combinations_with_replacement
 
 import numpy as np
 import xarray as xr
-from tqdm.notebook import tqdm
 from alpineer import io_utils, load_utils, misc_utils
+from tqdm.notebook import tqdm
 
 import ark.settings as settings
 from ark.analysis import spatial_analysis_utils

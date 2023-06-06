@@ -4,8 +4,9 @@ from typing import Union
 import numpy as np
 import pandas as pd
 from alpineer import image_utils
-from ark.utils import example_dataset
+
 from ark.settings import EXAMPLE_DATASET_REVISION
+from ark.utils import example_dataset
 
 
 def create_pixel_remap_files(base_dir,  pixel_meta_cluster_mapping):

@@ -1,13 +1,14 @@
 import os
-import pytest
 import tempfile
+
 import numpy as np
 import pandas as pd
+import pytest
 import xarray as xr
+from pytest_mock import MockerFixture
 
 import ark.settings as settings
 from ark.analysis import cell_neighborhood_stats
-from pytest_mock import MockerFixture
 
 
 def test_shannon_diversity():

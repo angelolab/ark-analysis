@@ -9,7 +9,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 dependencies = [
-    "alpineer==0.1.7",
+    "alpineer>=0.1.8",
     "Cython>=0.29,<1",
     "datasets>=2.6,<3.0",
     "dill>=0.3.5,<0.4",
@@ -25,7 +25,7 @@ dependencies = [
     "palettable>=3.3.0,<4",
     "pandas>=2",
     "pillow>=9,<10",
-    "pyFlowSOM==0.1.15",
+    "pyFlowSOM>=0.1.15",
     "requests>=2.20,<3",
     "scikit-image>=0.20",
     "scikit-learn>=1.1,<2",

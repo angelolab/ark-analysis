@@ -4,8 +4,7 @@ import numpy as np
 import pandas as pd
 from alpineer import io_utils, misc_utils
 
-from ark.phenotyping import cluster_helpers
-from ark.phenotyping import cell_cluster_utils
+from ark.phenotyping import cell_cluster_utils, cluster_helpers
 
 
 def cell_consensus_cluster(base_dir, cell_som_cluster_cols, cell_som_input_data,

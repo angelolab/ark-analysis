@@ -1,14 +1,14 @@
+import itertools
+import math
 import os
 import pathlib
-import tempfile
-import math
 import random
-import itertools
+import tempfile
 from typing import Generator
-import pytest
 
 import numpy as np
 import pandas as pd
+import pytest
 import skimage.io as io
 from alpineer import io_utils, test_utils
 from pytest_mock import MockerFixture

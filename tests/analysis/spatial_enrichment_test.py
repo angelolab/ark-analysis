@@ -3,13 +3,12 @@ import tempfile
 import numpy as np
 import pandas as pd
 import pytest
+import test_utils
 from alpineer import load_utils
 from alpineer.test_utils import _write_labels
 
 import ark.settings as settings
-from ark.analysis import spatial_enrichment, spatial_analysis_utils
-import test_utils
-
+from ark.analysis import spatial_analysis_utils, spatial_enrichment
 
 EXCLUDE_CHANNELS = [
     "Background",

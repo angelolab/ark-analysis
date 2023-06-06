@@ -1,8 +1,9 @@
 from pathlib import Path
+
+import numpy as np
 from Cython.Build import cythonize
 from Cython.Compiler.Options import get_directive_defaults
 from setuptools import Extension, setup
-import numpy as np
 
 _compiler_directives = get_directive_defaults()
 

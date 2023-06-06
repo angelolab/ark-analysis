@@ -1,13 +1,13 @@
 import multiprocessing
 import os
+from functools import partial
 
 import feather
-from functools import partial
 import numpy as np
 import pandas as pd
 import scipy.ndimage as ndimage
-from skimage.io import imread
 from alpineer import io_utils, load_utils, misc_utils
+from skimage.io import imread
 
 from ark.phenotyping import pixel_cluster_utils
 

@@ -1,8 +1,9 @@
-import pathlib
-import pytest
-from typing import Iterator, Union, Generator
-import numpy as np
 import os
+import pathlib
+from typing import Generator, Iterator, Union
+
+import numpy as np
+import pytest
 
 
 @pytest.fixture(scope="session")

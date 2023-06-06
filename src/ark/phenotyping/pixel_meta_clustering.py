@@ -1,16 +1,15 @@
 import multiprocessing
 import os
 from functools import partial
-from shutil import rmtree, move
+from shutil import move, rmtree
 
 import feather
 import numpy as np
 import pandas as pd
-from pyarrow.lib import ArrowInvalid
 from alpineer import io_utils, misc_utils
+from pyarrow.lib import ArrowInvalid
 
-from ark.phenotyping import cluster_helpers
-from ark.phenotyping import pixel_cluster_utils
+from ark.phenotyping import cluster_helpers, pixel_cluster_utils
 
 multiprocessing.set_start_method('spawn', force=True)
 

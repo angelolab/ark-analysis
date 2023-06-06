@@ -1,11 +1,12 @@
 import os
+from functools import reduce
+
 import numpy as np
 import pandas as pd
 import xarray as xr
-from functools import reduce
+from alpineer import io_utils, misc_utils
 
 import ark.settings as settings
-from alpineer import misc_utils, io_utils
 
 
 def shannon_diversity(proportions):

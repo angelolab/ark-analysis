@@ -1,12 +1,14 @@
 import pathlib
-from typing import Iterator, Union
 import shutil
+from typing import Iterator, Union
+
 import pytest
-from testbook.client import TestbookNotebookClient
 from testbook import testbook
+from testbook.client import TestbookNotebookClient
+
+from ark.utils import example_dataset
 
 from . import notebooks_test_utils
-from ark.utils import example_dataset
 
 
 # Sets a shared notebook testing temporary directory. Saves all notebook related files in a
