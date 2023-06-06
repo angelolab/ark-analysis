@@ -260,6 +260,13 @@ def generate_meta_avg_files(fovs, channels, base_dir, pixel_cc, data_dir='pixel_
     # merge metacluster assignments in
     print("Mapping meta cluster values onto average channel expression across pixel SOM clusters")
     pixel_channel_avg_som_cluster = pd.read_csv(som_cluster_avg_path)
+
+    # this happens if the overwrite flag is set with previously generated data, need to overwrite
+    if 'pixel_meta_cluster' in pixel_channel_avg_som_cluster.columns.values:
+        pixel_channel_avg_som_cluster = pixel_channel_avg_som_cluster.drop(
+            columns='pixel_meta_cluster'
+        )
+
     pixel_channel_avg_som_cluster = pd.merge_asof(
         pixel_channel_avg_som_cluster, pixel_cc.mapping, on='pixel_som_cluster'
     )

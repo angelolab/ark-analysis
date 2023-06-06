@@ -354,6 +354,10 @@ def test_generate_meta_avg_files(capsys):
             "Overwrite flag set, regenerating meta cluster channel average file\n"
         assert desired_status_updates in output
 
+        # ensure that the pixel meta cluster column in the SOM average file gets written properly
+        pc_som_avg = pd.read_csv(pc_som_avg_file)
+        assert 'pixel_meta_cluster' in pc_som_avg.columns.values
+
         # remove average meta file for final test
         os.remove(pc_meta_avg_file)
 

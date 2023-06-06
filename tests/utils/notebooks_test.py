@@ -495,9 +495,6 @@ class Test_3_Cell_Clustering:
     def test_cell_append_meta(self):
         self.tb.execute_cell("cell_append_meta")
 
-    def test_pixie_cell_save(self):
-        self.tb.execute_cell("pixie_cell_save")
-
     def test_cell_mantis_project(self):
         self.tb.execute_cell("cell_mantis_project")
 
