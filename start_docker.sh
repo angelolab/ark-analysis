@@ -44,7 +44,7 @@ fi
 # find lowest open port available
 PORT=8888
 
-until [[ $(docker container ls | grep 0.0.0.0:$PORT | wc -l) -eq 0 ]]
+until [[ $(netstat -an | grep LISTEN | grep $PORT | wc -l) -eq 0 ]]
   do
     ((PORT=$PORT+1))
 done

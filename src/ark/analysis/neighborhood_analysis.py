@@ -6,9 +6,9 @@ import matplotlib.pylab as plt
 import numpy as np
 import pandas as pd
 import xarray as xr
-from alpineer import misc_utils
 
 import ark.settings as settings
+from alpineer import misc_utils
 from ark.analysis import spatial_analysis_utils
 
 

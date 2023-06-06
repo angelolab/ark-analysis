@@ -12,7 +12,7 @@ import numpy as np
 import requests
 from requests.adapters import HTTPAdapter
 from requests.exceptions import RetryError
-from requests.packages.urllib3.util import Retry
+from urllib3 import Retry
 from tifffile import imread
 from alpineer import image_utils, io_utils, misc_utils, load_utils
 from tqdm.notebook import tqdm
@@ -214,7 +214,7 @@ def run_deepcell_direct(input_dir, output_dir, host='https://deepcell.org',
     retry_strategy = Retry(
         total=num_retries,
         status_forcelist=[404, 500, 502, 503, 504],
-        method_whitelist=['HEAD', 'GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'TRACE']
+        allowed_methods=['HEAD', 'GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'TRACE']
     )
     adapter = HTTPAdapter(max_retries=retry_strategy)
 
