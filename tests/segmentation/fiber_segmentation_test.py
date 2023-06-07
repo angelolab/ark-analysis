@@ -80,8 +80,7 @@ def test_run_fiber_segmentation(fiber_seg_data: pathlib.Path, tmp_path: pathlib.
         _ = fiber_segmentation.run_fiber_segmentation(img_dir, 'bad_channel', out_dir)
 
     # test success
-    fiber_object_table = fiber_segmentation.run_fiber_segmentation(
-        img_dir, 'Collagen1', out_dir)
+    fiber_object_table = fiber_segmentation.run_fiber_segmentation(img_dir, 'Collagen1', out_dir)
 
     # check all fovs are processed
     assert fiber_object_table[settings.FOV_ID].unique().sort() == \

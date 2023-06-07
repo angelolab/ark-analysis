@@ -537,8 +537,7 @@ class ConsensusCluster:
                 The data matrix prediction for `self.bestK`.
         """
         assert self.Mk is not None, "First run fit"
-        return self.cluster_(n_clusters=self.bestK).fit_predict(
-            data)
+        return self.cluster_(n_clusters=self.bestK).fit_predict(data)
 
 
 class PixieConsensusCluster:
@@ -620,7 +619,7 @@ class PixieConsensusCluster:
         """
         self.input_data[self.meta_col] = self.cc.predict_data(self.input_data[self.columns])
         self.mapping = self.input_data[[self.som_col, self.meta_col]].copy()
-        self.mapping = self.mapping.astype(int)
+        self.mapping = self.mapping.astype(np.int64)
 
         # we assume clusters are 1-indexed, so need to correct for Sagovic's 0-indexing
         self.mapping.loc[:, self.meta_col] += 1

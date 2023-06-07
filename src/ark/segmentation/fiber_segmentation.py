@@ -122,7 +122,7 @@ def plot_fiber_segmentation_steps(data_dir, fov_name, fiber_channel, img_sub_fol
     # build label color map
     transparent_cmap = set_minimum_color_for_colormap(labels_cmap)
 
-    segmentation = watershed(elevation_map, threshed) - 1
+    segmentation = watershed(elevation_map.astype(np.int32), threshed.astype(np.int32)) - 1
 
     labeled, _ = ndi.label(segmentation)
     axes[2, 1].imshow(labeled, cmap=transparent_cmap)
@@ -333,7 +333,7 @@ def segment_fibers(data_xr, fiber_channel, out_dir, fov, blur=2, contrast_scalin
         ndi.gaussian_filter(distance_transformed, sigma=sobel_blur)
     )
 
-    segmentation = watershed(elevation_map, threshed) - 1
+    segmentation = watershed(elevation_map.astype(np.int32), threshed.astype(np.int32)) - 1
 
     labeled, _ = ndi.label(segmentation)
 

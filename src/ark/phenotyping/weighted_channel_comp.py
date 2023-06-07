@@ -209,7 +209,7 @@ def compute_cell_cluster_weighted_channel_avg(fovs, channels, base_dir,
 
     # compute the mean channel expression across each cell cluster
     channel_avgs = cell_table.groupby(cell_cluster_col).mean().reset_index()
-    channel_avgs[cell_cluster_col] = channel_avgs[cell_cluster_col].astype(int)
+    channel_avgs[cell_cluster_col] = channel_avgs[cell_cluster_col].astype(dtype=np.int64)
 
     return channel_avgs
 
