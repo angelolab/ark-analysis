@@ -258,7 +258,7 @@ def run_deepcell_direct(input_dir, output_dir, host='https://deepcell.org',
     predict_response = requests.post(
         predict_url,
         json={
-            'dataRescale': scale,
+            'jobForm': {"scale": scale},
             'imageName': filename,
             'imageUrl': upload_response['imageURL'],
             'jobType': job_type,
