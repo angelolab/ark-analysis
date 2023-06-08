@@ -393,8 +393,8 @@ def compute_cell_ratios(neighbors_mat, target_cells, reference_cells, fov_list, 
             ref_targ_ratio.append(reference_total / target_total)
 
     # remove nan values for plotting
-    targ_ref_remove_nan = [x for x in targ_ref_ratio if str(x) != 'nan']
-    ref_targ_remove_nan = [x for x in ref_targ_ratio if str(x) != 'nan']
+    targ_ref_remove_nan = [x for x in targ_ref_ratio if x < 15 and str(x) != 'nan']
+    ref_targ_remove_nan = [x for x in ref_targ_ratio if x < 15 and str(x) != 'nan']
 
     # create ratio plots
     sns.set(rc={'figure.figsize': (16, 4)})
