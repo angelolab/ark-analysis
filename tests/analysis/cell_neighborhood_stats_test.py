@@ -1,13 +1,14 @@
 import os
-import pytest
 import tempfile
+
 import numpy as np
 import pandas as pd
+import pytest
 import xarray as xr
+from pytest_mock import MockerFixture
 
 import ark.settings as settings
 from ark.analysis import cell_neighborhood_stats
-from pytest_mock import MockerFixture
 
 
 def test_shannon_diversity():
@@ -169,7 +170,7 @@ def test_calculate_mean_distance_to_all_cell_types():
         'Cancer': [0.560, 0.070, 0.295, 0.510, 0.685],
         'Immune': [0.745, 0.575, 0.760, 0.745, 0.225]
     })
-    assert np.all(np.isclose(cancer_dist, actual_dist))
+    assert pd.testing.assert_frame_equal(cancer_dist, actual_dist, check_exact=False) is None
 
 
 def test_generate_cell_distance_analysis(mocker: MockerFixture, ):

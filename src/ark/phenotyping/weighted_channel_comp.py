@@ -9,7 +9,6 @@ import scipy.stats as stats
 from alpineer import io_utils, misc_utils
 
 from ark.analysis import visualize
-from ark.phenotyping import cluster_helpers
 
 
 def compute_p2c_weighted_channel_avg(pixel_channel_avg, channels, cell_counts,
@@ -210,6 +209,7 @@ def compute_cell_cluster_weighted_channel_avg(fovs, channels, base_dir,
 
     # compute the mean channel expression across each cell cluster
     channel_avgs = cell_table.groupby(cell_cluster_col).mean().reset_index()
+    channel_avgs[cell_cluster_col] = channel_avgs[cell_cluster_col].astype(dtype=int)
 
     return channel_avgs
 
@@ -282,8 +282,9 @@ def generate_wc_avg_files(fovs, channels, base_dir, cell_cc, cell_som_input_data
         "across cell SOM clusters"
     )
     cell_som_cluster_channel_avg = pd.merge_asof(
-        cell_som_cluster_channel_avg, cell_cc.mapping, on='cell_som_cluster'
-    )
+        cell_som_cluster_channel_avg,
+        cell_cc.mapping,
+        on='cell_som_cluster')
 
     # save the weighted channel average expression per cell cluster
     cell_som_cluster_channel_avg.to_csv(

@@ -8,8 +8,8 @@ import pandas as pd
 import pytest
 
 import ark.phenotyping.cell_cluster_utils as cell_cluster_utils
-import ark.phenotyping.weighted_channel_comp as weighted_channel_comp
 import ark.phenotyping.cluster_helpers as cluster_helpers
+import ark.phenotyping.weighted_channel_comp as weighted_channel_comp
 
 
 def test_compute_p2c_weighted_channel_avg():

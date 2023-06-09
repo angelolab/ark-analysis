@@ -2,8 +2,7 @@ import os
 
 from alpineer import io_utils, misc_utils
 
-from ark.phenotyping import cluster_helpers
-from ark.phenotyping import cell_cluster_utils
+from ark.phenotyping import cell_cluster_utils, cluster_helpers
 
 
 def train_cell_som(fovs, base_dir, cell_table_path, cell_som_cluster_cols,

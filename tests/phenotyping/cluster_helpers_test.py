@@ -10,8 +10,9 @@ import pandas as pd
 import pytest
 from alpineer.misc_utils import verify_same_elements
 
-from ark.phenotyping.cluster_helpers import (verify_unique_meta_clusters, CellSOMCluster,
-                                             PixelSOMCluster, PixieConsensusCluster)
+from ark.phenotyping.cluster_helpers import (CellSOMCluster, PixelSOMCluster,
+                                             PixieConsensusCluster,
+                                             verify_unique_meta_clusters)
 
 parametrize = pytest.mark.parametrize
 

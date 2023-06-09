@@ -4,8 +4,7 @@ import numpy as np
 import pandas as pd
 from alpineer import io_utils, misc_utils
 
-from ark.phenotyping import cluster_helpers
-from ark.phenotyping import cell_cluster_utils
+from ark.phenotyping import cell_cluster_utils, cluster_helpers
 
 
 def cell_consensus_cluster(base_dir, cell_som_cluster_cols, cell_som_input_data,
@@ -157,6 +156,7 @@ def generate_meta_avg_files(base_dir, cell_cc, cell_som_cluster_cols,
 
     # read in the average number of pixel/SOM clusters across all cell SOM clusters
     cell_som_cluster_avgs = pd.read_csv(som_expr_col_avg_path)
+    cell_som_cluster_avgs['cell_som_cluster'] = cell_som_cluster_avgs['cell_som_cluster'].astype(int)
 
     # this happens if the overwrite flag is set with previously generated data, need to overwrite
     if 'cell_meta_cluster' in cell_som_cluster_avgs.columns.values:

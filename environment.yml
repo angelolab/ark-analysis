@@ -2,8 +2,9 @@ name: ark_env
 channels:
   - conda-forge
 dependencies:
-  - python=3.8
+  - python=3.11
   - pip
+  - hdf5
   - jupyterlab
   - ipywidgets
   - tqdm
@@ -15,6 +16,6 @@ dependencies:
   - matplotlib
   - seaborn
   - pip:
-    - alpineer==0.1.6
-    - pyFlowSOM==0.1.14
-    - .
+    - alpineer>=0.1.8
+    - pyFlowSOM>=0.1.5
+    - .[lab_ext]

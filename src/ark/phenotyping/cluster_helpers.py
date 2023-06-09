@@ -9,11 +9,11 @@ from typing import List, Literal, Protocol, runtime_checkable
 import feather
 import numpy as np
 import pandas as pd
+from alpineer.io_utils import list_files, validate_paths
+from alpineer.misc_utils import verify_in_list
 from pyFlowSOM import map_data_to_nodes, som
 from scipy.stats import zscore
 from sklearn.cluster import AgglomerativeClustering
-from alpineer.io_utils import list_files, validate_paths
-from alpineer.misc_utils import verify_in_list
 
 
 def verify_unique_meta_clusters(pixie_remapped_data: pd.DataFrame,
@@ -537,8 +537,7 @@ class ConsensusCluster:
                 The data matrix prediction for `self.bestK`.
         """
         assert self.Mk is not None, "First run fit"
-        return self.cluster_(n_clusters=self.bestK).fit_predict(
-            data)
+        return self.cluster_(n_clusters=self.bestK).fit_predict(data)
 
 
 class PixieConsensusCluster:
@@ -620,6 +619,7 @@ class PixieConsensusCluster:
         """
         self.input_data[self.meta_col] = self.cc.predict_data(self.input_data[self.columns])
         self.mapping = self.input_data[[self.som_col, self.meta_col]].copy()
+        self.mapping = self.mapping.astype(int)
 
         # we assume clusters are 1-indexed, so need to correct for Sagovic's 0-indexing
         self.mapping.loc[:, self.meta_col] += 1

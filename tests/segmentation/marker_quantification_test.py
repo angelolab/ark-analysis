@@ -5,15 +5,15 @@ import tempfile
 import numpy as np
 import pytest
 import skimage.morphology as morph
+import test_utils
 import xarray as xr
-from skimage.morphology import erosion
 from alpineer import image_utils, misc_utils
 from alpineer.test_utils import (create_paired_xarray_fovs, gen_fov_chan_names,
                                  make_images_xarray, make_labels_xarray)
+from skimage.morphology import erosion
 
 import ark.settings as settings
 from ark.segmentation import marker_quantification
-import test_utils
 
 parametrize = pytest.mark.parametrize
 

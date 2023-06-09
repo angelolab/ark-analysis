@@ -1,7 +1,8 @@
-from dataclasses import dataclass
+import itertools
 import os
 import pathlib
 import tempfile
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Dict, Generator, List
 
@@ -12,10 +13,10 @@ import pandas as pd
 import pytest
 import skimage.io as io
 import xarray as xr
-from skimage.draw import disk
 from alpineer import image_utils, test_utils
+from skimage.draw import disk
+
 from ark.utils import plot_utils
-import itertools
 
 
 def _generate_segmentation_labels(img_dims, num_cells=20, num_imgs=1):

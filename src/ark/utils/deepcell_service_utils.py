@@ -10,12 +10,12 @@ from zipfile import ZIP_DEFLATED, ZipFile
 
 import numpy as np
 import requests
+from alpineer import image_utils, io_utils, load_utils, misc_utils
 from requests.adapters import HTTPAdapter
 from requests.exceptions import RetryError
-from urllib3 import Retry
 from tifffile import imread
-from alpineer import image_utils, io_utils, misc_utils, load_utils
 from tqdm.notebook import tqdm
+from urllib3 import Retry
 
 
 def create_deepcell_output(deepcell_input_dir, deepcell_output_dir, fovs=None,

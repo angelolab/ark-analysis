@@ -4,11 +4,11 @@ import tempfile
 import numpy as np
 import pandas as pd
 import pytest
-from matplotlib.colors import ListedColormap
 from alpineer import misc_utils
+from matplotlib.colors import ListedColormap
 
-from ark.utils.metacluster_remap_gui.colormap_helper import (distinct_cmap, distinct_rgbs,
-                                                             generate_meta_cluster_colormap_dict)
+from ark.utils.metacluster_remap_gui.colormap_helper import (
+    distinct_cmap, distinct_rgbs, generate_meta_cluster_colormap_dict)
 
 
 def test_colormap_is_distinct():
