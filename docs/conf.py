@@ -18,7 +18,6 @@ import sys
 import warnings  # to throw warnings (not errors) for malformed docstrings
 
 import mock  # if we need to force mock import certain libraries autodoc_mock_imports fails ons
-from sphinx.builders.html import StandaloneHTMLBuilder
 
 # our project officially 'begins' in the parent aka root project directory
 # since we do not separate source from build we can simply go up one directory

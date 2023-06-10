@@ -4,14 +4,14 @@ import tempfile
 
 import numpy as np
 import pytest
+import test_utils
 import xarray as xr
-from skimage.measure import regionprops
 from alpineer import image_utils
 from alpineer.test_utils import make_images_xarray, make_labels_xarray
+from skimage.measure import regionprops
 
 import ark.settings as settings
 from ark.segmentation import segmentation_utils
-import test_utils
 
 
 def test_find_nuclear_mask_id():

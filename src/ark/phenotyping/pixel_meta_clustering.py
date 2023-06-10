@@ -1,17 +1,15 @@
 import multiprocessing
 import os
-import random
 from functools import partial
-from shutil import rmtree, move
+from shutil import move, rmtree
 
 import feather
 import numpy as np
 import pandas as pd
-from pyarrow.lib import ArrowInvalid
 from alpineer import io_utils, misc_utils
+from pyarrow.lib import ArrowInvalid
 
-from ark.phenotyping import cluster_helpers
-from ark.phenotyping import pixel_cluster_utils
+from ark.phenotyping import cluster_helpers, pixel_cluster_utils
 
 multiprocessing.set_start_method('spawn', force=True)
 
@@ -266,7 +264,8 @@ def generate_meta_avg_files(fovs, channels, base_dir, pixel_cc, data_dir='pixel_
         pixel_channel_avg_som_cluster = pixel_channel_avg_som_cluster.drop(
             columns='pixel_meta_cluster'
         )
-
+    
+    pixel_channel_avg_som_cluster["pixel_som_cluster"] = pixel_channel_avg_som_cluster["pixel_som_cluster"].astype(int)
     pixel_channel_avg_som_cluster = pd.merge_asof(
         pixel_channel_avg_som_cluster, pixel_cc.mapping, on='pixel_som_cluster'
     )

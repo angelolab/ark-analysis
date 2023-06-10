@@ -91,3 +91,5 @@ target/
 venv/
 ENV/
 env/
+
+.virtual_documents

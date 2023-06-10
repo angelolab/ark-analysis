@@ -4,12 +4,12 @@ import tempfile
 import numpy as np
 import pandas as pd
 import pytest
+import test_utils
 import xarray as xr
 from alpineer.test_utils import _write_labels
 
 import ark.settings as settings
 from ark.analysis import spatial_analysis_utils
-import test_utils
 
 
 def test_calc_dist_matrix():

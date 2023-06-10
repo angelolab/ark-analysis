@@ -11,13 +11,13 @@ import matplotlib.pyplot as plt
 import natsort
 import numpy as np
 import pandas as pd
-from tqdm import tqdm
 import xarray as xr
-from alpineer import io_utils, load_utils, misc_utils, image_utils
+from alpineer import image_utils, io_utils, load_utils, misc_utils
 from alpineer.settings import EXTENSION_TYPES
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 from skimage.exposure import rescale_intensity
 from skimage.segmentation import find_boundaries
+from tqdm import tqdm
 
 
 @dataclass
