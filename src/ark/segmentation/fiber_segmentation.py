@@ -188,7 +188,8 @@ def run_fiber_segmentation(data_dir, fiber_channel, out_dir, img_sub_folder=None
     fiber_object_table = pd.concat(fiber_object_table)
 
     # append fiber knn alignment and save table to csv
-    fiber_object_table = calculate_fiber_alignment(fiber_object_table)
+    if len(fiber_object_table) > 0:
+        fiber_object_table = calculate_fiber_alignment(fiber_object_table)
     fiber_object_table.to_csv(os.path.join(out_dir, 'fiber_object_table.csv'), index=False,
                               compression=csv_compression)
 
