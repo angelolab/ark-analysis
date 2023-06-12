@@ -5,8 +5,8 @@ import feather
 import numpy as np
 import pandas as pd
 import pytest
-from sklearn.utils import shuffle
 from alpineer import misc_utils
+from sklearn.utils import shuffle
 
 import ark.phenotyping.cell_cluster_utils as cell_cluster_utils
 

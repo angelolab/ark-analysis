@@ -1,7 +1,7 @@
 # ANY CHANGES REQURIE A NEW RELEASE
 
-# Stage 1: Start from the official Python 3.8 Image: https://hub.docker.com/_/python
-FROM python:3.8 AS base
+# Stage 1: Start from the official Python 3.11 Image: https://hub.docker.com/_/python
+FROM python:3.11-slim-bullseye AS base
 
 # Set environment variable 
 ENV RUNNING_IN_DOCKER true
@@ -36,13 +36,14 @@ FROM move_ark AS move_templates
 
 # copy the scripts over
 # this should catch changes to the scripts from updates
-COPY src /opt/ark-analysis/src
+COPY templates /opt/ark-analysis/templates
 
 # Stage 4: Install Ark Analysis
 FROM move_templates AS install_ark
 
-# Install the package via setup.py
-RUN cd /opt/ark-analysis && python -m pip install .
+# Install the package and the jupyter-lab extensions
+COPY src /opt/ark-analysis/src
+RUN cd /opt/ark-analysis && python -m pip install .[lab_ext]
 
 # Stage 5: Set the working directory, and open Jupyter Lab
 FROM install_ark AS open_for_user

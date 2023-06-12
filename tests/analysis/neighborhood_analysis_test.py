@@ -1,14 +1,14 @@
+import math
 import os
 import tempfile
-import math
 
 import numpy as np
 import pandas as pd
 import pytest
+import test_utils
 
 import ark.settings as settings
 from ark.analysis import neighborhood_analysis
-import test_utils
 
 
 def test_create_neighborhood_matrix():

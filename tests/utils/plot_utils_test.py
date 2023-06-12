@@ -1,9 +1,10 @@
-from dataclasses import dataclass
+import itertools
 import os
 import pathlib
 import tempfile
+from dataclasses import dataclass
 from pathlib import Path
-from typing import Generator, List
+from typing import Dict, Generator, List
 
 import matplotlib.colors as colors
 import natsort
@@ -12,22 +13,27 @@ import pandas as pd
 import pytest
 import skimage.io as io
 import xarray as xr
-from skimage.draw import disk
 from alpineer import image_utils, test_utils
+from skimage.draw import disk
 
 from ark.utils import plot_utils
 
 
-def _generate_segmentation_labels(img_dims, num_cells=20):
+def _generate_segmentation_labels(img_dims, num_cells=20, num_imgs=1):
     if len(img_dims) != 2:
         raise ValueError("must be image data of shape [rows, cols]")
-    labels = np.zeros(img_dims, dtype="int16")
+
+    labels: np.ndarray = np.zeros((num_imgs, *img_dims), dtype=np.uint8)
     radius = 20
 
-    for i in range(num_cells):
+    for _img, _cell in itertools.product(range(num_imgs), range(num_cells)):
         r, c = np.random.randint(radius, img_dims[0] - radius, 2)
         rr, cc = disk((r, c), radius)
-        labels[rr, cc] = i
+        labels[_img, rr, cc] = _cell
+
+    # if only one image, return a 2-D array
+    if labels.shape[0] == 1:
+        labels = labels[0]
 
     return labels
 
@@ -39,7 +45,7 @@ def _generate_image_data(img_dims):
     return np.random.randint(low=0, high=100, size=img_dims)
 
 
-def test_plot_pixel_cell_cluster_overlay():
+def test_plot_pixel_cell_cluster_overlay(metacluster_colors):
     sample_img_data = np.random.randint(0, 20, size=(3, 1024, 1024))
     sample_img_xr = xr.DataArray(
         sample_img_data,
@@ -82,7 +88,7 @@ def test_plot_pixel_cell_cluster_overlay():
 
         # invalid sample_mapping dict provided, metaclusters do not match
         # those found in mapping_path
-        bad_sample_mapping = {i + 2: (0.0, 0.0, 0.0) for i in np.arange(5)}
+        bad_sample_mapping = {i + 2: (0.0, 0.0, 0.0, 1.0) for i in np.arange(5)}
 
         with pytest.raises(ValueError):
             plot_utils.plot_pixel_cell_cluster_overlay(
@@ -90,9 +96,7 @@ def test_plot_pixel_cell_cluster_overlay():
             )
 
         # define a valid mapping
-        sample_mapping = {
-            i: tuple(np.random.rand(3)) for i in np.arange(5)
-        }
+        sample_mapping = metacluster_colors
 
         # test 1: save_dir not specified
         plot_utils.plot_pixel_cell_cluster_overlay(
@@ -267,7 +271,9 @@ class _mantis:
 
 
 @pytest.fixture(scope="function")
-def mantis_data(tmp_path) -> Generator[_mantis, None, None]:
+def mantis_data(
+    tmp_path, cluster_id_to_name_mapping, cluster_type
+) -> Generator[_mantis, None, None]:
     """Generates a mantis folder, saves images and segmentation labels to
     an data folder to simulate moving data from the data folder to the mantis
     folder.
@@ -275,6 +281,7 @@ def mantis_data(tmp_path) -> Generator[_mantis, None, None]:
     Args:
         tmp_path (pathlib.Path): The temporary path for the mantis data to
         be stored in.
+        cluster_id_to_name_mapping (pathlib.Path): The path to the mapping csv file.
 
     Yields:
         Generator[_mantis, None, None]: Yields the `_mantis` dataclass which houses
@@ -299,7 +306,7 @@ def mantis_data(tmp_path) -> Generator[_mantis, None, None]:
     # Paths used
     segmentation_dir: str = "seg_dir"
     mask_dir: str = "masks"
-    cell_output_dir: str = "cell_output"
+    cell_output_dir: str = f"{cluster_type}_output"
     img_data_path: str = "img_data"
     img_sub_folder: str = "normalized"
     mantis_project_path: str = "mantis"
@@ -345,16 +352,6 @@ def mantis_data(tmp_path) -> Generator[_mantis, None, None]:
                 data_xr.loc[fov, :, :, chan].values
             )
 
-    # create the mapping path, and the sample mapping file
-    mapping_path = os.path.join(data_dir, cell_output_dir, 'sample_mapping_path.csv')
-
-    df = pd.DataFrame.from_dict({
-        'pixel_som_cluster': np.arange(20),
-        'pixel_meta_cluster': np.repeat(np.arange(5), 4),
-        'pixel_meta_cluster_rename': ['meta' + str(i) for i in np.repeat(np.arange(5), 4)]
-    })
-    df.to_csv(mapping_path, index=False)
-
     # The suffix for finding masks
     mask_suffix = "_mask"
 
@@ -369,8 +366,8 @@ def mantis_data(tmp_path) -> Generator[_mantis, None, None]:
                  mask_output_dir=mask_output_dir,
                  fovs=fovs,
                  mask_suffix=mask_suffix,
-                 df=df,
-                 mapping_path=mapping_path,
+                 df=pd.read_csv(cluster_id_to_name_mapping),
+                 mapping_path=cluster_id_to_name_mapping,
                  data_xr=data_xr,
                  example_masks=example_masks)
 
@@ -379,7 +376,8 @@ def mantis_data(tmp_path) -> Generator[_mantis, None, None]:
 
 @pytest.mark.parametrize("_mapping", ["df", "mapping_path"])
 @pytest.mark.parametrize("_seg_none", [True, False])
-def test_create_mantis_dir(mantis_data: _mantis, _seg_none: bool, _mapping: str):
+def test_create_mantis_dir(
+        mantis_data: _mantis, _seg_none: bool, _mapping: str, cluster_type: str):
     md = mantis_data
 
     # Image segmentation full path, and None
@@ -405,6 +403,7 @@ def test_create_mantis_dir(mantis_data: _mantis, _seg_none: bool, _mapping: str)
             mask_suffix=md.mask_suffix,
             mapping=_m,
             seg_dir=image_segmentation_full_path,
+            cluster_type=cluster_type,
             seg_suffix_name=seg_suffix_name,
             img_sub_folder=md.img_sub_folder
         )
@@ -450,12 +449,12 @@ def test_create_mantis_dir(mantis_data: _mantis, _seg_none: bool, _mapping: str)
                 os.path.join(output_path, "population{}.csv".format(md.mask_suffix)))
 
             # 3.a. Assert that metacluster col equals the region_id col
-            metacluster_col = original_mapping_df[["pixel_meta_cluster"]]
+            metacluster_col = original_mapping_df[[f"{cluster_type}_meta_cluster"]]
             region_id_col = new_mapping_df[["region_id"]]
             metacluster_col.eq(region_id_col)
 
             # 3.b. Assert that mc_name col equals the region_name col
-            mc_name_col = original_mapping_df[["pixel_meta_cluster_rename"]]
+            mc_name_col = original_mapping_df[[f"{cluster_type}_meta_cluster_rename"]]
             region_name = new_mapping_df[["region_name"]]
             mc_name_col.eq(region_name)
 
@@ -469,3 +468,189 @@ def test_create_mantis_dir(mantis_data: _mantis, _seg_none: bool, _mapping: str)
                 chan, _ = chan_path.name.split(".")
                 original_chan = md.data_xr.loc[fov, :, :, chan].values
                 np.testing.assert_equal(new_chan, original_chan)
+
+
+@pytest.fixture(scope="session")
+def n_metaclusters() -> Generator[int, None, None]:
+    """
+    Generates the number of meta clusters for pixel and cell metaclustering visualization tasks.
+
+    Yields:
+        Generator[int, None, None]: Yields the number of meta clusters.
+    """
+    yield 5
+
+
+@pytest.fixture(scope="module", params=["pixel", "cell"])
+def cluster_type(request) -> Generator[str, None, None]:
+    """
+    Generates the cluster type for pixel and cell metaclustering visualization tasks.
+
+    Yields:
+        Generator[str, None, None]: Yields the cluster type.
+    """
+    yield request.param
+
+
+@pytest.fixture(scope="function")
+def cluster_id_to_name_mapping(
+    tmp_path, cluster_type, n_metaclusters
+) -> Generator[pathlib.Path, None, None]:
+    """
+    Generates a mapping csv file and yields the path to the csv file.
+
+    Args:
+        tmp_path (pathlib.Path): The temporary path for the mapping csv file to
+        be stored in.
+
+    Yields:
+        Generator[pathlib.Path, None, None]: Yields the path to the mapping csv file.
+    """
+
+    mapping_path = tmp_path / "mapping.csv"
+
+    df = pd.DataFrame.from_dict(
+        {
+            f"{cluster_type}_som_cluster": np.arange(20),
+            f"{cluster_type}_meta_cluster": np.repeat(np.arange(n_metaclusters), 4),
+            f"{cluster_type}_meta_cluster_rename": [
+                "meta" + str(i) for i in np.repeat(np.arange(n_metaclusters), 4)
+            ],
+        }
+    )
+    df.to_csv(mapping_path, index=False)
+
+    yield mapping_path
+
+
+@pytest.fixture(scope="module")
+def metacluster_colors(n_metaclusters: int) -> Generator[Dict, None, None]:
+    """
+    Generates a dictionary of metacluster colors and yields the dictionary.
+
+    Yields:
+        Generator[dict, None, None]: Yields the dictionary of metacluster colors.
+    """
+    sample_mapping = {
+        i: tuple(np.random.rand(4)) for i in np.arange(n_metaclusters)
+    }
+
+    yield sample_mapping
+
+
+class TestMetaclusterColormap():
+    @pytest.fixture(autouse=True)
+    def _setup(self, cluster_type: str, cluster_id_to_name_mapping: pathlib.Path,
+               metacluster_colors: Dict, n_metaclusters: int):
+        self.cluster_type = cluster_type
+        self.cluster_id_to_name_mapping = cluster_id_to_name_mapping
+        self.metacluster_colors = metacluster_colors
+        self.n_metaclusters = n_metaclusters
+
+    def test_metacluster_cmap_generator(self):
+        # Test by initilizing the MetaclusterColormap class, then __post_init__ will
+        # run `_metacluster_cmp_generator`
+        mcc = plot_utils.MetaclusterColormap(
+            cluster_type=self.cluster_type,
+            cluster_id_to_name_path=self.cluster_id_to_name_mapping,
+            metacluster_colors=self.metacluster_colors,
+        )
+
+        # Assert that the fields after __post_init__ are correct
+
+        # Assert metacluster_to_id_name is correct
+        assert set(
+            mcc.metacluster_id_to_name[f"{self.cluster_type}_meta_cluster_rename"]) == set(
+            [f"meta{i}" for i in range(5)])
+
+        # Assert mc_colors has the correct shape
+        # Add 1 color to account for an element with no associated cluster.
+        assert mcc.mc_colors.shape == (self.n_metaclusters + 1, 4)
+
+        # Assert metacluster_to_index is correct
+        assert mcc.metacluster_to_index == {i: i + 1 for i in range(self.n_metaclusters)}
+
+        # Assert the cmap has the correct number of colors
+        assert mcc.cmap.N == self.n_metaclusters + 1
+
+        # Assert the boundary norm has the correct number of colors
+        # This would be for `plot_neighborhood_cluster_result`, currently not used by
+        # `plot_pixel_cell_cluster_overlay`
+        assert mcc.norm.N == self.n_metaclusters + 1 + 1
+
+    def test_assign_metacluster_cmap(self):
+        mcc = plot_utils.MetaclusterColormap(
+            cluster_type=self.cluster_type,
+            cluster_id_to_name_path=self.cluster_id_to_name_mapping,
+            metacluster_colors=self.metacluster_colors,
+        )
+        fov_img: np.ndarray = _generate_segmentation_labels(
+            (1024, 1024), num_cells=self.n_metaclusters)
+        mc_cmap = mcc.assign_metacluster_cmap(fov_img=fov_img)
+
+        # Assert colored mask shape
+        assert mc_cmap.shape == (1024, 1024)
+
+        # Assert colored mask dtype
+        assert mc_cmap.dtype == np.uint8
+
+        # Assert the number of unique metacluster_cmap values in the colored mask are correct
+        assert np.unique(mc_cmap).shape == (self.n_metaclusters,)
+
+        # Assert the unique metacluster_cmap values are correct
+        assert np.all(np.unique(mc_cmap) == np.arange(self.n_metaclusters) + 1)
+
+
+@pytest.fixture(scope="function")
+def create_masks(
+        tmp_path: pathlib.Path, n_metaclusters: int, cluster_type: str) -> Generator[
+        pathlib.Path, None, None]:
+    """
+    Creates a temporary directory with cluster masks and yields the path to the directory.
+
+    Args:
+        tmp_path (pathlib.Path): The temporary path for to save the cluster masks in.
+        n_metaclusters (int): The number of unique metaclusters to generate
+        cluster_type (str): The type of cluster to generate
+
+    Yields:
+        Generator[pathlib.Path, None, None]: Yields the path to the directory with the
+            cluster masks.
+    """
+    num_imgs = 2
+
+    cluster_mask_path: pathlib.Path = tmp_path / "cluster_masks"
+    cluster_mask_path.mkdir(parents=True, exist_ok=True)
+
+    seg_labeled_img: np.ndarray = _generate_segmentation_labels(
+        (1024, 1024), num_cells=n_metaclusters, num_imgs=num_imgs)
+
+    for img, img_idx in zip(seg_labeled_img, range(num_imgs)):
+        image_utils.save_image(cluster_mask_path / f"fov{img_idx}_{cluster_type}_mask.tiff", img)
+    yield cluster_mask_path
+
+
+def test_save_colored_masks(
+        tmp_path: pathlib.Path, create_masks: pathlib.Path, cluster_type: str,
+        cluster_id_to_name_mapping: pathlib.Path, metacluster_colors: Dict):
+
+    save_path: pathlib.Path = tmp_path / "save_path"
+
+    fovs = [f"fov{i}" for i in range(2)]
+    plot_utils.save_colored_masks(
+        fovs=fovs, mask_dir=create_masks, save_dir=save_path,
+        cluster_id_to_name_path=cluster_id_to_name_mapping, metacluster_colors=metacluster_colors,
+        cluster_type=cluster_type,)
+
+    for fov in fovs:
+        # Assert that the file exists and is named appropriatly
+        colored_mask_path: pathlib.Path = save_path / f"{fov}_{cluster_type}_mask_colored.tiff"
+        assert colored_mask_path.exists()
+
+        # Load the colored mask
+        colored_mask: np.ndarray = io.imread(fname=colored_mask_path)
+        # Asser that the file is the correct shape (x,y,color)
+        assert colored_mask.shape == (1024, 1024, 4)
+
+        # Get the unique colors in the colored mask
+        assert np.max(np.unique(colored_mask, axis=None)) <= 255

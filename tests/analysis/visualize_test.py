@@ -4,12 +4,12 @@ import timeit
 
 import numpy as np
 import pytest
+import test_utils
 import xarray as xr
 
 import ark.settings as settings
 import ark.spLDA.processing as pros
 from ark.analysis import visualize
-import test_utils
 
 
 def test_draw_heatmap():

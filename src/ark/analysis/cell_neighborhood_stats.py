@@ -1,11 +1,12 @@
 import os
+from functools import reduce
+
 import numpy as np
 import pandas as pd
 import xarray as xr
-from functools import reduce
+from alpineer import io_utils, misc_utils
 
 import ark.settings as settings
-from alpineer import misc_utils, io_utils
 
 
 def shannon_diversity(proportions):
@@ -41,7 +42,7 @@ def compute_neighborhood_diversity(neighborhood_mat, cell_type_col):
 
     # check input values
     neighborhood_mat_values = np.array(neighborhood_mat.drop(
-            columns=[settings.FOV_ID, settings.CELL_LABEL, cell_type_col]))
+        columns=[settings.FOV_ID, settings.CELL_LABEL, cell_type_col]))
     if (neighborhood_mat_values > 1).any():
         raise ValueError("Input must be frequency values.")
 
@@ -176,11 +177,11 @@ def calculate_mean_distance_to_all_cell_types(
     all_clusters = np.unique(cell_table[cell_type_col])
 
     # call calculate_mean_distance_to_cell_type for all cell clusters
-    avg_dists = pd.DataFrame(index=cell_table.index.values, columns=all_clusters)
+    avg_dists = pd.DataFrame(index=cell_table.index.values, columns=all_clusters, dtype=np.float64)
     for cell_cluster in all_clusters:
         avg_dists.loc[:, cell_cluster] = calculate_mean_distance_to_cell_type(
             cell_table, dist_xr, cell_cluster, k, cell_type_col, cell_label_col)
-        
+
     return avg_dists
 
 

@@ -9,8 +9,8 @@ import pandas as pd
 import pytest
 import scipy.ndimage as ndimage
 import skimage.io as io
-from skimage.draw import disk
 from alpineer import image_utils, misc_utils, test_utils
+from skimage.draw import disk
 
 import ark.phenotyping.pixel_cluster_utils as pixel_cluster_utils
 

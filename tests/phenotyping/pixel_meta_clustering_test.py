@@ -6,7 +6,7 @@ import feather
 import numpy as np
 import pandas as pd
 import pytest
-from alpineer import io_utils, misc_utils, test_utils
+from alpineer import io_utils, misc_utils
 
 import ark.phenotyping.cluster_helpers as cluster_helpers
 import ark.phenotyping.pixel_cluster_utils as pixel_cluster_utils
@@ -294,8 +294,8 @@ def test_generate_meta_avg_files(capsys):
 
         # define a sample SOM to meta cluster map
         som_to_meta_data = {
-            'pixel_som_cluster': np.arange(1, 4, dtype=np.int64),
-            'pixel_meta_cluster': np.arange(10, 40, 10, dtype=np.int64)
+            'pixel_som_cluster': np.arange(1, 4, dtype=int),
+            'pixel_meta_cluster': np.arange(10, 40, 10, dtype=int)
         }
         som_to_meta_data = pd.DataFrame.from_dict(som_to_meta_data)
 
@@ -353,6 +353,10 @@ def test_generate_meta_avg_files(capsys):
         desired_status_updates = \
             "Overwrite flag set, regenerating meta cluster channel average file\n"
         assert desired_status_updates in output
+
+        # ensure that the pixel meta cluster column in the SOM average file gets written properly
+        pc_som_avg = pd.read_csv(pc_som_avg_file)
+        assert 'pixel_meta_cluster' in pc_som_avg.columns.values
 
         # remove average meta file for final test
         os.remove(pc_meta_avg_file)
@@ -568,6 +572,29 @@ def test_apply_pixel_meta_cluster_remapping_base(multiprocess):
                 {'pixel_meta_cluster_rename': 'bad_col'},
                 axis=1
             )
+            bad_sample_pixel_remapping.to_csv(
+                os.path.join(temp_dir, 'bad_sample_pixel_remapping.csv'),
+                index=False
+            )
+
+            pixel_meta_clustering.apply_pixel_meta_cluster_remapping(
+                fovs,
+                chans,
+                temp_dir,
+                'pixel_mat_data',
+                'bad_sample_pixel_remapping.csv'
+            )
+
+        # duplicate pixel_meta_cluster_rename values found across pixel_meta_clusters
+        with pytest.raises(ValueError):
+            sample_pixel_remapping = pd.read_csv(
+                os.path.join(temp_dir, 'sample_pixel_remapping.csv')
+            )
+            bad_sample_pixel_remapping = sample_pixel_remapping.copy()
+            bad_sample_pixel_remapping.loc[
+                bad_sample_pixel_remapping['pixel_meta_cluster_rename'] == 'meta1',
+                'pixel_meta_cluster_rename'
+            ] = 'meta0'
             bad_sample_pixel_remapping.to_csv(
                 os.path.join(temp_dir, 'bad_sample_pixel_remapping.csv'),
                 index=False

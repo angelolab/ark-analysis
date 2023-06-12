@@ -6,10 +6,10 @@ import scipy
 import skimage.measure
 import sklearn.metrics
 import xarray as xr
+from alpineer import io_utils, load_utils, misc_utils
 from scipy.spatial.distance import cdist
 from sklearn.cluster import KMeans
 from statsmodels.stats.multitest import multipletests
-from alpineer import io_utils, load_utils, misc_utils
 from tqdm.notebook import tqdm
 
 import ark.settings as settings

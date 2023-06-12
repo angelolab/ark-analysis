@@ -1,17 +1,15 @@
 import multiprocessing
 import os
-import random
 from functools import partial
-from shutil import rmtree, move
+from shutil import move, rmtree
 
 import feather
 import numpy as np
 import pandas as pd
-from pyarrow.lib import ArrowInvalid
 from alpineer import io_utils, misc_utils
+from pyarrow.lib import ArrowInvalid
 
-from ark.phenotyping import cluster_helpers
-from ark.phenotyping import pixel_cluster_utils
+from ark.phenotyping import cluster_helpers, pixel_cluster_utils
 
 multiprocessing.set_start_method('spawn', force=True)
 
@@ -260,6 +258,14 @@ def generate_meta_avg_files(fovs, channels, base_dir, pixel_cc, data_dir='pixel_
     # merge metacluster assignments in
     print("Mapping meta cluster values onto average channel expression across pixel SOM clusters")
     pixel_channel_avg_som_cluster = pd.read_csv(som_cluster_avg_path)
+
+    # this happens if the overwrite flag is set with previously generated data, need to overwrite
+    if 'pixel_meta_cluster' in pixel_channel_avg_som_cluster.columns.values:
+        pixel_channel_avg_som_cluster = pixel_channel_avg_som_cluster.drop(
+            columns='pixel_meta_cluster'
+        )
+    
+    pixel_channel_avg_som_cluster["pixel_som_cluster"] = pixel_channel_avg_som_cluster["pixel_som_cluster"].astype(int)
     pixel_channel_avg_som_cluster = pd.merge_asof(
         pixel_channel_avg_som_cluster, pixel_cc.mapping, on='pixel_som_cluster'
     )
@@ -371,12 +377,13 @@ def apply_pixel_meta_cluster_remapping(fovs, channels, base_dir,
         ].values
     )
 
+    # ensure no duplicated renamed meta clusters make it in
+    cluster_helpers.verify_unique_meta_clusters(pixel_remapped_data, meta_cluster_type="pixel")
+
     # create the mapping from pixel meta cluster to renamed pixel meta cluster
-    pixel_renamed_meta_dict = dict(
-        pixel_remapped_data[
-            ['pixel_meta_cluster', 'pixel_meta_cluster_rename']
-        ].drop_duplicates().values
-    )
+    pixel_renamed_meta_dict = dict(pixel_remapped_data[
+        ['pixel_meta_cluster', 'pixel_meta_cluster_rename']
+    ].drop_duplicates().values)
 
     # define the partial function to iterate over
     fov_data_func = partial(

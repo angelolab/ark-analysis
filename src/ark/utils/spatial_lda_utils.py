@@ -7,9 +7,9 @@ import palettable.colorbrewer.qualitative as qual_palettes
 import pandas as pd
 import seaborn as sns
 import spatial_lda.online_lda
+from alpineer import io_utils, misc_utils
 from scipy.spatial.distance import pdist
 from spatial_lda.visualization import _standardize_topics, plot_adjacency_graph
-from alpineer import io_utils, misc_utils
 
 from ark.settings import BASE_COLS, CELL_TYPE, LDA_PLOT_TYPES
 
