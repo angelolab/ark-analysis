@@ -58,7 +58,8 @@ def test_plot_fiber_segmentation_steps(fiber_seg_data: pathlib.Path):
     fiber_segmentation.plot_fiber_segmentation_steps(img_dir, 'fov1', 'Collagen1')
 
 
-def test_run_fiber_segmentation(fiber_seg_data: pathlib.Path, tmp_path: pathlib.Path):
+def test_run_fiber_segmentation(fiber_seg_data: pathlib.Path, tmp_path: pathlib.Path,
+                                mocker: MockerFixture):
     img_dir: pathlib.Path = fiber_seg_data
     out_dir: pathlib.Path = tmp_path / "fiber_segmentation"
     out_dir.mkdir(parents=True, exist_ok=True)
@@ -103,6 +104,11 @@ def test_run_fiber_segmentation(fiber_seg_data: pathlib.Path, tmp_path: pathlib.
     for img in intermediate_imgs:
         img_path = os.path.join(out_dir, '_debug', img)
         assert os.path.exists(img_path)
+
+    # check empty fiber images don't throw error
+    mocker.patch('fiber_segmentation.segment_fibers', return_value=pd.empty(0))
+    empty_table = fiber_segmentation.run_fiber_segmentation(
+        img_dir, 'Collagen1', out_dir, debug=True)
 
 
 @pytest.mark.parametrize("neighbors", [1, 2])
@@ -239,7 +245,7 @@ def test_generate_summary_stats(mocker: MockerFixture, min_fiber_num):
         assert fov_stats.avg_length[1] == np.mean(fiber_object_table.major_axis_length[6:12])
 
 
-def test_color_fibers_by_stat(mocker: MockerFixture):
+def test_color_fibers_by_stat():
 
     # check for colored mask generation
     with tempfile.TemporaryDirectory() as temp_dir:
