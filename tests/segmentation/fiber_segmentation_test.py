@@ -106,7 +106,7 @@ def test_run_fiber_segmentation(fiber_seg_data: pathlib.Path, tmp_path: pathlib.
         assert os.path.exists(img_path)
 
     # check empty fiber images don't throw error
-    mocker.patch('fiber_segmentation.segment_fibers', return_value=pd.DataFrame())
+    mocker.patch('ark.segmentation.fiber_segmentation.segment_fibers', return_value=pd.DataFrame())
     empty_table = fiber_segmentation.run_fiber_segmentation(
         img_dir, 'Collagen1', out_dir, debug=True)
 
