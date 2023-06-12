@@ -1,12 +1,12 @@
 import numpy as np
 import pytest
-from sklearn.cluster import KMeans
 from alpineer import misc_utils
+from sklearn.cluster import KMeans
+from test_utils import make_cell_table
 
 import ark.settings as settings
 import ark.spLDA.processing as pros
 from ark.utils.spatial_lda_utils import within_cluster_sums
-from test_utils import make_cell_table
 
 # Generate a test cell table
 N_CELLS = 1000

@@ -107,19 +107,19 @@ class ExampleDataset():
         dataset_names = list(self.dataset_paths[self.dataset].features.keys())
 
         for ds_n in dataset_names:
-            ds_n_suffix = self.path_suffixes[ds_n]
+            ds_n_suffix: str = pathlib.Path(self.path_suffixes[ds_n])
 
             # The path where the dataset is saved in the Hugging Face Cache post-download,
             # Necessary to copy + move the data from the cache to the user specified `move_dir`.
             dataset_cache_path = pathlib.Path(self.dataset_paths[self.dataset][ds_n][0])
-            src_path = dataset_cache_path / ds_n
-            dst_path = move_dir / ds_n_suffix
+            src_path: pathlib.Path = dataset_cache_path / ds_n
+            dst_path: pathlib.Path = move_dir / ds_n_suffix
 
             # Overwrite the existing dataset when `overwrite_existing` == `True`
             # and when the `dst_path` is empty.
 
             # `True` if `dst_path` is empty, `False` if data exists in `dst_path`
-            empty_dst_path = self.check_empty_dst(dst_path=dst_path)
+            empty_dst_path: bool = self.check_empty_dst(dst_path=dst_path)
 
             if self.overwrite_existing:
                 if not empty_dst_path:

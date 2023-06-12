@@ -1,5 +1,5 @@
-import os
 import itertools
+import os
 from typing import Dict, Optional
 
 import matplotlib.pyplot as plt
@@ -7,15 +7,15 @@ import natsort as ns
 import numpy as np
 import pandas as pd
 import scipy.ndimage as ndi
+import skimage.io as io
+from alpineer import image_utils, io_utils, load_utils, misc_utils
 from scipy.ndimage.morphology import distance_transform_edt
+from scipy.spatial.distance import cdist
 from skimage.exposure import equalize_adapthist
 from skimage.filters import frangi, sobel, threshold_multiotsu
 from skimage.measure import regionprops_table
 from skimage.morphology import remove_small_objects
 from skimage.segmentation import watershed
-from alpineer import image_utils, io_utils, load_utils, misc_utils
-from scipy.spatial.distance import cdist
-import skimage.io as io
 
 from ark import settings
 from ark.utils.plot_utils import set_minimum_color_for_colormap
@@ -122,7 +122,7 @@ def plot_fiber_segmentation_steps(data_dir, fov_name, fiber_channel, img_sub_fol
     # build label color map
     transparent_cmap = set_minimum_color_for_colormap(labels_cmap)
 
-    segmentation = watershed(elevation_map, threshed) - 1
+    segmentation = watershed(elevation_map.astype(np.int32), threshed.astype(np.int32)) - 1
 
     labeled, _ = ndi.label(segmentation)
     axes[2, 1].imshow(labeled, cmap=transparent_cmap)
@@ -336,7 +336,7 @@ def segment_fibers(data_xr, fiber_channel, out_dir, fov, blur=2, contrast_scalin
         ndi.gaussian_filter(distance_transformed, sigma=sobel_blur)
     )
 
-    segmentation = watershed(elevation_map, threshed) - 1
+    segmentation = watershed(elevation_map.astype(np.int32), threshed.astype(np.int32)) - 1
 
     labeled, _ = ndi.label(segmentation)
 

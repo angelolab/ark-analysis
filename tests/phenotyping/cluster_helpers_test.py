@@ -11,7 +11,28 @@ import pytest
 from alpineer.misc_utils import verify_same_elements
 
 from ark.phenotyping.cluster_helpers import (CellSOMCluster, PixelSOMCluster,
-                                             PixieConsensusCluster)
+                                             PixieConsensusCluster,
+                                             verify_unique_meta_clusters)
+
+parametrize = pytest.mark.parametrize
+
+
+@parametrize("meta_cluster_type", ["pixel", "cell"])
+def test_verify_unique_meta_clusters(meta_cluster_type):
+    # assert proper mapping validates
+    meta_mapping = pd.DataFrame({
+        f"{meta_cluster_type}_meta_cluster": [1, 2, 3],
+        f"{meta_cluster_type}_meta_cluster_rename": ["meta_1", "meta_2", "meta_3"]
+    })
+    verify_unique_meta_clusters(meta_mapping, meta_cluster_type)
+
+    # assert improper mapping raises error
+    meta_mapping = pd.DataFrame({
+        f"{meta_cluster_type}_meta_cluster": [1, 2, 3],
+        f"{meta_cluster_type}_meta_cluster_rename": ["meta_1", "meta_2", "meta_2"]
+    })
+    with pytest.raises(ValueError):
+        verify_unique_meta_clusters(meta_mapping, meta_cluster_type)
 
 
 @pytest.fixture(scope="session")

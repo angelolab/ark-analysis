@@ -4,10 +4,10 @@ from string import ascii_lowercase
 
 import numpy as np
 import pandas as pd
+import synthetic_spatial_datagen
 import xarray as xr
 
 import ark.settings as settings
-import synthetic_spatial_datagen
 
 TEST_MARKERS = list('ABCDEFG')
 
