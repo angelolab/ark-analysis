@@ -10,7 +10,7 @@ import numpy as np
 import pandas as pd
 import pytest
 import skimage.io as io
-from alpineer import io_utils, test_utils
+from alpineer import io_utils, test_utils, misc_utils
 from pytest_mock import MockerFixture
 
 import ark.settings as settings
@@ -190,20 +190,20 @@ def test_generate_tile_stats(min_fiber_num):
         # check tile level values
         # 0,0 tile, fov1 should exclude fiber 6 since located in different tile
         tile_0_0 = tile_stats[np.logical_and(tile_stats.tile_y == 0, tile_stats.tile_x == 0)]
-        assert tile_0_0.avg_length[0] \
+        assert tile_0_0.avg_major_axis_length[0] \
             == np.mean(fov_fiber_table.major_axis_length[0:5])
-        assert tile_0_0.alignment[0] \
+        assert tile_0_0.avg_alignment_score[0] \
             == np.mean(fov_fiber_table.alignment_score[0:5])
 
         tile_8_8 = tile_stats[np.logical_and(tile_stats.tile_y == 8, tile_stats.tile_x == 8)]
         # make sure tile 8,8 has nan since there's only 1 fiber (5 fibers required for stat calc)
         if min_fiber_num == 5:
-            assert math.isnan(tile_8_8.avg_length)
-            assert math.isnan(tile_8_8.alignment)
+            assert math.isnan(tile_8_8.avg_major_axis_length)
+            assert math.isnan(tile_8_8.avg_alignment_score)
         # check the correct value (1 fiber required for stat calc)
         elif min_fiber_num == 1:
-            assert tile_8_8.avg_length[3] == fov_fiber_table.major_axis_length[5]
-            assert tile_8_8.alignment[3] == fov_fiber_table.alignment_score[5]
+            assert tile_8_8.avg_major_axis_length[3] == fov_fiber_table.major_axis_length[5]
+            assert tile_8_8.avg_alignment_score[3] == fov_fiber_table.alignment_score[5]
 
         # check for saved tile images
         tile_corners = [tile_length * i for i in range(int(fov_length / tile_length))]
@@ -212,8 +212,10 @@ def test_generate_tile_stats(min_fiber_num):
             assert os.path.exists(os.path.join(temp_dir, fov, f'tile_{y},{x}.tiff'))
 
         # check additional property averages are included
-        assert ["avg_major_axis_length", "avg_minor_axis_length", "avg_orientation", "avg_area",
-                "avg_eccentricity", "avg_euler_number"] in tile_stats.columns
+        misc_utils.verify_in_list(
+            summary_stats=["avg_major_axis_length", "avg_minor_axis_length", "avg_orientation",
+                           "avg_area", "avg_eccentricity", "avg_euler_number"],
+            output_columns=tile_stats.columns)
 
 
 @pytest.mark.parametrize("min_fiber_num", [1, 5])
@@ -253,8 +255,10 @@ def test_generate_summary_stats(mocker: MockerFixture, min_fiber_num):
 
         # check fov-level values
         # only confirm fiber property avg stats, densities are tested above
-        assert ["avg_major_axis_length", "avg_minor_axis_length", "avg_orientation", "avg_area",
-                "avg_eccentricity", "avg_euler_number", "avg_alignment_score"] in fov_stats.columns
+        misc_utils.verify_in_list(
+            summary_stats=["avg_major_axis_length", "avg_minor_axis_length", "avg_orientation",
+                           "avg_area", "avg_eccentricity", "avg_euler_number",
+                           "avg_alignment_score"], output_columns=fov_stats.columns)
         assert fov_stats.avg_major_axis_length[0] ==\
                np.mean(fiber_object_table.major_axis_length[0:6])
         assert fov_stats.avg_major_axis_length[1] == \
