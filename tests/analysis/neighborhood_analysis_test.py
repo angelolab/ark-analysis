@@ -282,27 +282,27 @@ def test_compute_mixing_score():
     # check that extra cell type is ignored
     score, cell_count = neighborhood_analysis.compute_mixing_score(
         cell_neighbors_mat, target_cells=['cell1', 'cell3', 'cell_not_in_fov'],
-        reference_cells=['cell2'], mixing_type='homogeneous')
+        reference_cells=['cell2'], cell_count_thresh=0, mixing_type='homogeneous')
     assert score == 3 / 12
     assert cell_count == 7
 
     # test homogeneous mixing
     score = neighborhood_analysis.compute_mixing_score(
         cell_neighbors_mat, target_cells=['cell1', 'cell3'], reference_cells=['cell2'],
-        mixing_type='homogeneous')
+        cell_count_thresh=0, mixing_type='homogeneous')
     assert score == 3/12
     assert cell_count == 7
 
     # test percent mixing
     score, _ = neighborhood_analysis.compute_mixing_score(
         cell_neighbors_mat, target_cells=['cell1', 'cell3'], reference_cells=['cell2'],
-        mixing_type='percent')
+        cell_count_thresh=0, mixing_type='percent')
     assert score == 3 / 9
 
     # test ratio threshold
     cold_score, cell_count = neighborhood_analysis.compute_mixing_score(
         cell_neighbors_mat, target_cells=['cell1'], reference_cells=['cell2'],
-        ratio_threshold=0.5, mixing_type='homogeneous')
+        cell_count_thresh=0, ratio_threshold=0.5, mixing_type='homogeneous')
     assert math.isnan(cold_score)
     assert cell_count == 6
 
