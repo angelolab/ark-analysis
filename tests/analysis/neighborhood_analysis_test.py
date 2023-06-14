@@ -287,7 +287,7 @@ def test_compute_mixing_score():
     assert cell_count == 7
 
     # test homogeneous mixing
-    score = neighborhood_analysis.compute_mixing_score(
+    score, _ = neighborhood_analysis.compute_mixing_score(
         cell_neighbors_mat, target_cells=['cell1', 'cell3'], reference_cells=['cell2'],
         cell_count_thresh=0, mixing_type='homogeneous')
     assert score == 3/12
