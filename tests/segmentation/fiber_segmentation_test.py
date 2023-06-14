@@ -176,7 +176,7 @@ def test_generate_tile_stats(min_fiber_num):
         'orientation': [random.uniform(-1.57, 1.57) for _ in range(6)],
         'area': [1] * 6,
         'eccentricity': [random.uniform(0, 1) for _ in range(6)],
-        'euler_number': random.sample(range(0, 1), 6),
+        'euler_number': [random.choice([0, 1]) for _ in range(6)],
         'alignment_score': random.sample(range(10, 40), 6),
     })
 
@@ -232,7 +232,7 @@ def test_generate_summary_stats(mocker: MockerFixture, min_fiber_num):
         'orientation': [random.uniform(-1.57, 1.57) for _ in range(12)],
         'area': [1]*12,
         'eccentricity': [random.uniform(0, 1) for _ in range(12)],
-        'euler_number': random.sample(range(0, 1), 12),
+        'euler_number': [random.choice([0, 1]) for _ in range(12)],
         'alignment_score': random.sample(range(10, 40), 12),
     })
 
