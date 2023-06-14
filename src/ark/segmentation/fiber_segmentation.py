@@ -461,7 +461,7 @@ def generate_tile_stats(fov_table, fov_fiber_img, fov_length, tile_length, min_f
             avg_alignment = np.mean(align_scores) if len(align_scores) >= min_fiber_num else np.nan
 
             # take the average of the properties
-            tile_avgs = fov_table[properties].mean().array
+            tile_avgs = tile_table[properties].mean().array
 
             # density
             p_density, f_density = calculate_density(tile_table, tile_length ** 2)
