@@ -169,11 +169,15 @@ def test_generate_tile_stats(min_fiber_num):
     fov_fiber_table = pd.DataFrame({
         'fov': ['fov1', 'fov1', 'fov1', 'fov1', 'fov1', 'fov1'],
         'label': [1, 2, 3, 4, 5, 6],
-        'alignment_score': random.sample(range(10, 40), 6),
         'centroid-0': [0, 1, 1, 0, 2, 9],
         'centroid-1': [0, 1, 0, 1, 2, 9],
         'major_axis_length': random.sample(range(1, 20), 6),
-        'area': [1] * 6
+        'minor_axis_length': random.sample(range(1, 10), 6),
+        'orientation': random.choice(range(-1.57, 1.57, 6)),
+        'area': [1] * 6,
+        'eccentricity': random.choice(range(0, 1.0, 6)),
+        'euler_number': random.sample(range(0, 1), 6),
+        'alignment_score': random.sample(range(10, 40), 6),
     })
 
     with tempfile.TemporaryDirectory() as temp_dir:
@@ -207,6 +211,10 @@ def test_generate_tile_stats(min_fiber_num):
                 itertools.product(tile_corners, tile_corners, np.unique(fov_fiber_table.fov)):
             assert os.path.exists(os.path.join(temp_dir, fov, f'tile_{y},{x}.tiff'))
 
+        # check additional property averages are included
+        assert ["avg_major_axis_length", "avg_minor_axis_length", "avg_orientation", "avg_area",
+                "avg_eccentricity", "avg_euler_number"] in tile_stats.columns
+
 
 @pytest.mark.parametrize("min_fiber_num", [1, 5])
 def test_generate_summary_stats(mocker: MockerFixture, min_fiber_num):
@@ -217,11 +225,15 @@ def test_generate_summary_stats(mocker: MockerFixture, min_fiber_num):
         'fov': ['fov1', 'fov1', 'fov1', 'fov1', 'fov1', 'fov1',
                 'fov2', 'fov2', 'fov2', 'fov2', 'fov2', 'fov2'],
         'label': [1, 2, 3, 4, 5, 6, 1, 2, 3, 4, 5, 6],
-        'alignment_score': random.sample(range(10, 40), 12),
         'centroid-0': random.sample(range(0, 15), 12),
         'centroid-1': random.sample(range(0, 15), 12),
         'major_axis_length': random.sample(range(1, 20), 12),
-        'area': [1]*12
+        'minor_axis_length': random.sample(range(1, 10), 12),
+        'orientation': random.choice(range(-1.57, 1.57, 12)),
+        'area': [1]*12,
+        'eccentricity': random.choice(range(0, 1.0, 12)),
+        'euler_number': random.sample(range(0, 1), 12),
+        'alignment_score': random.sample(range(10, 40), 12),
     })
 
     with tempfile.TemporaryDirectory() as temp_dir:
@@ -240,9 +252,13 @@ def test_generate_summary_stats(mocker: MockerFixture, min_fiber_num):
                                            f'fiber_stats_table-tile_{tile_length}.csv'))
 
         # check fov-level values
-        # only confirm avg length and alignment, densities are tested above
-        assert fov_stats.avg_length[0] == np.mean(fiber_object_table.major_axis_length[0:6])
-        assert fov_stats.avg_length[1] == np.mean(fiber_object_table.major_axis_length[6:12])
+        # only confirm fiber property avg stats, densities are tested above
+        assert ["avg_major_axis_length", "avg_minor_axis_length", "avg_orientation", "avg_area",
+                "avg_eccentricity", "avg_euler_number", "avg_alignment_score"] in fov_stats.columns
+        assert fov_stats.avg_major_axis_length[0] ==\
+               np.mean(fiber_object_table.major_axis_length[0:6])
+        assert fov_stats.avg_major_axis_length[1] == \
+               np.mean(fiber_object_table.major_axis_length[6:12])
 
 
 def test_color_fibers_by_stat():
