@@ -478,7 +478,7 @@ def generate_tile_stats(fov_table, fov_fiber_img, fov_length, tile_length, min_f
         columns=['fov', 'tile_y', 'tile_x', 'pixel_density', 'fiber_density',
                  'avg_alignment_score'])
 
-    for i, metric in enumerate(properties):
+    for metric in properties:
         fov_tile_stats[f"avg_{metric}"] = tile_stats.T[0]
 
     return fov_tile_stats
