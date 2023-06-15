@@ -242,14 +242,12 @@ def test_compute_cell_ratios():
     })
     ratios = neighborhood_analysis.compute_cell_ratios(
         cell_neighbors_mat, ['cell1'], ['cell2'], ['fov1'])
-    assert ratios.equals(pd.DataFrame({'fov': 'fov1', 'pop1_pop2_ratio': [4/3],
-                                       'pop2_pop1_ratio': [3/4]}))
+    assert ratios.equals(pd.DataFrame({'fov': 'fov1', 'cell_ratio': [4/3]}))
 
     # check zero denom
     ratios = neighborhood_analysis.compute_cell_ratios(
         cell_neighbors_mat, ['cell1'], ['cell3'], ['fov1'])
-    assert ratios.equals(pd.DataFrame({'fov': 'fov1', 'pop1_pop2_ratio': [np.nan],
-                                       'pop2_pop1_ratio': [np.nan]}))
+    assert ratios.equals(pd.DataFrame({'fov': 'fov1', 'cell_ratio': [np.nan]}))
 
 
 def test_compute_mixing_score():
