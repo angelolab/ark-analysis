@@ -372,7 +372,7 @@ def compute_cell_ratios(neighbors_mat, target_cells, reference_cells, fov_list, 
             - the reference/target ratios of each FOV
     """
 
-    targ_ref_ratio, ref_targ_ratio = [], []
+    targ_ref_ratio, ref_targ_ratio = np.empty(0), np.empty(0)
     for fov in fov_list:
         # subset neighbors mat by fov, drop fov name and labels
         neighbors_mat_fov = neighbors_mat[neighbors_mat[fov_col] == fov]
@@ -386,29 +386,33 @@ def compute_cell_ratios(neighbors_mat, target_cells, reference_cells, fov_list, 
             neighbors_mat_fov[cell_col].isin(reference_cells)].shape[0]
 
         if target_total == 0 or reference_total == 0:
-            targ_ref_ratio.append(np.nan)
-            ref_targ_ratio.append(np.nan)
+            targ_ref_ratio = np.append(targ_ref_ratio, np.nan)
+            ref_targ_ratio = np.append(ref_targ_ratio, np.nan)
         else:
-            targ_ref_ratio.append(target_total / reference_total)
-            ref_targ_ratio.append(reference_total / target_total)
+            targ_ref_ratio = np.append(targ_ref_ratio, target_total / reference_total)
+            ref_targ_ratio = np.append(ref_targ_ratio, reference_total / target_total)
 
     # remove nan values for plotting
-    targ_ref_remove_nan = [x for x in targ_ref_ratio if x < 15 and str(x) != 'nan']
-    ref_targ_remove_nan = [x for x in ref_targ_ratio if x < 15 and str(x) != 'nan']
+    targ_ref_remove_nan = targ_ref_ratio[~np.isnan(targ_ref_ratio)]
+    ref_targ_remove_nan = ref_targ_ratio[~np.isnan(ref_targ_ratio)]
+
+    # filter values
+    targ_ref_filter = targ_ref_remove_nan[targ_ref_remove_nan < 15]
+    ref_targ_filter = ref_targ_remove_nan[ref_targ_remove_nan < 15]
 
     # create ratio plots
     sns.set(rc={'figure.figsize': (16, 4)})
     fig, (ax1, ax2) = plt.subplots(1, 2)
     fig.suptitle("Population 1 / Population 2 Ratios")
-    ax1.boxplot(targ_ref_remove_nan, 0, 'c', vert=False)
+    ax1.boxplot(targ_ref_filter, 0, 'c', vert=False)
     ax1.set(xlabel='Ratio')
-    ax2.hist(targ_ref_remove_nan, bins=bin_number)
+    ax2.hist(targ_ref_filter, bins=bin_number)
     ax2.set(xlabel='Ratio', ylabel='Count')
     fig2, (ax3, ax4) = plt.subplots(1, 2)
     fig2.suptitle("Population 2 / Population 1 Ratios")
-    ax3.boxplot(ref_targ_remove_nan, 0, 'c', vert=False)
+    ax3.boxplot(ref_targ_filter, 0, 'c', vert=False)
     ax3.set(xlabel='Ratio')
-    ax4.hist(ref_targ_remove_nan, bins=bin_number)
+    ax4.hist(ref_targ_filter, bins=bin_number)
     ax4.set(xlabel='Ratio', ylabel='Count')
 
     ratio_data = pd.DataFrame(list(zip(fov_list, targ_ref_ratio, ref_targ_ratio)),
