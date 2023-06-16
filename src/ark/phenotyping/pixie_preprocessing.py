@@ -174,7 +174,8 @@ def create_pixel_matrix(fovs, channels, base_dir, tiff_dir, seg_dir,
                         subset_dir='pixel_mat_subsetted',
                         norm_vals_name='channel_norm_post_rowsum.feather', is_mibitiff=False,
                         blur_factor=2, subset_proportion=0.1, seed=42,
-                        channel_percentile=0.99, multiprocess=False, batch_size=5):
+                        channel_percentile=0.99, channel_percentile_postnorm=0.999,
+                        multiprocess=False, batch_size=5):
     """For each fov, add a Gaussian blur to each channel and normalize channel sums for each pixel
 
     Saves data to `data_dir` and subsetted data to `subset_dir`
@@ -218,6 +219,8 @@ def create_pixel_matrix(fovs, channels, base_dir, tiff_dir, seg_dir,
             The random seed to set for subsetting
         channel_percentile (float):
             Percentile used to normalize channels to same range
+        channel_percentile_postnorm (float):
+            Percentile used for second round of normalization
         multiprocess (bool):
             Whether to use multiprocessing or not
         batch_size (int):
@@ -310,7 +313,7 @@ def create_pixel_matrix(fovs, channels, base_dir, tiff_dir, seg_dir,
                     fov_full_pixel_data = pixel_mat_data.drop(columns=cols_to_drop)
                     quant_dat[fov] = fov_full_pixel_data.replace(
                         0, np.nan
-                    ).quantile(q=0.999, axis=0)
+                    ).quantile(q=channel_percentile_postnorm, axis=0)
 
                 # update number of fovs processed
                 fovs_processed += len(fov_batch)
@@ -321,7 +324,8 @@ def create_pixel_matrix(fovs, channels, base_dir, tiff_dir, seg_dir,
 
             # drop the metadata columns and generate the 99.9% quantile values for the FOV
             fov_full_pixel_data = pixel_mat_data.drop(columns=cols_to_drop)
-            quant_dat[fov] = fov_full_pixel_data.replace(0, np.nan).quantile(q=0.999, axis=0)
+            quant_dat[fov] = fov_full_pixel_data.replace(0, np.nan).quantile(
+                q=channel_percentile_postnorm, axis=0)
 
             # update number of fovs processed
             fovs_processed += 1
