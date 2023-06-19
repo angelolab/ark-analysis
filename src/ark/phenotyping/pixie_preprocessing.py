@@ -6,6 +6,7 @@ import feather
 import numpy as np
 import pandas as pd
 import scipy.ndimage as ndimage
+from natsort import natsorted
 from alpineer import io_utils, load_utils, misc_utils
 from skimage.io import imread
 
@@ -243,7 +244,7 @@ def create_pixel_matrix(fovs, channels, base_dir, tiff_dir, seg_dir,
         os.mkdir(os.path.join(base_dir, subset_dir))
 
     # create variable for storing 99.9% values
-    quant_dat = pd.DataFrame()
+    quantile_path = os.path.join(base_dir, data_dir, "quantile_data.csv")
 
     # find all the FOV files in the full data and subsetted directories
     # NOTE: this handles the case where the data file was written, but not the subset file
@@ -311,9 +312,16 @@ def create_pixel_matrix(fovs, channels, base_dir, tiff_dir, seg_dir,
 
                     # drop the metadata columns and generate the 99.9% quantile values for the FOV
                     fov_full_pixel_data = pixel_mat_data.drop(columns=cols_to_drop)
-                    quant_dat[fov] = fov_full_pixel_data.replace(
+                    quant_dat_fov = fov_full_pixel_data.replace(
                         0, np.nan
                     ).quantile(q=channel_percentile_postnorm, axis=0)
+
+                    # read in previously processed fov quantile values or initialize new df
+                    quant_dat_all = pd.read_csv(quantile_path) if os.path.exists(quantile_path) \
+                        else pd.DataFrame()
+                    # update the file with the newly processed fov quantile value
+                    quant_dat_all[fov] = quant_dat_fov
+                    quant_dat_all.to_csv(quantile_path)
 
                 # update number of fovs processed
                 fovs_processed += len(fov_batch)
@@ -324,8 +332,15 @@ def create_pixel_matrix(fovs, channels, base_dir, tiff_dir, seg_dir,
 
             # drop the metadata columns and generate the 99.9% quantile values for the FOV
             fov_full_pixel_data = pixel_mat_data.drop(columns=cols_to_drop)
-            quant_dat[fov] = fov_full_pixel_data.replace(0, np.nan).quantile(
+            quant_dat_fov = fov_full_pixel_data.replace(0, np.nan).quantile(
                 q=channel_percentile_postnorm, axis=0)
+
+            # read in previously processed fov quantile values or initialize new df
+            quant_dat_all = pd.read_csv(quantile_path) if os.path.exists(quantile_path) \
+                else pd.DataFrame()
+            # update the file with the newly processed fov quantile value
+            quant_dat_all[fov] = quant_dat_fov
+            quant_dat_all.to_csv(quantile_path)
 
             # update number of fovs processed
             fovs_processed += 1
@@ -334,7 +349,11 @@ def create_pixel_matrix(fovs, channels, base_dir, tiff_dir, seg_dir,
             if fovs_processed % 10 == 0 or fovs_processed == len(fovs_list):
                 print("Processed %d fovs" % fovs_processed)
 
-    # get mean 99.9% across all fovs for all markers
+    # get mean 99.9% across all fovs for all markers, check that none are missing
+    quant_dat = pd.read_csv(quantile_path)
+    if natsorted(quant_dat.columns) != natsorted(fovs):
+        raise ValueError("Missing some FOV quantile values.")
+
     mean_quant = pd.DataFrame(quant_dat.mean(axis=1))
 
     # save 99.9% normalization values
