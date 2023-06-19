@@ -157,7 +157,7 @@ def create_deepcell_output(deepcell_input_dir, deepcell_output_dir, fovs=None,
 
                 # read the file from the .zip file and save as segmentation mask
                 byte_repr = zipObj.read(name)
-                ranked_segmentation_mask = _convert_deepcell_seg_masks(byte_repr)
+                ranked_segmentation_mask = (_convert_deepcell_seg_masks(byte_repr)).squeeze()
                 image_utils.save_image(mask_path, ranked_segmentation_mask)
 
             # verify that all the files were extracted
