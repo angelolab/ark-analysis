@@ -149,6 +149,9 @@ class PixieSOMCluster(ABC):
                 ].values.astype(np.float64)
             )[0])
 
+        # if no pixels in the image, return empty array
+        if not cluster_labels:
+            return np.empty(0)
         # concat all the results together and return
         return np.concatenate(cluster_labels)
 
