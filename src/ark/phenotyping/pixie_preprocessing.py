@@ -261,6 +261,11 @@ def create_pixel_matrix(fovs, channels, base_dir, tiff_dir, seg_dir,
     # NOTE: if an existing FOV is already corrupted, future steps will discard it
     fovs_list = list(set(fovs).difference(set(fovs_full)))
 
+    # check for missing quant data and add to the list of FOVs for processing
+    quant_fov_list = pd.read_csv(quantile_path).columns
+    quant_missing = list(set(quant_fov_list).difference(set(fovs_full)))
+    fovs_list = list(set(fovs_list).union(set(quant_missing)))
+
     # if there are no FOVs left to preprocess don't run function
     if len(fovs_list) == 0:
         print("There are no more FOVs to preprocess, skipping")
@@ -338,7 +343,7 @@ def create_pixel_matrix(fovs, channels, base_dir, tiff_dir, seg_dir,
             # read in previously processed fov quantile values or initialize new df
             quant_dat_all = pd.read_csv(quantile_path) if os.path.exists(quantile_path) \
                 else pd.DataFrame()
-            # update the file with the newly processed fov quantile value
+            # update the file with the newly processed fov quantile values
             quant_dat_all[fov] = quant_dat_fov
             quant_dat_all.to_csv(quantile_path)
 
@@ -351,8 +356,6 @@ def create_pixel_matrix(fovs, channels, base_dir, tiff_dir, seg_dir,
 
     # get mean 99.9% across all fovs for all markers, check that none are missing
     quant_dat = pd.read_csv(quantile_path)
-    if natsorted(quant_dat.columns) != natsorted(fovs):
-        raise ValueError("Missing some FOV quantile values.")
 
     mean_quant = pd.DataFrame(quant_dat.mean(axis=1))
 

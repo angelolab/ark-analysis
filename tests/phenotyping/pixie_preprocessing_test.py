@@ -499,7 +499,7 @@ def test_create_pixel_matrix_missing_fov(multiprocess, capsys):
         )
         feather.write_dataframe(
             sample_quant_data,
-            os.path.join(temp_dir, 'pixel_output_dir', 'quant_dat.feather')
+            os.path.join(temp_dir, 'pixel_output_dir', 'quantile_data.csv')
         )
 
         pixie_preprocessing.create_pixel_matrix(
@@ -533,7 +533,7 @@ def test_create_pixel_matrix_missing_fov(multiprocess, capsys):
         os.remove(os.path.join(temp_dir, 'pixel_mat_subsetted', 'fov1.feather'))
         feather.write_dataframe(
             sample_quant_data,
-            os.path.join(temp_dir, 'pixel_output_dir', 'quant_dat.feather')
+            os.path.join(temp_dir, 'pixel_output_dir', 'quantile_data.csv')
         )
 
         pixie_preprocessing.create_pixel_matrix(
@@ -561,11 +561,11 @@ def test_create_pixel_matrix_missing_fov(multiprocess, capsys):
         )
 
         # test the case where we've written a FOV to subset but not data (very rare)
-        # NOTE: in this case, the value in quant_dat will also not have been written
+        # NOTE: in this case, the value in quantile_dat will also not have been written
         os.remove(os.path.join(temp_dir, 'pixel_mat_data', 'fov1.feather'))
         feather.write_dataframe(
             sample_quant_data,
-            os.path.join(temp_dir, 'pixel_output_dir', 'quant_dat.feather')
+            os.path.join(temp_dir, 'pixel_output_dir', 'quantile_data.csv')
         )
 
         pixie_preprocessing.create_pixel_matrix(
