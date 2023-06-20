@@ -262,7 +262,7 @@ def create_pixel_matrix(fovs, channels, base_dir, tiff_dir, seg_dir,
     fovs_list = list(set(fovs).difference(set(fovs_full)))
 
     # check for missing quant data and add to the list of FOVs for processing
-    quant_fov_list = pd.read_csv(quantile_path).columns
+    quant_fov_list = pd.read_csv(quantile_path).columns if os.path.exists(quantile_path) else []
     quant_missing = list(set(quant_fov_list).difference(set(fovs_full)))
     fovs_list = list(set(fovs_list).union(set(quant_missing)))
 
