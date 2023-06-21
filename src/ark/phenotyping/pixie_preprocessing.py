@@ -262,8 +262,9 @@ def create_pixel_matrix(fovs, channels, base_dir, tiff_dir, seg_dir,
     fovs_list = list(set(fovs).difference(set(fovs_full)))
 
     # check for missing quant data and add to the list of FOVs for processing
-    quant_fov_list = pd.read_csv(quantile_path).columns if os.path.exists(quantile_path) else []
-    quant_missing = list(set(quant_fov_list).difference(set(fovs_full)))
+    quant_fov_list = pd.read_csv(quantile_path, index_col="channel").columns \
+        if os.path.exists(quantile_path) else []
+    quant_missing = list(set(quant_fov_list).difference(set(fovs)))
     fovs_list = list(set(fovs_list).union(set(quant_missing)))
 
     # if there are no FOVs left to preprocess don't run function
@@ -317,15 +318,16 @@ def create_pixel_matrix(fovs, channels, base_dir, tiff_dir, seg_dir,
 
                     # drop the metadata columns and generate the 99.9% quantile values for the FOV
                     fov_full_pixel_data = pixel_mat_data.drop(columns=cols_to_drop)
-                    quant_dat_fov = fov_full_pixel_data.replace(
-                        0, np.nan
-                    ).quantile(q=channel_percentile_postnorm, axis=0)
+                    quant_dat_fov = fov_full_pixel_data.replace(0, np.nan).quantile(
+                        q=channel_percentile_postnorm, axis=0).rename(fov)
+                    quant_dat_fov.index.name = "channel"
 
                     # read in previously processed fov quantile values or initialize new df
-                    quant_dat_all = pd.read_csv(quantile_path) if os.path.exists(quantile_path) \
-                        else pd.DataFrame()
+                    quant_dat_all = pd.read_csv(quantile_path, index_col="channel") \
+                        if os.path.exists(quantile_path) else pd.DataFrame()
                     # update the file with the newly processed fov quantile value
-                    quant_dat_all[fov] = quant_dat_fov
+                    quant_dat_all = quant_dat_all.merge(quant_dat_fov, how="outer",
+                                                        left_index=True, right_index=True)
                     quant_dat_all.to_csv(quantile_path)
 
                 # update number of fovs processed
@@ -338,13 +340,15 @@ def create_pixel_matrix(fovs, channels, base_dir, tiff_dir, seg_dir,
             # drop the metadata columns and generate the 99.9% quantile values for the FOV
             fov_full_pixel_data = pixel_mat_data.drop(columns=cols_to_drop)
             quant_dat_fov = fov_full_pixel_data.replace(0, np.nan).quantile(
-                q=channel_percentile_postnorm, axis=0)
+                q=channel_percentile_postnorm, axis=0).rename(fov)
+            quant_dat_fov.index.name = "channel"
 
             # read in previously processed fov quantile values or initialize new df
-            quant_dat_all = pd.read_csv(quantile_path) if os.path.exists(quantile_path) \
-                else pd.DataFrame()
+            quant_dat_all = pd.read_csv(quantile_path, index_col="channel") \
+                if os.path.exists(quantile_path) else pd.DataFrame()
             # update the file with the newly processed fov quantile values
-            quant_dat_all[fov] = quant_dat_fov
+            quant_dat_all = quant_dat_all.merge(quant_dat_fov, how="outer",
+                                                left_index=True, right_index=True)
             quant_dat_all.to_csv(quantile_path)
 
             # update number of fovs processed
@@ -354,8 +358,8 @@ def create_pixel_matrix(fovs, channels, base_dir, tiff_dir, seg_dir,
             if fovs_processed % 10 == 0 or fovs_processed == len(fovs_list):
                 print("Processed %d fovs" % fovs_processed)
 
-    # get mean 99.9% across all fovs for all markers, check that none are missing
-    quant_dat = pd.read_csv(quantile_path)
+        # get mean 99.9% across all fovs for all markers, check that none are missing
+    quant_dat = pd.read_csv(quantile_path, index_col="channel")
 
     mean_quant = pd.DataFrame(quant_dat.mean(axis=1))
 
