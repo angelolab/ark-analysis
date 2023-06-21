@@ -553,7 +553,7 @@ def test_create_pixel_matrix_missing_fov(multiprocess, capsys):
         )
         misc_utils.verify_same_elements(
             data_files=io_utils.list_files(os.path.join(temp_dir, 'pixel_mat_data')),
-            written_files=fov_files
+            written_files=fov_files+['quantile_data.csv']
         )
         misc_utils.verify_same_elements(
             data_files=io_utils.list_files(os.path.join(temp_dir, 'pixel_mat_subsetted')),
