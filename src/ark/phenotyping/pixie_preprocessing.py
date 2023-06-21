@@ -244,7 +244,7 @@ def create_pixel_matrix(fovs, channels, base_dir, tiff_dir, seg_dir,
         os.mkdir(os.path.join(base_dir, subset_dir))
 
     # create variable for storing 99.9% values
-    quantile_path = os.path.join(base_dir, data_dir, "quantile_data.csv")
+    quantile_path = os.path.join(base_dir, pixel_output_dir, "quantile_data.csv")
 
     # find all the FOV files in the full data and subsetted directories
     # NOTE: this handles the case where the data file was written, but not the subset file
@@ -264,7 +264,7 @@ def create_pixel_matrix(fovs, channels, base_dir, tiff_dir, seg_dir,
     # check for missing quant data and add to the list of FOVs for processing
     quant_fov_list = pd.read_csv(quantile_path, index_col="channel").columns \
         if os.path.exists(quantile_path) else []
-    quant_missing = list(set(quant_fov_list).difference(set(fovs)))
+    quant_missing = list(set(fovs).difference(set(quant_fov_list)))
     fovs_list = list(set(fovs_list).union(set(quant_missing)))
 
     # if there are no FOVs left to preprocess don't run function
