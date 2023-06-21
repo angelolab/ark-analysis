@@ -244,7 +244,7 @@ def create_pixel_matrix(fovs, channels, base_dir, tiff_dir, seg_dir,
         os.mkdir(os.path.join(base_dir, subset_dir))
 
     # create variable for storing 99.9% values
-    quantile_path = os.path.join(base_dir, pixel_output_dir, "quantile_data.csv")
+    quantile_path = os.path.join(base_dir, data_dir, "quantile_data.csv")
 
     # find all the FOV files in the full data and subsetted directories
     # NOTE: this handles the case where the data file was written, but not the subset file

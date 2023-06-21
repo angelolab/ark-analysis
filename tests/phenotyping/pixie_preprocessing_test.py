@@ -263,7 +263,7 @@ def mocked_preprocess_fov(base_dir, tiff_dir, data_dir, subset_dir, seg_dir, seg
     cases=CreatePixelMatrixBaseCases
 )
 @parametrize('multiprocess', [True, False])
-def test_create_pixel_matrix_base(fovs, chans, sub_dir, seg_dir_include,
+def test_create_pixel_matrix_missing_fov(fovs, chans, sub_dir, seg_dir_include,
                                   channel_norm_include, pixel_thresh_include,
                                   norm_diff_chan, multiprocess, mocker, capsys):
     with tempfile.TemporaryDirectory() as temp_dir:
@@ -519,7 +519,7 @@ def test_create_pixel_matrix_missing_fov(multiprocess, capsys):
         )
         misc_utils.verify_same_elements(
             data_files=io_utils.list_files(os.path.join(temp_dir, 'pixel_mat_data')),
-            written_files=fov_files
+            written_files=fov_files+['quantile_data.csv']
         )
         misc_utils.verify_same_elements(
             data_files=io_utils.list_files(os.path.join(temp_dir, 'pixel_mat_subsetted')),
@@ -615,7 +615,7 @@ def test_create_pixel_matrix_all_fovs(capsys):
         assert output_capture == "There are no more FOVs to preprocess, skipping\n"
         misc_utils.verify_same_elements(
             data_files=io_utils.list_files(os.path.join(temp_dir, 'pixel_mat_data')),
-            written_files=fov_files
+            written_files=fov_files+['quantile_data.csv']
         )
         misc_utils.verify_same_elements(
             data_files=io_utils.list_files(os.path.join(temp_dir, 'pixel_mat_subsetted')),
