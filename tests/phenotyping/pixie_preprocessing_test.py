@@ -497,6 +497,7 @@ def test_create_pixel_matrix_missing_fov(multiprocess, capsys):
             index=PIXEL_MATRIX_CHANS,
             columns=['fov0', 'fov2']
         )
+        sample_quant_data.index.name = 'channel'
         sample_quant_data.to_csv(os.path.join(temp_dir, 'pixel_mat_data', 'quantile_data.csv'))
 
         pixie_preprocessing.create_pixel_matrix(
@@ -525,7 +526,7 @@ def test_create_pixel_matrix_missing_fov(multiprocess, capsys):
 
         # check fov1 added to quantile data file
         final_quant_data = pd.read_csv(
-            os.path.join(temp_dir, 'pixel_mat_data', 'quantile_data.csv'))
+            os.path.join(temp_dir, 'pixel_mat_data', 'quantile_data.csv'), index_col='channel')
         assert "fov1" in final_quant_data.columns
 
         capsys.readouterr()
@@ -561,7 +562,7 @@ def test_create_pixel_matrix_missing_fov(multiprocess, capsys):
 
         # check fov1 added to quantile data file
         final_quant_data = pd.read_csv(
-            os.path.join(temp_dir, 'pixel_mat_data', 'quantile_data.csv'))
+            os.path.join(temp_dir, 'pixel_mat_data', 'quantile_data.csv'), index_col='channel')
         assert "fov1" in final_quant_data.columns
 
         # test the case where we've written a FOV to subset but not data (very rare)
@@ -595,7 +596,7 @@ def test_create_pixel_matrix_missing_fov(multiprocess, capsys):
 
         # check fov1 added to quantile data file
         final_quant_data = pd.read_csv(
-            os.path.join(temp_dir, 'pixel_mat_data', 'quantile_data.csv'))
+            os.path.join(temp_dir, 'pixel_mat_data', 'quantile_data.csv'), index_col='channel')
         assert "fov1" in final_quant_data.columns
 
 
@@ -630,5 +631,6 @@ def test_create_pixel_matrix_all_fovs(capsys):
 
         # check all fovs in quantile data file
         final_quant_data = pd.read_csv(
-            os.path.join(temp_dir, 'pixel_mat_data', 'quantile_data.csv'))
-        assert PIXEL_MATRIX_FOVS in final_quant_data.columns
+            os.path.join(temp_dir, 'pixel_mat_data', 'quantile_data.csv'), index_col='channel')
+        assert misc_utils.verify_in_list(fovs=PIXEL_MATRIX_FOVS,
+                                         quan_data_columns=final_quant_data.columns)
