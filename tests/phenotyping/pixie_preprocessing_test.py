@@ -263,9 +263,9 @@ def mocked_preprocess_fov(base_dir, tiff_dir, data_dir, subset_dir, seg_dir, seg
     cases=CreatePixelMatrixBaseCases
 )
 @parametrize('multiprocess', [True, False])
-def test_create_pixel_matrix_missing_fov(fovs, chans, sub_dir, seg_dir_include,
-                                         channel_norm_include, pixel_thresh_include,
-                                         norm_diff_chan, multiprocess, mocker, capsys):
+def test_create_pixel_matrix_base(fovs, chans, sub_dir, seg_dir_include,
+                                  channel_norm_include, pixel_thresh_include,
+                                  norm_diff_chan, multiprocess, mocker, capsys):
     with tempfile.TemporaryDirectory() as temp_dir:
         # create a directory to store the image data
         tiff_dir = os.path.join(temp_dir, 'sample_image_data')
