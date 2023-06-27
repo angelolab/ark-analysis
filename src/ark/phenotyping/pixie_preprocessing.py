@@ -357,3 +357,6 @@ def create_pixel_matrix(fovs, channels, base_dir, tiff_dir, seg_dir,
     feather.write_dataframe(mean_quant.T,
                             os.path.join(base_dir, norm_vals_name),
                             compression='uncompressed')
+
+    # delete quantile data file
+    os.remove(quantile_path)
