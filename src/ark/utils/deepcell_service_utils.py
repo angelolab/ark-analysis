@@ -10,12 +10,12 @@ from zipfile import ZIP_DEFLATED, ZipFile
 
 import numpy as np
 import requests
+from alpineer import image_utils, io_utils, load_utils, misc_utils
 from requests.adapters import HTTPAdapter
 from requests.exceptions import RetryError
-from requests.packages.urllib3.util import Retry
 from tifffile import imread
-from alpineer import image_utils, io_utils, misc_utils, load_utils
 from tqdm.notebook import tqdm
+from urllib3 import Retry
 
 
 def create_deepcell_output(deepcell_input_dir, deepcell_output_dir, fovs=None,
@@ -157,7 +157,7 @@ def create_deepcell_output(deepcell_input_dir, deepcell_output_dir, fovs=None,
 
                 # read the file from the .zip file and save as segmentation mask
                 byte_repr = zipObj.read(name)
-                ranked_segmentation_mask = _convert_deepcell_seg_masks(byte_repr)
+                ranked_segmentation_mask = (_convert_deepcell_seg_masks(byte_repr)).squeeze()
                 image_utils.save_image(mask_path, ranked_segmentation_mask)
 
             # verify that all the files were extracted
@@ -258,7 +258,7 @@ def run_deepcell_direct(input_dir, output_dir, host='https://deepcell.org',
     predict_response = requests.post(
         predict_url,
         json={
-            'dataRescale': scale,
+            'jobForm': {"scale": scale},
             'imageName': filename,
             'imageUrl': upload_response['imageURL'],
             'jobType': job_type,

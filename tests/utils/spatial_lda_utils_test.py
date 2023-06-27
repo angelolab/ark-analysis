@@ -7,11 +7,11 @@ import numpy as np
 import pandas as pd
 import pytest
 from sklearn.cluster import KMeans
+from test_utils import make_cell_table
 
 import ark.settings as settings
 import ark.spLDA.processing as pros
 import ark.utils.spatial_lda_utils as spu
-from test_utils import make_cell_table
 
 
 def test_check_format_cell_table_args():

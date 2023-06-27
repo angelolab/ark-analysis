@@ -7,11 +7,11 @@ from zipfile import ZipFile
 import numpy as np
 import pytest
 import tifffile
-from pytest_mock import MockerFixture
 from alpineer import image_utils, test_utils
-from ark.utils import deepcell_service_utils
+from pytest_mock import MockerFixture
 from skimage import io
 
+from ark.utils import deepcell_service_utils
 from ark.utils.deepcell_service_utils import (_convert_deepcell_seg_masks,
                                               create_deepcell_output)
 
@@ -76,6 +76,11 @@ def test_create_deepcell_output(mocker: MockerFixture):
             assert os.path.exists(os.path.join(output_dir, 'fov1_nuclear.tiff'))
             assert os.path.exists(os.path.join(output_dir, 'fov2_whole_cell.tiff'))
             assert os.path.exists(os.path.join(output_dir, 'fov2_nuclear.tiff'))
+
+            # test for 2d shape
+            whole_cell_arr = io.imread(os.path.join(output_dir, 'fov1_whole_cell.tiff'))
+            nuclear_arr = io.imread(os.path.join(output_dir, 'fov1_nuclear.tiff'))
+            assert len(whole_cell_arr.shape) == len(nuclear_arr.shape) == 2
 
         with tempfile.TemporaryDirectory() as output_dir:
 

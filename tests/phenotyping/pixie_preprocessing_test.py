@@ -7,8 +7,8 @@ import numpy as np
 import pandas as pd
 import pytest
 import skimage.io as io
-from pytest_cases import parametrize_with_cases
 from alpineer import image_utils, io_utils, load_utils, misc_utils, test_utils
+from pytest_cases import parametrize_with_cases
 
 # import ark.phenotyping.pixie_preprocessing as pixie_preprocessing
 import ark.phenotyping.pixie_preprocessing as pixie_preprocessing

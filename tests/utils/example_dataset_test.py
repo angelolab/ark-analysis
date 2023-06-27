@@ -1,6 +1,5 @@
-import os
 import pathlib
-from typing import Callable, Dict, Generator, Iterator, List
+from typing import Callable, Generator, Iterator, List
 
 import pytest
 from alpineer import test_utils
@@ -19,7 +18,7 @@ from ark.utils.example_dataset import ExampleDataset, get_example_dataset
                                          "neighborhood_analysis",
                                          "pairwise_spatial_enrichment",
                                          "ome_tiff"])
-def dataset_download(request) -> Iterator[ExampleDataset]:
+def dataset_download(request, dataset_cache_dir) -> Iterator[ExampleDataset]:
     """
     A Fixture which instantiates and downloads the dataset with respect to each
     notebook.
@@ -35,7 +34,7 @@ def dataset_download(request) -> Iterator[ExampleDataset]:
     # Set up ExampleDataset class
     example_dataset: ExampleDataset = ExampleDataset(
         dataset=request.param,
-        cache_dir=None,  # Use the default cache
+        cache_dir=dataset_cache_dir,
         revision=EXAMPLE_DATASET_REVISION
     )
     # Download example data for a particular notebook

@@ -7,10 +7,9 @@ import feather
 import numpy as np
 import pandas as pd
 import scipy.ndimage as ndimage
+from alpineer import image_utils, io_utils, load_utils, misc_utils
 from pyarrow.lib import ArrowInvalid
 from skimage.io import imread
-
-from alpineer import image_utils, io_utils, load_utils, misc_utils
 
 
 def calculate_channel_percentiles(tiff_dir, fovs, channels, img_sub_folder,

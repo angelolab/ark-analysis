@@ -1,8 +1,12 @@
 import pathlib
-from typing import ContextManager, Iterator
 import shutil
+from typing import Iterator, Tuple, Union
+
 import pytest
 from testbook import testbook
+from testbook.client import TestbookNotebookClient
+
+from ark.utils import example_dataset
 
 from . import notebooks_test_utils
 
@@ -41,7 +45,9 @@ def templates_dir() -> Iterator[pathlib.Path]:
 
 
 @pytest.fixture(scope="class")
-def nb1_context(templates_dir, base_dir_generator) -> Iterator[ContextManager]:
+def nb1_context(
+    templates_dir, base_dir_generator
+) -> Tuple[Iterator[TestbookNotebookClient], pathlib.Path]:
     """
     Creates a testbook context manager for notebook 1.
 
@@ -52,9 +58,11 @@ def nb1_context(templates_dir, base_dir_generator) -> Iterator[ContextManager]:
             to store all notebook input / output.
 
     Yields:
-        Iterator[ContextManager]: The testbook context manager which will get cleaned up
-            afterwords.
+        Iterator[Tuple[Iterator[TestbookNotebookClient], pathlib.Path]]:
+        The testbook notebook client context manager and the temporary directory where the
+            notebook input / output is stored.
     """
+
     SEGMENT_IMAGE_DATA_PATH: pathlib.Path = templates_dir / "1_Segment_Image_Data.ipynb"
     with testbook(SEGMENT_IMAGE_DATA_PATH, timeout=6000, execute=False) as nb_context_manager:
         yield nb_context_manager, base_dir_generator / "nb1"
@@ -62,7 +70,9 @@ def nb1_context(templates_dir, base_dir_generator) -> Iterator[ContextManager]:
 
 
 @pytest.fixture(scope="class")
-def nb2_context(templates_dir, base_dir_generator) -> Iterator[ContextManager]:
+def nb2_context(
+    templates_dir, base_dir_generator
+) -> Tuple[Iterator[TestbookNotebookClient], pathlib.Path]:
     """
     Creates a testbook context manager for notebook 2.
 
@@ -73,9 +83,11 @@ def nb2_context(templates_dir, base_dir_generator) -> Iterator[ContextManager]:
             to store all notebook input / output.
 
     Yields:
-        Iterator[ContextManager]: The testbook context manager which will get cleaned up
-            afterwords.
+        Iterator[Tuple[Iterator[TestbookNotebookClient], pathlib.Path]]:
+        The testbook notebook client context manager and the temporary directory where the
+        notebook input / output is stored.
     """
+
     CLUSTER_PIXELS: pathlib.Path = templates_dir / "2_Pixie_Cluster_Pixels.ipynb"
     with testbook(CLUSTER_PIXELS, timeout=6000, execute=False) as nb_context_manager:
         yield nb_context_manager, base_dir_generator / "nb2"
@@ -83,7 +95,9 @@ def nb2_context(templates_dir, base_dir_generator) -> Iterator[ContextManager]:
 
 
 @pytest.fixture(scope="class")
-def nb3_context(templates_dir, base_dir_generator) -> Iterator[ContextManager]:
+def nb3_context(
+    templates_dir, base_dir_generator
+) -> Tuple[Iterator[TestbookNotebookClient], pathlib.Path]:
     """
     Creates a testbook context manager for notebook 3.
 
@@ -94,8 +108,9 @@ def nb3_context(templates_dir, base_dir_generator) -> Iterator[ContextManager]:
             to store all notebook input / output.
 
     Yields:
-        Iterator[ContextManager]: The testbook context manager which will get cleaned up
-            afterwords.
+        Iterator[Tuple[Iterator[TestbookNotebookClient], pathlib.Path]]:
+            The testbook notebook client context manager and the temporary directory where the
+            notebook input / output is stored.
     """
     CLUSTER_CELLS: pathlib.Path = templates_dir / "3_Pixie_Cluster_Cells.ipynb"
     with testbook(CLUSTER_CELLS, timeout=6000, execute=False) as nb_context_manager:
@@ -104,9 +119,11 @@ def nb3_context(templates_dir, base_dir_generator) -> Iterator[ContextManager]:
 
 
 @pytest.fixture(scope="class")
-def nb3b_context(templates_dir, base_dir_generator) -> Iterator[ContextManager]:
+def nb3b_context(
+    templates_dir, base_dir_generator
+) -> Tuple[Iterator[TestbookNotebookClient], pathlib.Path]:
     """
-    Creates a testbook context manager for notebook 3.
+    Creates a testbook context manager for notebook 3 (generic cell clustering).
 
     Args:
         templates_dir (pytest.Fixture): The fixture which yields the directory of the notebook
@@ -115,8 +132,9 @@ def nb3b_context(templates_dir, base_dir_generator) -> Iterator[ContextManager]:
             to store all notebook input / output.
 
     Yields:
-        Iterator[ContextManager]: The testbook context manager which will get cleaned up
-            afterwords.
+        Iterator[Tuple[Iterator[TestbookNotebookClient], pathlib.Path]]:
+            The testbook notebook client context manager and the temporary directory where the
+            notebook input / output is stored.
     """
     CLUSTER_CELLS: pathlib.Path = templates_dir / "generic_cell_clustering.ipynb"
     with testbook(CLUSTER_CELLS, timeout=6000, execute=False) as nb_context_manager:
@@ -125,7 +143,9 @@ def nb3b_context(templates_dir, base_dir_generator) -> Iterator[ContextManager]:
 
 
 @pytest.fixture(scope="class")
-def nb4_context(templates_dir, base_dir_generator) -> Iterator[ContextManager]:
+def nb4_context(
+    templates_dir, base_dir_generator
+) -> Tuple[Iterator[TestbookNotebookClient], pathlib.Path]:
     """
     Creates a testbook context manager for notebook 4.
 
@@ -136,8 +156,9 @@ def nb4_context(templates_dir, base_dir_generator) -> Iterator[ContextManager]:
             to store all notebook input / output.
 
     Yields:
-        Iterator[ContextManager]: The testbook context manager which will get cleaned up
-            afterwords.
+        Iterator[Tuple[Iterator[TestbookNotebookClient], pathlib.Path]]:
+            The testbook notebook client context manager and the temporary directory where the
+            notebook input / output is stored.
     """
     POST_CLUSTERING: pathlib.Path = templates_dir / "4_Post_Clustering.ipynb"
     with testbook(POST_CLUSTERING, timeout=6000, execute=False) as nb_context_manager:
@@ -146,7 +167,9 @@ def nb4_context(templates_dir, base_dir_generator) -> Iterator[ContextManager]:
 
 
 @pytest.fixture(scope="class")
-def nbfib_seg_context(templates_dir, base_dir_generator) -> Iterator[ContextManager]:
+def nbfib_seg_context(
+    templates_dir, base_dir_generator
+) -> Tuple[Iterator[TestbookNotebookClient], pathlib.Path]:
     """
     Creates a testbook context manager for the fiber segmentation notebook.
 
@@ -157,17 +180,22 @@ def nbfib_seg_context(templates_dir, base_dir_generator) -> Iterator[ContextMana
             to store all notebook input / output.
 
     Yields:
-        Iterator[ContextManager]: The testbook context manager which will get cleaned up
-            afterwords.
+        Iterator[Tuple[Iterator[TestbookNotebookClient], pathlib.Path]]:
+            The testbook notebook client context manager and the temporary directory where the
+            notebook input / output is stored.
     """
-    EXAMPLE_FIBER_SEGMENTATION: pathlib.Path = templates_dir / "example_fiber_segmentation.ipynb"
+    EXAMPLE_FIBER_SEGMENTATION: pathlib.Path = (
+        templates_dir / "example_fiber_segmentation.ipynb"
+    )
     with testbook(EXAMPLE_FIBER_SEGMENTATION, timeout=6000, execute=False) as nb_context_manager:
         yield nb_context_manager, base_dir_generator / "efs"
     shutil.rmtree(base_dir_generator / "efs")
 
 
 @pytest.fixture(scope="class")
-def nbmixing_context(templates_dir, base_dir_generator) -> Iterator[ContextManager]:
+def nbmixing_context(
+    templates_dir, base_dir_generator
+) -> Tuple[Iterator[TestbookNotebookClient], pathlib.Path]:
     """
     Creates a testbook context manager for the mixing score notebook.
 
@@ -178,13 +206,38 @@ def nbmixing_context(templates_dir, base_dir_generator) -> Iterator[ContextManag
             to store all notebook input / output.
 
     Yields:
-        Iterator[ContextManager]: The testbook context manager which will get cleaned up
-            afterwords.
+        Iterator[Tuple[Iterator[TestbookNotebookClient], pathlib.Path]]:
+            The testbook notebook client context manager and the temporary directory where the
+            notebook input / output is stored.
     """
     EXAMPLE_MIXING: pathlib.Path = templates_dir / "Calculate_Mixing_Scores.ipynb"
     with testbook(EXAMPLE_MIXING, timeout=6000, execute=False) as nb_context_manager:
         yield nb_context_manager, base_dir_generator / "cms"
     shutil.rmtree(base_dir_generator / "cms")
+
+
+@pytest.fixture(scope="class")
+def nbcell_neighbors_context(
+    templates_dir, base_dir_generator
+) -> Tuple[Iterator[TestbookNotebookClient], pathlib.Path]:
+    """
+    Creates a testbook context manager for the cell neighbor analysis notebook.
+
+    Args:
+        templates_dir (pytest.Fixture): The fixture which yields the directory of the notebook
+            templates
+        base_dir_generator (pytest.Fixture): The fixture which yields the temporary directory
+            to store all notebook input / output.
+
+    Yields:
+        Iterator[Tuple[Iterator[TestbookNotebookClient], pathlib.Path]]:
+            The testbook notebook client context manager and the temporary directory where the
+            notebook input / output is stored.
+    """
+    EXAMPLE_CELL_NEIGHBORS: pathlib.Path = templates_dir / "cell_neighbors_analysis.ipynb"
+    with testbook(EXAMPLE_CELL_NEIGHBORS, timeout=6000, execute=False) as nb_context_manager:
+        yield nb_context_manager, base_dir_generator / "cna"
+    shutil.rmtree(base_dir_generator / "cna")
 
 
 class Test_1_Segment_Image_Data:
@@ -193,13 +246,16 @@ class Test_1_Segment_Image_Data:
     NOTE: When modifying the tests, make sure the test are in the
     same order as the tagged cells in the notebook.
     """
+
     @pytest.fixture(autouse=True, scope="function")
-    def _setup(self, nb1_context):
+    def _setup(self, nb1_context, dataset_cache_dir: Union[str, None]):
         """
         Sets up necessary data and paths to run the notebooks.
         """
         self.tb: testbook = nb1_context[0]
-        self.base_dir: pathlib.Path = nb1_context[1]
+        self.dataset: str = "segment_image_data"
+        self.base_dir: str = nb1_context[1].as_posix()
+        self.cache_dir = dataset_cache_dir
 
     def test_imports(self):
         self.tb.execute_cell("import")
@@ -211,7 +267,8 @@ class Test_1_Segment_Image_Data:
         self.tb.inject(base_dir_inject, "base_dir")
 
     def test_ex_data_download(self):
-        self.tb.execute_cell("ex_data_download")
+        notebooks_test_utils._ex_dataset_download(dataset=self.dataset, save_dir=self.base_dir,
+                                                  cache_dir=self.cache_dir)
 
     def test_file_path(self):
         self.tb.execute_cell("file_path")
@@ -245,7 +302,8 @@ class Test_1_Segment_Image_Data:
         # Account for the fact that fov0 is 512 x 512
         for fov, dim in zip(fovs, [512, 1024]):
             notebooks_test_utils.generate_sample_feature_tifs(
-                [fov], deepcell_output_dir=deepcell_output_dir, img_shape=(dim, dim))
+                [fov], deepcell_output_dir=deepcell_output_dir, img_shape=(dim, dim)
+            )
 
     def test_overlay_mask(self):
         self.tb.execute_cell("overlay_mask")
@@ -269,13 +327,16 @@ class Test_2_Pixel_Clustering:
     NOTE: When modifying the tests, make sure the test are in the
     same order as the tagged cells in the notebook.
     """
+
     @pytest.fixture(autouse=True, scope="function")
-    def _setup(self, nb2_context):
+    def _setup(self, nb2_context, dataset_cache_dir):
         """
         Sets up necessary data and paths to run the notebooks.
         """
         self.tb: testbook = nb2_context[0]
-        self.base_dir: pathlib.Path = nb2_context[1]
+        self.dataset: str = "cluster_pixels"
+        self.base_dir: str = nb2_context[1].as_posix()
+        self.cache_dir = dataset_cache_dir
 
         # Variables
         self.pixel_prefix = "test"
@@ -291,7 +352,8 @@ class Test_2_Pixel_Clustering:
         self.tb.inject(base_dir_inject, "base_dir")
 
     def test_ex_data_download(self):
-        self.tb.execute_cell("ex_data_download")
+        notebooks_test_utils._ex_dataset_download(dataset=self.dataset, save_dir=self.base_dir,
+                                                  cache_dir=self.cache_dir)
 
     def test_file_path(self):
         self.tb.execute_cell("file_path")
@@ -350,7 +412,9 @@ class Test_2_Pixel_Clustering:
         # Get pixel paths
         pixel_meta_cluster_remap = self.tb.ref("pixel_meta_cluster_remap_name")
 
-        notebooks_test_utils.create_pixel_remap_files(self.base_dir, pixel_meta_cluster_remap)
+        notebooks_test_utils.create_pixel_remap_files(
+            self.base_dir, pixel_meta_cluster_remap
+        )
 
         self.tb.execute_cell("pixel_apply_remap")
 
@@ -362,6 +426,9 @@ class Test_2_Pixel_Clustering:
 
     def test_pixel_mask_gen_save(self):
         self.tb.execute_cell("pixel_mask_gen_save")
+
+    def test_save_pixel_masks(self):
+        self.tb.execute_cell("save_pixel_masks")
 
     def test_pixel_overlay_gen(self):
         self.tb.execute_cell("pixel_overlay_gen")
@@ -379,13 +446,16 @@ class Test_3_Cell_Clustering:
     NOTE: When modifying the tests, make sure the test are in the
     same order as the tagged cells in the notebook.
     """
+
     @pytest.fixture(autouse=True, scope="function")
-    def _setup(self, nb3_context):
+    def _setup(self, nb3_context, dataset_cache_dir):
         """
         Sets up necessary data and paths to run the notebooks.
         """
         self.tb: testbook = nb3_context[0]
-        self.base_dir: pathlib.Path = nb3_context[1]
+        self.dataset: str = "cluster_cells"
+        self.base_dir: str = nb3_context[1].as_posix()
+        self.cache_dir = dataset_cache_dir
 
         # Variables
         self.cell_prefix = "test"
@@ -400,7 +470,8 @@ class Test_3_Cell_Clustering:
         self.tb.inject(base_dir_inject, "base_dir")
 
     def test_ex_data_download(self):
-        self.tb.execute_cell("ex_data_download")
+        notebooks_test_utils._ex_dataset_download(dataset=self.dataset, save_dir=self.base_dir,
+                                                  cache_dir=self.cache_dir)
 
     def test_dir_set(self):
         self.tb.execute_cell("dir_set")
@@ -442,7 +513,9 @@ class Test_3_Cell_Clustering:
         # Get cell paths
         cell_meta_cluster_remap = self.tb.ref("cell_meta_cluster_remap_name")
 
-        notebooks_test_utils.create_cell_remap_files(self.base_dir, cell_meta_cluster_remap)
+        notebooks_test_utils.create_cell_remap_files(
+            self.base_dir, cell_meta_cluster_remap
+        )
 
         self.tb.execute_cell("cell_apply_remap")
 
@@ -461,14 +534,14 @@ class Test_3_Cell_Clustering:
     def test_cell_mask_gen_save(self):
         self.tb.execute_cell("cell_mask_gen_save")
 
+    def test_save_cell_masks(self):
+        self.tb.execute_cell("save_cell_masks")
+
     def test_cell_overlay_gen(self):
         self.tb.execute_cell("cell_overlay_gen")
 
     def test_cell_append_meta(self):
         self.tb.execute_cell("cell_append_meta")
-
-    def test_pixie_cell_save(self):
-        self.tb.execute_cell("pixie_cell_save")
 
     def test_cell_mantis_project(self):
         self.tb.execute_cell("cell_mantis_project")
@@ -480,13 +553,16 @@ class Test_3b_Generic_Cell_Clustering:
     NOTE: When modifying the tests, make sure the test are in the
     same order as the tagged cells in the notebook.
     """
+
     @pytest.fixture(autouse=True, scope="function")
-    def _setup(self, nb3b_context):
+    def _setup(self, nb3b_context, dataset_cache_dir):
         """
         Sets up necessary data and paths to run the notebooks.
         """
         self.tb: testbook = nb3b_context[0]
-        self.base_dir: pathlib.Path = nb3b_context[1]
+        self.dataset: str = "cluster_cells"
+        self.base_dir: str = nb3b_context[1].as_posix()
+        self.cache_dir = dataset_cache_dir
 
         # Variables
         self.cell_prefix = "test"
@@ -496,12 +572,13 @@ class Test_3b_Generic_Cell_Clustering:
 
     def test_base_dir(self):
         base_dir_inject = f"""
-            base_dir = "{self.base_dir}"
+            base_dir = r"{self.base_dir}"
         """
         self.tb.inject(base_dir_inject, "base_dir")
 
     def test_ex_data_download(self):
-        self.tb.execute_cell("ex_data_download")
+        notebooks_test_utils._ex_dataset_download(dataset=self.dataset, save_dir=self.base_dir,
+                                                  cache_dir=self.cache_dir)
 
     def test_input_set(self):
         self.tb.execute_cell("input_set")
@@ -534,7 +611,9 @@ class Test_3b_Generic_Cell_Clustering:
         # Get cell paths
         cell_meta_cluster_remap = self.tb.ref("cell_meta_cluster_remap_name")
 
-        notebooks_test_utils.create_cell_remap_files(self.base_dir, cell_meta_cluster_remap)
+        notebooks_test_utils.create_cell_remap_files(
+            self.base_dir, cell_meta_cluster_remap
+        )
 
         self.tb.execute_cell("cell_apply_remap")
 
@@ -549,6 +628,9 @@ class Test_3b_Generic_Cell_Clustering:
 
     def test_cell_overlay_gen(self):
         self.tb.execute_cell("cell_overlay_gen")
+
+    def test_save_cell_masks(self):
+        self.tb.execute_cell("save_cell_masks")
 
     def test_cell_append_meta(self):
         self.tb.execute_cell("cell_append_meta")
@@ -566,13 +648,16 @@ class Test_4_Post_Clustering:
     NOTE: When modifying the tests, make sure the test are in the
     same order as the tagged cells in the notebook.
     """
+
     @pytest.fixture(autouse=True, scope="function")
-    def _setup(self, nb4_context):
+    def _setup(self, nb4_context, dataset_cache_dir):
         """
         Sets up necessary data and paths to run the notebooks.
         """
         self.tb: testbook = nb4_context[0]
-        self.base_dir: pathlib.Path = nb4_context[1]
+        self.dataset: str = "post_clustering"
+        self.base_dir: str = nb4_context[1].as_posix()
+        self.cache_dir = dataset_cache_dir
 
         # Variables
         self.cell_prefix = "test"
@@ -587,7 +672,8 @@ class Test_4_Post_Clustering:
         self.tb.inject(base_dir_inject, "base_dir")
 
     def test_ex_data_download(self):
-        self.tb.execute_cell("ex_data_download")
+        notebooks_test_utils._ex_dataset_download(dataset=self.dataset, save_dir=self.base_dir,
+                                                  cache_dir=self.cache_dir)
 
     def test_file_path(self):
         self.tb.execute_cell("file_path")
@@ -626,19 +712,22 @@ class Test_4_Post_Clustering:
         self.tb.execute_cell("cell_table_threshold")
 
 
-class Test_Fiber_Segmentation():
+class Test_Fiber_Segmentation:
     """
     Tests Example Fiber Segmentation for completion.
     NOTE: When modifying the tests, make sure the test are in the
     same order as the tagged cells in the notebook.
     """
+
     @pytest.fixture(autouse=True, scope="function")
-    def _setup(self, nbfib_seg_context):
+    def _setup(self, nbfib_seg_context, dataset_cache_dir):
         """
         Sets up necessary data and paths to run the notebooks.
         """
         self.tb: testbook = nbfib_seg_context[0]
-        self.base_dir: pathlib.Path = nbfib_seg_context[1]
+        self.dataset: str = "fiber_segmentation"
+        self.base_dir: str = nbfib_seg_context[1].as_posix()
+        self.cache_dir = dataset_cache_dir
 
     def test_imports(self):
         self.tb.execute_cell("import")
@@ -650,7 +739,8 @@ class Test_Fiber_Segmentation():
         self.tb.inject(base_dir_inject, "base_dir")
 
     def test_ex_data_download(self):
-        self.tb.execute_cell("ex_data_download")
+        notebooks_test_utils._ex_dataset_download(dataset=self.dataset, save_dir=self.base_dir,
+                                                  cache_dir=self.cache_dir)
 
     def test_file_paths(self):
         self.tb.execute_cell("file_paths")
@@ -665,19 +755,22 @@ class Test_Fiber_Segmentation():
         self.tb.execute_cell("run_fiber_segmentation")
 
 
-class Test_Mixing_Score():
+class Test_Mixing_Score:
     """
     Tests Example Mixing Score for completion.
     NOTE: When modifying the tests, make sure the test are in the
     same order as the tagged cells in the notebook.
     """
+
     @pytest.fixture(autouse=True, scope="function")
-    def _setup(self, nbmixing_context):
+    def _setup(self, nbmixing_context, dataset_cache_dir):
         """
         Sets up necessary data and paths to run the notebooks.
         """
         self.tb: testbook = nbmixing_context[0]
-        self.base_dir: pathlib.Path = nbmixing_context[1]
+        self.dataset: str = "post_clustering"
+        self.base_dir: str = nbmixing_context[1].as_posix()
+        self.cache_dir = dataset_cache_dir
 
     def test_imports(self):
         self.tb.execute_cell("import")
@@ -689,7 +782,8 @@ class Test_Mixing_Score():
         self.tb.inject(base_dir_inject, "base_dir")
 
     def test_ex_data_download(self):
-        self.tb.execute_cell("ex_data_download")
+        notebooks_test_utils._ex_dataset_download(dataset=self.dataset, save_dir=self.base_dir,
+                                                  cache_dir=self.cache_dir)
 
     def test_file_paths(self):
         self.tb.execute_cell("file_path")
@@ -699,6 +793,9 @@ class Test_Mixing_Score():
 
     def test_cell_table(self):
         self.tb.execute_cell("cell_table")
+
+    def test_neighbor_mat_args(self):
+        self.tb.execute_cell("neighbor_mat_args")
 
     def test_cell_neighbors(self):
         self.tb.execute_cell("cell_neighbors")
@@ -717,3 +814,49 @@ class Test_Mixing_Score():
 
     def test_mixing_score(self):
         self.tb.execute_cell("mixing_score")
+
+
+class Test_Cell_Neighbors():
+    """
+    Tests Cell Neighbors Analysis for completion.
+    NOTE: When modifying the tests, make sure the test are in the
+    same order as the tagged cells in the notebook.
+    """
+    @pytest.fixture(autouse=True, scope="function")
+    def _setup(self, nbcell_neighbors_context):
+        """
+        Sets up necessary data and paths to run the notebooks.
+        """
+        self.tb: testbook = nbcell_neighbors_context[0]
+        self.base_dir: pathlib.Path = nbcell_neighbors_context[1]
+
+    def test_imports(self):
+        self.tb.execute_cell("import")
+
+    def test_base_dir(self):
+        base_dir_inject = f"""
+                            base_dir = r"{self.base_dir}"
+                        """
+        self.tb.inject(base_dir_inject, "base_dir")
+
+    def test_file_paths(self):
+        self.tb.execute_cell("file_path")
+
+    def test_create_dirs(self):
+        example_dataset.get_example_dataset("post_clustering", self.base_dir, True)
+        self.tb.execute_cell("create_dirs")
+
+    def test_diversity_args(self):
+        self.tb.execute_cell("diversity_args")
+
+    def test_neighbors_mat(self):
+        self.tb.execute_cell("neighbors_mat")
+
+    def test_shannon_diversity(self):
+        self.tb.execute_cell("shannon_diversity")
+
+    def test_dist_args(self):
+        self.tb.execute_cell("dist_args")
+
+    def test_dist_analysis(self):
+        self.tb.execute_cell("dist_analysis")
