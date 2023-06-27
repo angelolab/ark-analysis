@@ -498,7 +498,8 @@ def test_create_pixel_matrix_missing_fov(multiprocess, capsys):
             columns=['fov0', 'fov2']
         )
         sample_quant_data.index.name = 'channel'
-        sample_quant_data.to_csv(os.path.join(temp_dir, 'pixel_mat_data', 'quantile_data.csv'))
+        sample_quant_data.to_csv(
+            os.path.join(temp_dir, 'pixel_mat_data', 'channel_norm_post_rowsum_perfov.csv'))
 
         pixie_preprocessing.create_pixel_matrix(
             fovs=PIXEL_MATRIX_FOVS,
@@ -517,7 +518,7 @@ def test_create_pixel_matrix_missing_fov(multiprocess, capsys):
         )
         misc_utils.verify_same_elements(
             data_files=io_utils.list_files(os.path.join(temp_dir, 'pixel_mat_data')),
-            written_files=fov_files+['quantile_data.csv']
+            written_files=fov_files+['channel_norm_post_rowsum_perfov.csv']
         )
         misc_utils.verify_same_elements(
             data_files=io_utils.list_files(os.path.join(temp_dir, 'pixel_mat_subsetted')),
@@ -526,7 +527,8 @@ def test_create_pixel_matrix_missing_fov(multiprocess, capsys):
 
         # check fov1 added to quantile data file
         final_quant_data = pd.read_csv(
-            os.path.join(temp_dir, 'pixel_mat_data', 'quantile_data.csv'), index_col='channel')
+            os.path.join(temp_dir, 'pixel_mat_data', 'channel_norm_post_rowsum_perfov.csv'),
+            index_col='channel')
         assert "fov1" in final_quant_data.columns
 
         capsys.readouterr()
@@ -534,7 +536,8 @@ def test_create_pixel_matrix_missing_fov(multiprocess, capsys):
         # test the case where we've written a FOV to data but not subset
         # NOTE: in this case, the value in quant_dat will also not have been written
         os.remove(os.path.join(temp_dir, 'pixel_mat_subsetted', 'fov1.feather'))
-        sample_quant_data.to_csv(os.path.join(temp_dir, 'pixel_mat_data', 'quantile_data.csv'))
+        sample_quant_data.to_csv(
+            os.path.join(temp_dir, 'pixel_mat_data', 'channel_norm_post_rowsum_perfov.csv'))
 
         pixie_preprocessing.create_pixel_matrix(
             fovs=PIXEL_MATRIX_FOVS,
@@ -553,7 +556,7 @@ def test_create_pixel_matrix_missing_fov(multiprocess, capsys):
         )
         misc_utils.verify_same_elements(
             data_files=io_utils.list_files(os.path.join(temp_dir, 'pixel_mat_data')),
-            written_files=fov_files+['quantile_data.csv']
+            written_files=fov_files+['channel_norm_post_rowsum_perfov.csv']
         )
         misc_utils.verify_same_elements(
             data_files=io_utils.list_files(os.path.join(temp_dir, 'pixel_mat_subsetted')),
@@ -562,13 +565,15 @@ def test_create_pixel_matrix_missing_fov(multiprocess, capsys):
 
         # check fov1 added to quantile data file
         final_quant_data = pd.read_csv(
-            os.path.join(temp_dir, 'pixel_mat_data', 'quantile_data.csv'), index_col='channel')
+            os.path.join(temp_dir, 'pixel_mat_data', 'channel_norm_post_rowsum_perfov.csv'),
+            index_col='channel')
         assert "fov1" in final_quant_data.columns
 
         # test the case where we've written a FOV to subset but not data (very rare)
         # NOTE: in this case, the value in quantile_dat will also not have been written
         os.remove(os.path.join(temp_dir, 'pixel_mat_data', 'fov1.feather'))
-        sample_quant_data.to_csv(os.path.join(temp_dir, 'pixel_mat_data', 'quantile_data.csv'))
+        sample_quant_data.to_csv(
+            os.path.join(temp_dir, 'pixel_mat_data', 'channel_norm_post_rowsum_perfov.csv'))
 
         pixie_preprocessing.create_pixel_matrix(
             fovs=PIXEL_MATRIX_FOVS,
@@ -587,7 +592,7 @@ def test_create_pixel_matrix_missing_fov(multiprocess, capsys):
         )
         misc_utils.verify_same_elements(
             data_files=io_utils.list_files(os.path.join(temp_dir, 'pixel_mat_data')),
-            written_files=fov_files+['quantile_data.csv']
+            written_files=fov_files+['channel_norm_post_rowsum_perfov.csv']
         )
         misc_utils.verify_same_elements(
             data_files=io_utils.list_files(os.path.join(temp_dir, 'pixel_mat_subsetted')),
@@ -596,7 +601,8 @@ def test_create_pixel_matrix_missing_fov(multiprocess, capsys):
 
         # check fov1 added to quantile data file
         final_quant_data = pd.read_csv(
-            os.path.join(temp_dir, 'pixel_mat_data', 'quantile_data.csv'), index_col='channel')
+            os.path.join(temp_dir, 'pixel_mat_data', 'channel_norm_post_rowsum_perfov.csv'),
+            index_col='channel')
         assert "fov1" in final_quant_data.columns
 
 
@@ -622,7 +628,7 @@ def test_create_pixel_matrix_all_fovs(capsys):
         assert output_capture == "There are no more FOVs to preprocess, skipping\n"
         misc_utils.verify_same_elements(
             data_files=io_utils.list_files(os.path.join(temp_dir, 'pixel_mat_data')),
-            written_files=fov_files+['quantile_data.csv']
+            written_files=fov_files+['channel_norm_post_rowsum_perfov.csv']
         )
         misc_utils.verify_same_elements(
             data_files=io_utils.list_files(os.path.join(temp_dir, 'pixel_mat_subsetted')),
@@ -631,6 +637,7 @@ def test_create_pixel_matrix_all_fovs(capsys):
 
         # check all fovs in quantile data file
         final_quant_data = pd.read_csv(
-            os.path.join(temp_dir, 'pixel_mat_data', 'quantile_data.csv'), index_col='channel')
+            os.path.join(temp_dir, 'pixel_mat_data', 'channel_norm_post_rowsum_perfov.csv'),
+            index_col='channel')
         assert misc_utils.verify_in_list(fovs=PIXEL_MATRIX_FOVS,
                                          quan_data_columns=final_quant_data.columns)
