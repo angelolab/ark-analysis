@@ -258,17 +258,17 @@ def create_pixel_matrix(fovs, channels, base_dir, tiff_dir, seg_dir,
     # NOTE: if an existing FOV is already corrupted, future steps will discard it
     fovs_list = list(set(fovs).difference(set(fovs_full)))
 
+    # if there are no FOVs left to preprocess don't run function
+    if len(fovs_list) == 0:
+        print("There are no more FOVs to preprocess, skipping")
+        return
+
     # check for missing quant data and add to the list of FOVs for processing
     quant_dat_all = pd.read_csv(quantile_path, index_col="channel") \
         if os.path.exists(quantile_path) else pd.DataFrame()
     quant_fov_list = quant_dat_all.columns
     quant_missing = list(set(fovs).difference(set(quant_fov_list)))
     fovs_list = list(set(fovs_list).union(set(quant_missing)))
-
-    # if there are no FOVs left to preprocess don't run function
-    if len(fovs_list) == 0:
-        print("There are no more FOVs to preprocess, skipping")
-        return
 
     # if the process is only partially complete, inform the user of restart
     if len(fovs_list) < len(fovs):
