@@ -426,8 +426,8 @@ def create_marker_count_matrices(segmentation_labels, image_data, nuclear_counts
     arcsinh = pd.DataFrame(data=marker_counts_arcsinh.values[0, :, :],
                            columns=marker_counts_arcsinh.features)
 
-    normalized[settings.CELL_LABEL] = normalized[settings.CELL_LABEL].astype(np.int64)
-    arcsinh[settings.CELL_LABEL] = arcsinh[settings.CELL_LABEL].astype(np.int64)
+    normalized[settings.CELL_LABEL] = normalized[settings.CELL_LABEL].astype(np.int32)
+    arcsinh[settings.CELL_LABEL] = arcsinh[settings.CELL_LABEL].astype(np.int32)
 
     if nuclear_counts:
         # append nuclear counts pandas array with modified column name
