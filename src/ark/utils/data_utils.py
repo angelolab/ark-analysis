@@ -56,14 +56,13 @@ def save_fov_mask(fov, data_dir, mask_data, sub_dir=None, name_suffix=''):
     # save the image to data_dir
     image_utils.save_image(os.path.join(save_dir, fov_file), mask_data)
 
-
 @dataclass
 class CellClusterMaskData:
     """
     A dataclass containing the cell data, cell label column, cluster column and the mapping from a
     cell label to a cluster.
 
-    Attributes:
+    Args:
         data (pd.DataFrame):
             A cell table with the cell label column and the cluster column.
         fov_col (str):
@@ -72,8 +71,17 @@ class CellClusterMaskData:
             The name of the column in the cell table that contains the cell label.
         cluster_column (str):
             The name of the column in the cell table that contains the cluster label.
-    """
 
+
+    Fields:
+        unique_fovs (List[str]):
+            A list of all unique FOVs in the cell table.
+        unassigned_id (int):
+            The cluster ID that is assigned to cells that are not assigned to a cluster.
+        mapping (pd.core.groupby.DataFrameGroupBy):
+            A GroupBy object that contains the mapping from the cell label to the cluster label for
+            each FOV, sorted by Segmentation label.
+    """
     data: pd.DataFrame
     fov_col: str
     label_column: str
@@ -81,8 +89,8 @@ class CellClusterMaskData:
 
     # Initialized in __post_init__
     unique_fovs: List[str] = field(init=False)
-    mapping: DataFrameGroupBy = field(init=False)
     unassigned_id: int = field(init=False)
+    mapping: DataFrameGroupBy = field(init=False)
 
     def __post_init__(self) -> None:
 
