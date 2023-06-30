@@ -6,7 +6,6 @@ import feather
 import numpy as np
 import pandas as pd
 import scipy.ndimage as ndimage
-from natsort import natsorted
 from alpineer import io_utils, load_utils, misc_utils
 from skimage.io import imread
 
