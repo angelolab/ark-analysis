@@ -157,7 +157,7 @@ def preprocess_fov(base_dir, tiff_dir, data_dir, subset_dir, seg_dir, seg_suffix
                                          fov + ".feather"),
                             compression='uncompressed')
 
-    # write subseted dataset to feather, needed for training
+    # write subsetted dataset to feather, needed for training
     feather.write_dataframe(pixel_mat_subset,
                             os.path.join(base_dir,
                                          subset_dir,
