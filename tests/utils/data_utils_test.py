@@ -196,15 +196,21 @@ def test_relabel_segmentation(label_map_generator):
             index=False):
         mapping[label] = cluster
 
-    relabeled_image: np.ndarray = data_utils.relabel_segmentation(
+    # Test the pure python counterpart alongside the numba version
+    relabeled_image_py: np.ndarray = data_utils.relabel_segmentation.py_func(
         mapping=mapping,
         unassigned_id=ccmd.unassigned_id,
         labeled_image=label_map.values,
     )
-
-    assert relabeled_image.max() <= ccmd.unassigned_id
-    assert relabeled_image.min() == 0
-    assert relabeled_image.shape == label_map.shape
+    relabeled_image_numba: np.ndarray = data_utils.relabel_segmentation(
+        mapping=mapping,
+        unassigned_id=ccmd.unassigned_id,
+        labeled_image=label_map.values,
+    )
+    for relabeled_image in [relabeled_image_py, relabeled_image_numba]:
+        assert relabeled_image.max() <= ccmd.unassigned_id
+        assert relabeled_image.min() == 0
+        assert relabeled_image.shape == label_map.shape
 
 
 def test_generate_cell_cluster_mask(tmp_path: pathlib.Path, label_map_generator):

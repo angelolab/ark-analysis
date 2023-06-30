@@ -56,6 +56,7 @@ def save_fov_mask(fov, data_dir, mask_data, sub_dir=None, name_suffix=''):
     # save the image to data_dir
     image_utils.save_image(os.path.join(save_dir, fov_file), mask_data)
 
+
 @dataclass
 class CellClusterMaskData:
     """
