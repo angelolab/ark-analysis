@@ -6,6 +6,7 @@ import numpy as np
 import pandas as pd
 from alpineer import load_utils, misc_utils
 from alpineer.settings import EXTENSION_TYPES
+from ark import settings
 
 from ark.utils import data_utils, plot_utils
 
@@ -97,6 +98,13 @@ def create_mantis_project(cell_table, fovs, seg_dir, pop_col,
     # generate unique numeric value for each population
     small_table['pop_vals'] = pd.factorize(small_table[pop_col].tolist())[0] + 1
 
+    ccmd_pop = data_utils.CellClusterMaskData(
+        data=small_table,
+        fov_col=settings.FOV_ID,
+        label_column=settings.CELL_LABEL,
+        cluster_column="pop_vals",
+    )
+
     # label and save the cell mask for each FOV
     for fov in fovs:
         whole_cell_files = [fov + seg_suffix_name]
@@ -109,10 +117,10 @@ def create_mantis_project(cell_table, fovs, seg_dir, pop_col,
 
         # use label_cells_by_cluster to create cell masks
         mask_data = data_utils.label_cells_by_cluster(
-            fov, small_table, label_map, fov_col='fov',
-            cell_label_column='label', cluster_column='pop_vals'
+            fov=fov,
+            ccmd=ccmd_pop,
+            label_map=label_map,
         )
-
         # save the cell mask for each FOV -- (saves with ".tiff" extension)
         data_utils.save_fov_mask(
             fov,

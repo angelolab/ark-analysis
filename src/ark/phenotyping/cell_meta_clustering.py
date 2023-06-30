@@ -156,7 +156,8 @@ def generate_meta_avg_files(base_dir, cell_cc, cell_som_cluster_cols,
 
     # read in the average number of pixel/SOM clusters across all cell SOM clusters
     cell_som_cluster_avgs = pd.read_csv(som_expr_col_avg_path)
-    cell_som_cluster_avgs['cell_som_cluster'] = cell_som_cluster_avgs['cell_som_cluster'].astype(int)
+    cell_som_cluster_avgs['cell_som_cluster'] = cell_som_cluster_avgs['cell_som_cluster'].astype(
+        int)
 
     # this happens if the overwrite flag is set with previously generated data, need to overwrite
     if 'cell_meta_cluster' in cell_som_cluster_avgs.columns.values:

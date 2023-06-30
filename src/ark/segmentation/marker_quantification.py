@@ -426,6 +426,9 @@ def create_marker_count_matrices(segmentation_labels, image_data, nuclear_counts
     arcsinh = pd.DataFrame(data=marker_counts_arcsinh.values[0, :, :],
                            columns=marker_counts_arcsinh.features)
 
+    normalized[settings.CELL_LABEL] = normalized[settings.CELL_LABEL].astype(np.int64)
+    arcsinh[settings.CELL_LABEL] = arcsinh[settings.CELL_LABEL].astype(np.int64)
+
     if nuclear_counts:
         # append nuclear counts pandas array with modified column name
         nuc_column_names = [feature + '_nuclear' for feature in marker_counts.features.values]
@@ -448,7 +451,7 @@ def create_marker_count_matrices(segmentation_labels, image_data, nuclear_counts
 
 
 def generate_cell_table(segmentation_dir, tiff_dir, img_sub_folder="TIFs",
-                        is_mibitiff=False, fovs=None, dtype="int16",
+                        is_mibitiff=False, fovs=None,
                         extraction='total_intensity', nuclear_counts=False,
                         fast_extraction=False, **kwargs):
     """This function takes the segmented data and computes the expression matrices batch-wise

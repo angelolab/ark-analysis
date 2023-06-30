@@ -558,25 +558,26 @@ class TestMetaclusterColormap():
 
         # Assert that the fields after __post_init__ are correct
 
-        # Assert metacluster_to_id_name is correct
+        # Assert metacluster_to_id_name is correct, contains "`Unassigned`" and `"No Cluster`
         assert set(
             mcc.metacluster_id_to_name[f"{self.cluster_type}_meta_cluster_rename"]) == set(
-            [f"meta{i}" for i in range(5)])
+            [f"meta{i}" for i in range(5)] + ["Unassigned", "No Cluster"])
 
         # Assert mc_colors has the correct shape
-        # Add 1 color to account for an element with no associated cluster.
-        assert mcc.mc_colors.shape == (self.n_metaclusters + 1, 4)
+        # Add 2 colors to account for an element with no associated cluster, and an element with an
+        # unassigned cluster
+        assert mcc.mc_colors.shape == (self.n_metaclusters + 2, 4)
 
         # Assert metacluster_to_index is correct
-        assert mcc.metacluster_to_index == {i: i + 1 for i in range(self.n_metaclusters)}
+        assert mcc.metacluster_to_index == {i: i + 1 for i in range(self.n_metaclusters + 1)}
 
         # Assert the cmap has the correct number of colors
-        assert mcc.cmap.N == self.n_metaclusters + 1
+        assert mcc.cmap.N == self.n_metaclusters + 2
 
         # Assert the boundary norm has the correct number of colors
         # This would be for `plot_neighborhood_cluster_result`, currently not used by
         # `plot_pixel_cell_cluster_overlay`
-        assert mcc.norm.N == self.n_metaclusters + 1 + 1
+        assert mcc.norm.N == self.n_metaclusters + 3
 
     def test_assign_metacluster_cmap(self):
         mcc = plot_utils.MetaclusterColormap(

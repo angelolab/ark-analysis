@@ -1,4 +1,5 @@
 from pathlib import Path
+from typing import Tuple
 
 import numpy as np
 from Cython.Build import cythonize
@@ -9,7 +10,7 @@ _compiler_directives = get_directive_defaults()
 
 CYTHON_PROFILE_MODE = False
 
-CYTHON_MACROS: tuple[str,str] = None
+CYTHON_MACROS: Tuple[str,str] = None
 
 if CYTHON_PROFILE_MODE:
     _compiler_directives["linetrace"] = True
