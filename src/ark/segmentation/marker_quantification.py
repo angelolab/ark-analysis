@@ -469,8 +469,6 @@ def generate_cell_table(segmentation_dir, tiff_dir, img_sub_folder="TIFs",
             a list of fovs we wish to analyze, if None will default to all fovs
         is_mibitiff (bool):
             a flag to indicate whether or not the base images are MIBItiffs
-        dtype (str/type):
-            data type of base images
         extraction (str):
             extraction function used to compute marker counts
         nuclear_counts (bool):
