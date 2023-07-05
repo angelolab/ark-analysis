@@ -101,8 +101,8 @@ def create_mantis_project(cell_table, fovs, seg_dir, pop_col,
     ccmd_pop = data_utils.CellClusterMaskData(
         data=small_table,
         fov_col=settings.FOV_ID,
-        label_column=settings.CELL_LABEL,
-        cluster_column="pop_vals",
+        label_col=settings.CELL_LABEL,
+        cluster_col="pop_vals",
     )
 
     # label and save the cell mask for each FOV

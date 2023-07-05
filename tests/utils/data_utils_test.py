@@ -89,16 +89,15 @@ class TestCellClusterMaskData:
         self.ccmd = data_utils.CellClusterMaskData(
             data=self.cell_table,
             fov_col=self.fov_col,
-            label_column=self.label_column,
-            cluster_column=self.cluster_column,
+            label_col=self.label_column,
+            cluster_col=self.cluster_column,
         )
 
-    def test__post_init__(self):
-        pd.testing.assert_frame_equal(self.ccmd.data, self.cell_table)
+    def test___init__(self):
         # Test __init__
         assert self.ccmd.label_column == self.label_column
         assert self.ccmd.cluster_column == self.cluster_column
-        assert self.ccmd.fov_col == self.fov_col
+        assert self.ccmd.fov_column == self.fov_col
 
         # Test __post_init__ generated fields
         assert set(self.ccmd.unique_fovs) == set(["fov0", "fov1"])
@@ -165,8 +164,8 @@ def label_map_generator(
     ccmd = data_utils.CellClusterMaskData(
         data=cell_table_cluster,
         fov_col=settings.FOV_ID,
-        label_column="segmentation_label",
-        cluster_column=settings.CELL_TYPE,
+        label_col="segmentation_label",
+        cluster_col=settings.CELL_TYPE,
     )
     yield (label_map, ccmd)
 

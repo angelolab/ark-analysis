@@ -57,74 +57,68 @@ def save_fov_mask(fov, data_dir, mask_data, sub_dir=None, name_suffix=''):
     image_utils.save_image(os.path.join(save_dir, fov_file), mask_data)
 
 
-@dataclass
 class CellClusterMaskData:
     """
-    A dataclass containing the cell data, cell label column, cluster column and the mapping from a
-    cell label to a cluster.
-
-    Args:
-        data (pd.DataFrame):
-            A cell table with the cell label column and the cluster column.
-        fov_col (str):
-            The name of the column in the cell table that contains the FOV ID.
-        label_column (str):
-            The name of the column in the cell table that contains the cell label.
-        cluster_column (str):
-            The name of the column in the cell table that contains the cluster label.
-
-
-    Fields:
-        unique_fovs (List[str]):
-            A list of all unique FOVs in the cell table.
-        unassigned_id (int):
-            The cluster ID that is assigned to cells that are not assigned to a cluster.
-        mapping (pd.core.groupby.DataFrameGroupBy):
-            A GroupBy object that contains the mapping from the cell label to the cluster label for
-            each FOV, sorted by Segmentation label.
+    A class containing the cell labels, cluster labels, and segmentation labels for the
+    whole cohort. Also contains the mapping from the segmentation label to the cluster
+    label for each FOV.
     """
-    data: pd.DataFrame
-    fov_col: str
+
+    fov_column: str
     label_column: str
     cluster_column: str
+    unique_fovs: List[str]
+    unassigned_id: int
+    mapping: DataFrameGroupBy
 
-    # Initialized in __post_init__
-    unique_fovs: List[str] = field(init=False)
-    unassigned_id: int = field(init=False)
-    mapping: DataFrameGroupBy = field(init=False)
+    def __init__(self, data: pd.DataFrame, fov_col: str, label_col: str, cluster_col: str) -> None:
+        """
+        A class containing the cell data, cell label column, cluster column and the mapping from a
+        cell label to a cluster.
 
-    def __post_init__(self) -> None:
+        Args:
+            data (pd.DataFrame):
+                A cell table with the cell label column and the cluster column.
+            fov_col (str):
+                The name of the column in the cell table that contains the FOV ID.
+            label_col (str):
+                The name of the column in the cell table that contains the cell label.
+            cluster_col (str):
+                The name of the column in the cell table that contains the cluster label.
+        """
+        self.fov_column: str = fov_col
+        self.label_column: str = label_col
+        self.cluster_column: str = cluster_col
 
-        self.data[self.label_column] = self.data[self.label_column].astype(np.int64)
-        self.data[self.cluster_column] = self.data[self.cluster_column].astype(np.int64)
+        # Extract only the necessary columns: fov ID, segmentation label, cluster label
+        mapping_data: pd.DataFrame = data[[self.fov_column,
+                                           self.label_column, self.cluster_column]].copy()
 
-        self.unique_fovs = ns.natsorted(self.data[self.fov_col].unique().tolist())
+        mapping_data[self.cluster_column] = mapping_data[self.cluster_column].astype(np.int64)
+        mapping_data[self.label_column] = mapping_data[self.label_column].astype(np.int64)
 
-        self.unassigned_id: int = self.data[self.cluster_column].max() + 1
+        self.unique_fovs: List[str] = ns.natsorted(mapping_data[self.fov_column].unique().tolist())
 
-        self.mapping: DataFrameGroupBy = (
-            pd.concat(
-                [
-                    self.data[[self.fov_col, self.label_column, self.cluster_column]],
-                    # Make sure that the cluster 0 maps to the metacluster 0
-                    pd.DataFrame(
-                        data={
-                            self.fov_col: self.unique_fovs,
-                            self.label_column: np.repeat(
-                                0, repeats=len(self.unique_fovs)
-                            ),
-                            self.cluster_column: np.repeat(
-                                0, repeats=len(self.unique_fovs)
-                            ),
-                        }
-                    ),
-                ]
-            )
-            # sort by FOV first, then by segmentation label
-            # Then group by FOV
-            .sort_values(by=[self.fov_col, self.label_column])
-            .groupby(by=self.fov_col)
+        self.unassigned_id: np.int64 = mapping_data[self.cluster_column].max() + 1
+
+        # For each FOV map the segmentation label 0 to the cluster label 0
+        cluster0_mapping: pd.DataFrame = pd.DataFrame(
+            data={
+                self.fov_column: self.unique_fovs,
+                self.label_column: np.repeat(0, repeats=len(self.unique_fovs)),
+                self.cluster_column: np.repeat(0, repeats=len(self.unique_fovs)),
+            }
         )
+
+        mapping_data = pd.concat(objs=[
+            mapping_data,
+            cluster0_mapping
+        ])
+
+        # Sort by FOV first, then by segmentation label
+        # Then Group by FOV
+        self.mapping: DataFrameGroupBy = mapping_data.sort_values(
+            by=[self.fov_column, self.label_column]).groupby(by=self.fov_column)
 
     def fov_mapping(self, fov: str) -> pd.DataFrame:
         """Returns the mapping for a specific FOV.
@@ -304,8 +298,8 @@ def generate_and_save_cell_cluster_masks(fovs: List[str],
     ccmd = CellClusterMaskData(
         data=cell_data,
         fov_col=settings.FOV_ID,
-        label_column="segmentation_label",
-        cluster_column=cell_cluster_col)
+        label_col="segmentation_label",
+        cluster_col=cell_cluster_col)
 
     # create the pixel cluster masks across each fov
     with tqdm(total=len(fovs), desc="Cell Cluster Mask Generation", unit="FOVs") as pbar:
@@ -489,8 +483,8 @@ def generate_and_save_neighborhood_cluster_masks(fovs: List[str],
 
     ccmd = CellClusterMaskData(data=neighborhood_data,
                                fov_col=settings.FOV_ID,
-                               label_column=settings.CELL_LABEL,
-                               cluster_column=settings.KMEANS_CLUSTER)
+                               label_col=settings.CELL_LABEL,
+                               cluster_col=settings.KMEANS_CLUSTER)
 
     # create the neighborhood cluster masks across each fov
     with tqdm(total=len(fovs), desc="Neighborhood Cluster Mask Generation") as neigh_mask_progress:
