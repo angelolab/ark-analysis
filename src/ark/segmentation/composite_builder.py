@@ -21,8 +21,8 @@ def composite_builder(
         data (xr.DataArray): The data array containing the set of all images which get filtered out with images_to_add and images_to_subtract.
         images_to_add (List[str]): A list of channels or pixel cluster names to add together.
         images_to_subtract (List[str]): A list of channels or pixel cluster names to subtract from the composite.
-        image_type (str): Either "intensity" or "pixel_cluster" data.
-        composite_method (str): Binarized mask returns ("full") or intensity, gray-scale tiffs returned ("partial").
+        image_type (str): Either "signal" or "pixel_cluster" data.
+        composite_method (str): Binarized mask returns ("binary") or intensity, gray-scale tiffs returned ("total").
         composite_directory (Union[str, pathlib.Path]): The directory to save the composite array.
         composite_name (str): The name of the composite array to save.
 
@@ -42,7 +42,7 @@ def composite_builder(
     misc_utils.verify_in_list(
         images_to_subtract=images_to_subtract, image_names=image_names
     )
-    misc_utils.verify_in_list(composite_method=composite_method, options=["full", "partial"])
+    misc_utils.verify_in_list(composite_method=composite_method, options=["binary", "total"])
     
     if isinstance(composite_directory, str):
         composite_directory = pathlib.Path(composite_directory)
@@ -79,8 +79,8 @@ def add_to_composite(
         data (xr.DataArray): The data array containing the set of all images which get filtered out with images_to_add.
         composite_array (np.ndarray): The array to add tiffs to.
         images_to_add (List[str]): A list of channels or pixel cluster names to add together.
-        image_type (str): Either "intensity" or "pixel_cluster" data.
-        composite_method (str): Binarized mask returns ("full") or intensity, gray-scale tiffs returned ("partial").
+        image_type (str): Either "signal" or "pixel_cluster" data.
+        composite_method (str): Binarized mask returns ("binary") or intensity, gray-scale tiffs returned ("total").
 
     Returns:
         np.ndarray: The composite array, either as a binary mask, or as a scaled intensity array.
@@ -89,9 +89,9 @@ def add_to_composite(
 
     filtered_images: xr.DataArray = data.sel(fovs=images_to_add)
 
-    if image_type == "intensity":
+    if image_type == "signal":
         composite_array: np.ndarray = filtered_images.sum(dim="fovs").values
-        if composite_method == "full":
+        if composite_method == "binary":
             composite_array = composite_array.clip(min=None, max=1)
     else:
         # TODO:
@@ -121,8 +121,8 @@ def subtract_from_composite(
         data (xr.DataArray): The data array containing the set of all images which get filtered out with images_to_subtract.
         composite_array (np.ndarray): An array to subtract tiffs from.
         images_to_subtract (List[str]): A list of channels or pixel cluster names to subtract from the composite.
-        image_type (str): Either "intensity" or "pixel_cluster" data.
-        composite_method (str): Binarized mask returns ('full') or intensity, gray-scale tiffs returned ('partial').
+        image_type (str): Either "signal" or "pixel_cluster" data.
+        composite_method (str): Binarized mask returns ('binary') or intensity, gray-scale tiffs returned ('total').
 
     Returns:
         np.ndarray: The composite array, either as a binary mask, or as a scaled intensity array.
@@ -137,10 +137,10 @@ def subtract_from_composite(
     # for each channel to subtract
     for channel in filtered_images.fovs.values:
         channel_data = filtered_images.sel(fovs=channel)
-        # if intensity data
-        if image_type == "intensity":
-            # if a binarized, or full removal is asked for
-            if composite_method == "full":
+        # if signal-based data
+        if image_type == "signal":
+            # if a binarized, or binary removal is asked for
+            if composite_method == "binary":
                 # Create a mask based on positive values in the subtraction channel
                 mask_2_zero = channel_data > 0
                 # Zero out elements in the composite channel based on mask
@@ -148,7 +148,7 @@ def subtract_from_composite(
                 # return binarized composite
                 composite_array[composite_array > 1] = 1
             # if a signal based, or partial, removal is asked for
-            elif composite_method == "partial":
+            elif composite_method == "total":
                 # subtract channel counts from composite array
                 composite_array = np.subtract(composite_array, channel_data)
                 # Find the minimum value in the composite array

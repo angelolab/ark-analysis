@@ -85,7 +85,7 @@ def merge_masks_seq(
     if isinstance(save_path, str):
         save_path = pathlib.Path(save_path)
 
-    whole_cell_mask = imread(fname=cell_mask_path)
+    curr_cell_mask = imread(fname=cell_mask_path)
 
     objects: xr.DataArray = load_utils.load_imgs_from_dir(
         object_mask_dir, files=[o + ".tiff" for o in object_list]).drop_vars("compartments").squeeze()
@@ -99,7 +99,7 @@ def merge_masks_seq(
         curr_object_mask = imread(fname=(object_mask_dir / obj).with_suffix(".tiff"))
         remaining_cells = merge_masks(
             object_mask=curr_object_mask,
-            cell_mask=whole_cell_mask,
+            cell_mask=curr_cell_mask,
             overlap=overlap,
             object_name=obj,
             mask_save_path=save_path,
@@ -107,3 +107,26 @@ def merge_masks_seq(
         curr_cell_mask = remaining_cells
 
     image_utils.save_image(fname=save_path / "final_cells_remaining.tiff", data=curr_cell_mask.astype(np.uint8))
+
+
+def combine_masks(*masks):
+    if not masks:
+        return None
+
+    # Ensure all masks have the same shape
+    shape = masks[0].shape
+    for mask in masks:
+        if mask.shape != shape:
+            raise ValueError("All masks must have the same shape")
+
+    # Combine the masks
+    combined_mask = np.zeros(shape, dtype=bool)
+    for mask in masks:
+        # Create a mask for indices where the first array is equal to 0
+        filter_mask = combined_mask == 0
+
+        # Overwrite the first array with the values from the second array using the mask.
+        # Do not overwrite previous non-zero values.
+        combined_mask = np.where(filter_mask, mask, combined_mask)
+
+    return combined_mask
