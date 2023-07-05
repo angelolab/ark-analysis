@@ -1,5 +1,4 @@
 import numba as nb
-from dataclasses import dataclass, field
 import itertools
 import os
 import pathlib
