@@ -93,12 +93,12 @@ class CellClusterMaskData:
         mapping_data: pd.DataFrame = data[[self.fov_column,
                                            self.label_column, self.cluster_column]].copy()
 
-        mapping_data[self.cluster_column] = mapping_data[self.cluster_column].astype(np.int64)
-        mapping_data[self.label_column] = mapping_data[self.label_column].astype(np.int64)
+        mapping_data[self.cluster_column] = mapping_data[self.cluster_column].astype(np.int32)
+        mapping_data[self.label_column] = mapping_data[self.label_column].astype(np.int32)
 
         self.unique_fovs: List[str] = ns.natsorted(mapping_data[self.fov_column].unique().tolist())
 
-        self.unassigned_id: np.int64 = mapping_data[self.cluster_column].max() + 1
+        self.unassigned_id: np.int32 = np.int32(mapping_data[self.cluster_column].max() + 1)
 
         # For each FOV map the segmentation label 0 to the cluster label 0
         cluster0_mapping: pd.DataFrame = pd.DataFrame(
@@ -151,7 +151,7 @@ def label_cells_by_cluster(
             A dataclass containing the cell data, cell label column, cluster column and the
             mapping from the segmentation label to the cluster label for a given FOV.
         label_map (xarray.DataArray):
-            label map for a single FOV
+            label map for a single FOV.
 
     Returns:
         numpy.ndarray:
@@ -164,13 +164,13 @@ def label_cells_by_cluster(
         all_data_fovs=ccmd.unique_fovs)
 
     # condense extraneous axes
-    labeled_image: np.ndarray = label_map.squeeze().values.astype(np.int64)
+    labeled_image: np.ndarray = label_map.squeeze().values.astype(np.int32)
 
     fov_clusters: pd.DataFrame = ccmd.fov_mapping(fov=fov)
 
     mapping: nb.typed.typeddict = nb.typed.Dict.empty(
-        key_type=nb.types.int64,
-        value_type=nb.types.int64,
+        key_type=nb.types.int32,
+        value_type=nb.types.int32,
     )
 
     for label, cluster in fov_clusters[[ccmd.label_column, ccmd.cluster_column]].itertuples(
@@ -188,18 +188,19 @@ def label_cells_by_cluster(
 @nb.njit(parallel=True)
 def relabel_segmentation(
     mapping: nb.typed.typeddict,
-    unassigned_id: np.int64,
+    unassigned_id: np.int32,
     labeled_image: np.ndarray,
 ) -> np.ndarray:
     """
     Relabels a labled segmentation image according to the provided cluster labels.
 
     Args:
-        mapping (nb.typed.typeddict): A Numba typed dictionary mapping segmentation labels to
-            cluster labels.
-        unassigned_id (np.int64): The cluster labels for each cell, where the index
-            is the segmentation label.
-        labeled_image (np.ndarray): The labeled segmentation image.
+        mapping (nb.typed.typeddict):
+            A Numba typed dictionary mapping segmentation labels to cluster labels.
+        unassigned_id (np.int32):
+            The label given to a pixel with no associated cluster.
+        labeled_image (np.ndarray):
+            The labeled segmentation image.
 
     Returns:
         np.ndarray: The relabeled segmentation image.
@@ -262,14 +263,18 @@ def generate_cell_cluster_mask(
     return img_data
 
 
-def generate_and_save_cell_cluster_masks(fovs: List[str],
-                                         save_dir: Union[pathlib.Path, str],
-                                         seg_dir: Union[pathlib.Path, str],
-                                         cell_data: pd.DataFrame,
-                                         cell_cluster_col: str = 'cell_meta_cluster',
-                                         seg_suffix: str = '_whole_cell.tiff',
-                                         sub_dir: str = None,
-                                         name_suffix: str = ''):
+def generate_and_save_cell_cluster_masks(
+    fovs: List[str],
+    save_dir: Union[pathlib.Path, str],
+    seg_dir: Union[pathlib.Path, str],
+    cell_data: pd.DataFrame,
+    fov_col: str = settings.FOV_ID,
+    label_col: str = settings.CELL_SEGMENTATION_LABEL,
+    cell_cluster_col: str = settings.CELL_TYPE,
+    seg_suffix: str = "_whole_cell.tiff",
+    sub_dir: str = None,
+    name_suffix: str = "",
+):
     """Generates cell cluster masks and saves them for downstream analysis.
 
     Args:
@@ -279,40 +284,51 @@ def generate_and_save_cell_cluster_masks(fovs: List[str],
             The directory to save the generated cell cluster masks.
         seg_dir (Union[pathlib.Path, str]):
             The path to the segmentation data.
-        cell_data (pandas.DataFrame):
-            The cell data with both cell SOM and meta cluster assignments
+        cell_data (pd.DataFrame):
+            The cell data with both cell SOM and meta cluster assignments.
+        fov_col (str, optional):
+            The column name containing the FOV IDs . Defaults to `settings.FOV_ID` (`"fov"`).
+        label_col (str, optional):
+            The column name containing the cell label. Defaults to
+            `settings.CELL_SEGMENTATION_LABEL` (`"segmentation_label"`).
         cell_cluster_col (str, optional):
-            Whether to assign SOM or meta clusters. Needs to be `'cell_som_cluster'` or
-            `'cell_meta_cluster'`. Defaults to `'cell_meta_cluster'`.
+            Whether to assign SOM or meta clusters. Needs to be `"cell_som_cluster"` or
+            `"cell_meta_cluster"`. Defaults to `settings.CELL_TYPE` (`"cell_meta_cluster"`).
         seg_suffix (str, optional):
-            The suffix that the segmentation images use. Defaults to `'_whole_cell.tiff'`.
+            The suffix that the segmentation images use. Defaults to `"_whole_cell.tiff"`.
         sub_dir (str, optional):
             The subdirectory to save the images in. If specified images are saved to
             `"data_dir/sub_dir"`. If `sub_dir = None` the images are saved to `"data_dir"`.
             Defaults to `None`.
         name_suffix (str, optional):
-            Specify what to append at the end of every cell mask. Defaults to `''`.
+            Specify what to append at the end of every cell mask. Defaults to `""`.
     """
 
     ccmd = CellClusterMaskData(
         data=cell_data,
-        fov_col=settings.FOV_ID,
-        label_col="segmentation_label",
-        cluster_col=cell_cluster_col)
+        fov_col=fov_col,
+        label_col=label_col,
+        cluster_col=cell_cluster_col,
+    )
 
     # create the pixel cluster masks across each fov
-    with tqdm(total=len(fovs), desc="Cell Cluster Mask Generation", unit="FOVs") as pbar:
+    with tqdm(
+        total=len(fovs), desc="Cell Cluster Mask Generation", unit="FOVs"
+    ) as pbar:
         for fov in fovs:
             # generate the cell mask for the FOV
-            cell_mask: np.ndarray =\
-                generate_cell_cluster_mask(fov=fov,
-                                           seg_dir=seg_dir,
-                                           ccmd=ccmd,
-                                           seg_suffix=seg_suffix)
+            cell_mask: np.ndarray = generate_cell_cluster_mask(
+                fov=fov, seg_dir=seg_dir, ccmd=ccmd, seg_suffix=seg_suffix
+            )
 
             # save the cell mask generated
-            save_fov_mask(fov, data_dir=save_dir, mask_data=cell_mask, sub_dir=sub_dir,
-                          name_suffix=name_suffix)
+            save_fov_mask(
+                fov,
+                data_dir=save_dir,
+                mask_data=cell_mask,
+                sub_dir=sub_dir,
+                name_suffix=name_suffix,
+            )
 
             pbar.update(1)
 
@@ -449,27 +465,40 @@ def generate_and_save_pixel_cluster_masks(fovs: List[str],
             pixel_mask_progress.update(1)
 
 
-def generate_and_save_neighborhood_cluster_masks(fovs: List[str],
-                                                 save_dir: Union[pathlib.Path, str],
-                                                 neighborhood_data: pd.DataFrame,
-                                                 seg_dir: str,
-                                                 seg_suffix: str = '_whole_cell.tiff',
-                                                 xr_channel_name='segmentation_label',
-                                                 sub_dir: str = None,
-                                                 name_suffix: str = ''):
-    """Generates neighborhood cluster masks and saves them for downstream analysis
+def generate_and_save_neighborhood_cluster_masks(
+    fovs: List[str],
+    save_dir: Union[pathlib.Path, str],
+    seg_dir: Union[pathlib.Path, str],
+    neighborhood_data: pd.DataFrame,
+    fov_col: str = settings.FOV_ID,
+    label_col: str = settings.CELL_LABEL,
+    cluster_col: str = settings.KMEANS_CLUSTER,
+    seg_suffix: str = "_whole_cell.tiff",
+    xr_channel_name="segmentation_label",
+    sub_dir: Union[pathlib.Path, str] = None,
+    name_suffix: str = "",
+):
+    """Generates neighborhood cluster masks and saves them for downstream analysis.
 
     Args:
         fovs (List[str]):
             A list of fovs to generate and save neighborhood masks for.
         save_dir (Union[pathlib.Path, str]):
             The directory to save the generated pixel cluster masks.
-        neighborhood_data (pandas.DataFrame):
-            Contains the neighborhood cluster assignments for each cell.
-        seg_dir (str):
+        seg_dir (Union[pathlib.Path, str]):
             The path to the segmentation data.
-        seg_suffix (str):
-            The suffix that the segmentation images use. Defaults to `'_whole_cell.tiff'`.
+        neighborhood_data (pd.DataFrame):
+            Contains the neighborhood cluster assignments for each cell.
+        fov_col (str, optional):
+            The column name containing the FOV IDs . Defaults to `settings.FOV_ID` (`"fov"`).
+        label_col (str, optional):
+            The column name containing the cell label. Defaults to `settings.CELL_LABEL`
+            (`"label"`).
+        cluster_col (str, optional):
+            The column name containing the cluster label. Defaults to `settings.KMEANS_CLUSTER`
+            (`"kmeans_neighborhood"`).
+        seg_suffix (str, optional):
+            The suffix that the segmentation images use. Defaults to `'_whole_cell.tiff'`
         xr_channel_name (str):
             Channel name for segmented data array.
         sub_dir (str, optional):
@@ -480,30 +509,38 @@ def generate_and_save_neighborhood_cluster_masks(fovs: List[str],
             Specify what to append at the end of every pixel mask. Defaults to `''`.
     """
 
-    ccmd = CellClusterMaskData(data=neighborhood_data,
-                               fov_col=settings.FOV_ID,
-                               label_col=settings.CELL_LABEL,
-                               cluster_col=settings.KMEANS_CLUSTER)
+    ccmd = CellClusterMaskData(
+        data=neighborhood_data,
+        fov_col=fov_col,
+        label_col=label_col,
+        cluster_col=cluster_col,
+    )
 
     # create the neighborhood cluster masks across each fov
-    with tqdm(total=len(fovs), desc="Neighborhood Cluster Mask Generation") as neigh_mask_progress:
+    with tqdm(
+        total=len(fovs), desc="Neighborhood Cluster Mask Generation"
+    ) as neigh_mask_progress:
         # generate the mask for each FOV
         for fov in fovs:
             # load in the label map for the FOV
             label_map = load_utils.load_imgs_from_dir(
-                seg_dir, files=[fov + seg_suffix], xr_channel_names=[xr_channel_name],
-                trim_suffix=seg_suffix.split('.')[0]
+                seg_dir,
+                files=[fov + seg_suffix],
+                xr_channel_names=[xr_channel_name],
+                trim_suffix=seg_suffix.split(".")[0],
             ).loc[fov, ..., :]
 
             # generate the neighborhood mask for the FOV
-            neighborhood_mask: np.ndarray =\
-                label_cells_by_cluster(
-                    fov, ccmd, label_map
-                )
+            neighborhood_mask: np.ndarray = label_cells_by_cluster(fov, ccmd, label_map)
 
             # save the neighborhood mask generated
-            save_fov_mask(fov, data_dir=save_dir, mask_data=neighborhood_mask, sub_dir=sub_dir,
-                          name_suffix=name_suffix)
+            save_fov_mask(
+                fov,
+                data_dir=save_dir,
+                mask_data=neighborhood_mask,
+                sub_dir=sub_dir,
+                name_suffix=name_suffix,
+            )
 
             neigh_mask_progress.update(1)
 

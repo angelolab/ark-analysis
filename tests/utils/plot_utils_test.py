@@ -561,7 +561,7 @@ class TestMetaclusterColormap():
         # Assert metacluster_to_id_name is correct, contains "`Unassigned`" and `"No Cluster`
         assert set(
             mcc.metacluster_id_to_name[f"{self.cluster_type}_meta_cluster_rename"]) == set(
-            [f"meta{i}" for i in range(5)] + ["Unassigned", "No Cluster"])
+            [f"meta{i}" for i in range(5)] + ["Unassigned", "Empty"])
 
         # Assert mc_colors has the correct shape
         # Add 2 colors to account for an element with no associated cluster, and an element with an

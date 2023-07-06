@@ -336,6 +336,8 @@ def test_generate_and_save_cell_cluster_masks(tmp_path: pathlib.Path, sub_dir, n
         save_dir=os.path.join(tmp_path, 'cell_masks'),
         seg_dir=tmp_path,
         cell_data=consensus_data_som,
+        fov_col=settings.FOV_ID,
+        label_col=settings.CELL_SEGMENTATION_LABEL,
         cell_cluster_col='cell_som_cluster',
         seg_suffix='_whole_cell.tiff',
         sub_dir=sub_dir,
@@ -537,8 +539,11 @@ def test_generate_and_save_neighborhood_cluster_masks(sub_dir, name_suffix):
         data_utils.generate_and_save_neighborhood_cluster_masks(
             fovs=fovs,
             save_dir=os.path.join(temp_dir, 'neighborhood_masks'),
-            neighborhood_data=sample_neighborhood_data,
             seg_dir=os.path.join(temp_dir, 'seg_dir'),
+            neighborhood_data=sample_neighborhood_data,
+            fov_col=settings.FOV_ID,
+            label_col=settings.CELL_LABEL,
+            cluster_col=settings.KMEANS_CLUSTER,
             sub_dir=sub_dir,
             name_suffix=name_suffix
         )

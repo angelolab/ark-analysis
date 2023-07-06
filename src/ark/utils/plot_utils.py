@@ -95,14 +95,14 @@ class MetaclusterColormap:
 
         # Extract unique pairs of (metacluster-ID,  name)
         # Set the unassigned cluster ID to be the max ID + 1
-        # Set 0 as the No Cluster value
+        # Set 0 as the Empty value
         metacluster_id_to_name: pd.DataFrame = pd.concat(
             [
                 metacluster_id_to_name.drop_duplicates(),
                 pd.DataFrame(
                     data={
                         f"{self.cluster_type}_meta_cluster": [unassigned_id, 0],
-                        f"{self.cluster_type}_meta_cluster_rename": ["Unassigned", "No Cluster"]
+                        f"{self.cluster_type}_meta_cluster_rename": ["Unassigned", "Empty"]
                     }
                 )
             ]

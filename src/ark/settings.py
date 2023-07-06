@@ -4,6 +4,7 @@
 # default cell table column names
 CELL_SIZE = 'cell_size'  # cell size (number of pixels in the cell)
 CELL_LABEL = 'label'  # cell label number (regionprops)
+CELL_SEGMENTATION_LABEL = "segmentation_label"  # cell label number (segmentation)
 FOV_ID = 'fov'  # cell's fov name
 CELL_TYPE = 'cell_meta_cluster'  # cell cluster name
 CELL_TYPE_NUM = 'cell_num'   # int cell cluster identifier
