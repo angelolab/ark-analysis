@@ -125,6 +125,9 @@ class TestCellClusterMaskData:
                 ),
             ]
         ).sort_values(by=self.label_column).reset_index(drop=True, inplace=False)
+        true_df[self.label_column] = true_df[self.label_column].astype(np.int32)
+        true_df[self.cluster_column] = true_df[self.cluster_column].astype(np.int32)
+        
         pd.testing.assert_frame_equal(fov_mapping_df, true_df)
 
 
