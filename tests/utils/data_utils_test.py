@@ -111,23 +111,26 @@ class TestCellClusterMaskData:
     def test_fov_mapping(self, _fov: str):
         fov_mapping_df: pd.DataFrame = self.ccmd.fov_mapping(_fov)
 
-        true_df: pd.DataFrame = pd.concat(
-            [
-                self.cell_table[self.cell_table[self.fov_col] == _fov][
-                    [self.fov_col, self.label_column, self.cluster_column]
-                ],
-                pd.DataFrame(
-                    {
-                        self.label_column: [0],
-                        self.cluster_column: [0],
-                        self.fov_col: [_fov],
-                    }
-                ),
-            ]
-        ).sort_values(by=self.label_column).reset_index(drop=True, inplace=False)
-        true_df[self.label_column] = true_df[self.label_column].astype(np.int32)
-        true_df[self.cluster_column] = true_df[self.cluster_column].astype(np.int32)
-        
+        true_df: pd.DataFrame = (
+            pd.concat(
+                [
+                    self.cell_table[self.cell_table[self.fov_col] == _fov][
+                        [self.fov_col, self.label_column, self.cluster_column]
+                    ],
+                    pd.DataFrame(
+                        {
+                            self.label_column: [0],
+                            self.cluster_column: [0],
+                            self.fov_col: [_fov],
+                        }
+                    ),
+                ]
+            )
+            .sort_values(by=self.label_column)
+            .reset_index(drop=True, inplace=False)
+            .astype({self.label_column: np.int32, self.cluster_column: np.int32})
+        )
+
         pd.testing.assert_frame_equal(fov_mapping_df, true_df)
 
 

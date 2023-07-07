@@ -93,8 +93,7 @@ class CellClusterMaskData:
         mapping_data: pd.DataFrame = data[[self.fov_column,
                                            self.label_column, self.cluster_column]].copy()
 
-        mapping_data[self.cluster_column] = mapping_data[self.cluster_column].astype(np.int32)
-        mapping_data[self.label_column] = mapping_data[self.label_column].astype(np.int32)
+        mapping_data = mapping_data.astype({self.fov_column: str, self.label_column: np.int32, self.cluster_column: np.int32})
 
         self.unique_fovs: List[str] = ns.natsorted(mapping_data[self.fov_column].unique().tolist())
 
@@ -107,7 +106,7 @@ class CellClusterMaskData:
                 self.label_column: np.repeat(0, repeats=len(self.unique_fovs)),
                 self.cluster_column: np.repeat(0, repeats=len(self.unique_fovs)),
             }
-        )
+        ).astype({self.fov_column: str, self.label_column: np.int32, self.cluster_column: np.int32})
 
         mapping_data = pd.concat(objs=[
             mapping_data,
@@ -131,7 +130,8 @@ class CellClusterMaskData:
                 The mapping for the FOV.
         """
         misc_utils.verify_in_list(requested_fov=[fov], all_fovs=self.unique_fovs)
-
+        group = self.mapping.get_group(fov).reset_index(drop=True, inplace=False)
+        
         return self.mapping.get_group(fov).reset_index(drop=True, inplace=False)
 
 
