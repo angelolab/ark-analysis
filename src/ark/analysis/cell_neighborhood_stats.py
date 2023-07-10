@@ -4,7 +4,7 @@ from functools import reduce
 import numpy as np
 import pandas as pd
 import xarray as xr
-from tqdm.notebook import tqdm
+from tqdm.auto import tqdm
 from alpineer import io_utils, misc_utils
 
 import ark.settings as settings
@@ -72,6 +72,7 @@ def compute_neighborhood_diversity(neighborhood_mat, cell_type_col):
             })
             diversity_data.append(fov_data)
 
+            diversity_progress.set_postfix(FOV=fov)
             diversity_progress.update(1)
 
     # dataframe containing all fovs
@@ -230,6 +231,7 @@ def generate_cell_distance_analysis(
             fov_cell_dists.insert(2, cell_type_col, fov_cell_table[cell_type_col])
             cell_dists.append(fov_cell_dists)
 
+            distance_progress.set_postfix(FOV=fov)
             distance_progress.update(1)
 
     # combine data for all fovs and save to csv
