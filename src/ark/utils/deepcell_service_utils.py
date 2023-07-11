@@ -1,7 +1,6 @@
 import os
 import time
 import warnings
-from concurrent.futures import ThreadPoolExecutor
 from io import BytesIO
 from json import JSONDecodeError
 from pathlib import Path
@@ -16,6 +15,64 @@ from requests.exceptions import RetryError
 from tifffile import imread
 from tqdm.notebook import tqdm
 from urllib3 import Retry
+
+
+def zip_input_files(deepcell_input_dir, fov_groups):
+
+    # write all files to the zip file
+    print('Zipping preprocessed tiff files.')
+
+    for batch_num, fov_group in enumerate(fov_groups):
+        zip_path = os.path.join(deepcell_input_dir, f'fovs_batch_{batch_num + 1}.zip')
+
+        # create zip files, skip any existing
+        if not os.path.exists(zip_path):
+            with ZipFile(zip_path, 'w', compression=ZIP_DEFLATED) as zipObj:
+                for fov in fov_group:
+                    # file has .tiff extension
+                    basename = fov + '.tiff'
+                    filename = os.path.join(deepcell_input_dir, basename)
+                    zipObj.write(filename, basename)
+
+
+def extract_deepcell_response(deepcell_output_dir, fov_groups, wc_suffix, nuc_suffix):
+
+    # extract the .tif output
+    print("Extracting tif files from DeepCell response.")
+    deepcell_outputs = io_utils.remove_file_extensions(
+        io_utils.list_files(deepcell_output_dir, substrs=[".zip"]))
+    misc_utils.verify_same_elements(
+        output_files=deepcell_outputs,
+        expected_files=[f"deepcell_response_fovs_batch_{i + 1}" for i in range(len(fov_groups))])
+
+    for batch_num, fov_group in enumerate(fov_groups):
+        batch_zip = os.path.join(
+            deepcell_output_dir, f"deepcell_response_fovs_batch_{batch_num+1}.zip")
+
+        with ZipFile(batch_zip, "r") as zipObj:
+            for name in zipObj.namelist():
+                # this files will only ever be suffixed with feature_0.tiff or feature_1.tiff
+                if '_feature_0.tif' in name:
+                    resuffixed_name = name.replace('_feature_0', wc_suffix)
+                else:
+                    resuffixed_name = name.replace('_feature_1', nuc_suffix)
+
+                mask_path = os.path.join(deepcell_output_dir, resuffixed_name)
+
+                # DeepCell uses .tif extension, append extra f to account for .tiff standard
+                mask_path += 'f'
+
+                # read the file from the .zip file and save as segmentation mask
+                byte_repr = zipObj.read(name)
+                ranked_segmentation_mask = (_convert_deepcell_seg_masks(byte_repr)).squeeze()
+                image_utils.save_image(mask_path, ranked_segmentation_mask)
+
+        # verify that all the files were extracted
+        for fov in fov_group:
+            if fov + '_feature_0.tif' not in zipObj.namelist():
+                warnings.warn(f'Deep Cell whole cell output file was not found for {fov}.')
+            if fov + '_feature_1.tif' not in zipObj.namelist():
+                warnings.warn(f'Deep Cell nuclear output file was not found for {fov}.')
 
 
 def create_deepcell_output(deepcell_input_dir, deepcell_output_dir, fovs=None,
@@ -99,87 +156,31 @@ def create_deepcell_output(deepcell_input_dir, deepcell_output_dir, fovs=None,
 
     print(f'Processing tiffs in {len(fov_groups)} batches...')
 
-    # yes this is function, don't worry about it
-    # long story short, too many args to pass if function not in local scope
-    # i.e easier to map fov_groups
-    def _zip_run_extract(fov_group, group_index):
-        # define the location of the zip file for our fovs
-        zip_path = os.path.join(deepcell_input_dir, f'fovs_batch_{group_index + 1}.zip')
+    # create zipped input files
+    zip_input_files(deepcell_input_dir, fov_groups)
 
-        if os.path.isfile(zip_path):
-            warnings.warn(f'{zip_path} will be overwritten')
+    # upload to deepcell
+    print('Uploading files to DeepCell server.')
 
-        # write all files to the zip file
-        print('Zipping preprocessed tiff files.')
+    # add timeout limit
+    for batch_num, fov_group in enumerate(fov_groups):
+        input_zip_path = os.path.join(deepcell_input_dir, f'fovs_batch_{batch_num + 1}.zip')
+        output_zip_path = os.path.join(
+            deepcell_output_dir, f"deepcell_response_fovs_batch_{batch_num + 1}.zip")
 
-        def zip_write(zip_path):
-            with ZipFile(zip_path, 'w', compression=ZIP_DEFLATED) as zipObj:
-                for fov in fov_group:
-                    # file has .tiff extension
-                    basename = fov + '.tiff'
-                    filename = os.path.join(deepcell_input_dir, basename)
-                    zipObj.write(filename, basename)
+        while not os.path.exists(output_zip_path):
+            # pass the zip file to deepcell.org
+            status = run_deepcell_direct(
+                input_zip_path, deepcell_output_dir, host, job_type, scale, timeout
+            )
 
-        zip_write(zip_path)
+            # ensure execution is halted if run_deepcell_direct returned non-zero exit code
+            if status != 0:
+                print("The following FOVs could not be processed: %s" % ','.join(fov_group))
+                return
 
-        # pass the zip file to deepcell.org
-        print('Uploading files to DeepCell server.')
-        status = run_deepcell_direct(
-            zip_path, deepcell_output_dir, host, job_type, scale, timeout
-        )
-
-        # ensure execution is halted if run_deepcell_direct returned non-zero exit code
-        if status != 0:
-            print("The following FOVs could not be processed: %s" % ','.join(fov_group))
-            return
-
-        # extract the .tif output
-        print("Extracting tif files from DeepCell response.")
-        zip_names = io_utils.list_files(deepcell_output_dir, substrs=[".zip"])
-
-        zip_files = [os.path.join(deepcell_output_dir, name) for name in zip_names]
-
-        # sort by newest added
-        zip_files.sort(key=os.path.getmtime)
-
-        with ZipFile(zip_files[-1], "r") as zipObj:
-            for name in zipObj.namelist():
-                # this files will only ever be suffixed with feature_0.tiff or feature_1.tiff
-                if '_feature_0.tif' in name:
-                    resuffixed_name = name.replace('_feature_0', wc_suffix)
-                else:
-                    resuffixed_name = name.replace('_feature_1', nuc_suffix)
-
-                mask_path = os.path.join(deepcell_output_dir, resuffixed_name)
-
-                # DeepCell uses .tif extension, append extra f to account for .tiff standard
-                mask_path += 'f'
-
-                # read the file from the .zip file and save as segmentation mask
-                byte_repr = zipObj.read(name)
-                ranked_segmentation_mask = (_convert_deepcell_seg_masks(byte_repr)).squeeze()
-                image_utils.save_image(mask_path, ranked_segmentation_mask)
-
-            # verify that all the files were extracted
-            for fov in fov_group:
-                if fov + '_feature_0.tif' not in zipObj.namelist():
-                    warnings.warn(f'Deep Cell whole cell output file was not found for {fov}.')
-                if fov + '_feature_1.tif' not in zipObj.namelist():
-                    warnings.warn(f'Deep Cell nuclear output file was not found for {fov}.')
-
-    # make calls in parallel
-    if parallel:
-        with ThreadPoolExecutor() as executor:
-            executor.map(_zip_run_extract, fov_groups, range(len(fov_groups)))
-            executor.shutdown(wait=True)
-    else:
-        list(map(_zip_run_extract, fov_groups, range(len(fov_groups))))
-
-    # check for all deepcell outputs and rerun any missing
-    for batch, batch_num in zip(fov_groups, range(len(fov_groups))):
-        while not os.path.exists(os.path.join(
-                deepcell_output_dir, f"deepcell_response_fov_batch_{batch_num + 1}.zip")):
-            _zip_run_extract(batch, batch_num)
+    # extract segmentation masks from deepcell output
+    extract_deepcell_response(deepcell_output_dir, fov_groups, wc_suffix, nuc_suffix)
 
 
 def run_deepcell_direct(input_dir, output_dir, host='https://deepcell.org',
