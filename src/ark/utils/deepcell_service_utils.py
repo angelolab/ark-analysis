@@ -175,6 +175,12 @@ def create_deepcell_output(deepcell_input_dir, deepcell_output_dir, fovs=None,
     else:
         list(map(_zip_run_extract, fov_groups, range(len(fov_groups))))
 
+    # check for all deepcell outputs and rerun any missing
+    for batch, batch_num in zip(fov_groups, range(len(fov_groups))):
+        while not os.path.exists(os.path.join(
+                deepcell_output_dir, f"deepcell_response_fov_batch_{batch_num + 1}.zip")):
+            _zip_run_extract(batch, batch_num)
+
 
 def run_deepcell_direct(input_dir, output_dir, host='https://deepcell.org',
                         job_type='mesmer', scale=1.0, timeout=3600, num_retries=5):
@@ -222,34 +228,22 @@ def run_deepcell_direct(input_dir, output_dir, host='https://deepcell.org',
     http.mount('https://', adapter)
     http.mount('http://', adapter)
 
-    total_retries = 0
-    while total_retries < num_retries:
-        # handles the case if the main endpoint can't be reached
-        try:
-            upload_response = http.post(
-                upload_url,
-                timeout=timeout,
-                files=upload_fields
-            )
-        except RetryError as re:
-            print(re)
-            return 1
+    # handles the case if the main endpoint can't be reached
+    try:
+        upload_response = http.post(
+            upload_url,
+            timeout=timeout,
+            files=upload_fields
+        )
+    except RetryError as re:
+        print(re)
+        return 1
 
-        # handles the case if the endpoint returns an invalid JSON
-        # indicating an internal API error
-        try:
-            upload_response = upload_response.json()
-        except JSONDecodeError as jde:
-            total_retries += 1
-            continue
-
-        # if we reach the end no errors were encountered on this attempt
-        break
-
-    # if the JSON could not be decoded num_retries number of times
-    if total_retries == num_retries:
-        print("The JSON response from DeepCell could not be decoded after %d attempts" %
-              num_retries)
+    # handles the case if the endpoint returns an invalid JSON
+    # indicating an internal API error
+    try:
+        upload_response = upload_response.json()
+    except JSONDecodeError as jde:
         return 1
 
     # call prediction
@@ -310,7 +304,7 @@ def run_deepcell_direct(input_dir, output_dir, host='https://deepcell.org',
 
     deepcell_output = requests.get(redis_response['value'][2], allow_redirects=True)
 
-    with open(os.path.join(output_dir, "deepcell_response.zip"), mode="wb") as f:
+    with open(os.path.join(output_dir, "deepcell_response_" + filename), mode="wb") as f:
         f.write(deepcell_output.content)
 
     # being kind and sending an expire signal to deepcell
