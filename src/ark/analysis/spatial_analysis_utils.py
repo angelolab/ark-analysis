@@ -66,6 +66,7 @@ def calc_dist_matrix(label_dir, save_path, prefix='_whole_cell'):
                 format='NETCDF3_64BIT'
             )
 
+            dist_mat_progress.set_postfix(FOV=fov_name)
             dist_mat_progress.update(1)
 
 

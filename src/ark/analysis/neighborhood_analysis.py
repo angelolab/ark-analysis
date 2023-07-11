@@ -6,6 +6,7 @@ import numpy as np
 import pandas as pd
 import seaborn as sns
 import xarray as xr
+from tqdm.notebook import tqdm
 from alpineer import misc_utils
 
 import ark.settings as settings
@@ -75,25 +76,32 @@ def create_neighborhood_matrix(all_data, dist_mat_dir, included_fovs=None, distl
 
     cell_neighbor_freqs = cell_neighbor_counts.copy(deep=True)
 
-    for fov in included_fovs:
-        # Subsetting expression matrix to only include patients with correct fov label
-        current_fov_idx = all_neighborhood_data.loc[:, fov_col] == fov
-        current_fov_neighborhood_data = all_neighborhood_data[current_fov_idx]
+    with tqdm(total=len(included_fovs), desc="Neighbors Matrix Generation") \
+            as neighbor_mat_progress:
+        for fov in included_fovs:
+            # Subsetting expression matrix to only include patients with correct fov label
+            current_fov_idx = all_neighborhood_data.loc[:, fov_col] == fov
+            current_fov_neighborhood_data = all_neighborhood_data[current_fov_idx]
 
-        # Get the subset of phenotypes included in the current fov
-        fov_cluster_names = current_fov_neighborhood_data[cell_type_col].drop_duplicates()
+            # Get the subset of phenotypes included in the current fov
+            fov_cluster_names = current_fov_neighborhood_data[cell_type_col].drop_duplicates()
 
-        # Retrieve fov-specific distance matrix from distance matrix dictionary
-        dist_matrix = xr.load_dataarray(os.path.join(dist_mat_dir, str(fov) + '_dist_mat.xr'))
+            # Retrieve fov-specific distance matrix from distance matrix dictionary
+            dist_matrix = xr.load_dataarray(os.path.join(dist_mat_dir, str(fov) + '_dist_mat.xr'))
 
-        # Get cell_neighbor_counts and cell_neighbor_freqs for fovs
-        counts, freqs = spatial_analysis_utils.compute_neighbor_counts(
-            current_fov_neighborhood_data, dist_matrix, distlim, self_neighbor,
-            cell_label_col=cell_label_col, cluster_name_col=cell_type_col)
+            # Get cell_neighbor_counts and cell_neighbor_freqs for fovs
+            counts, freqs = spatial_analysis_utils.compute_neighbor_counts(
+                current_fov_neighborhood_data, dist_matrix, distlim, self_neighbor,
+                cell_label_col=cell_label_col, cluster_name_col=cell_type_col)
 
-        # Add to neighbor counts + freqs for only the matching phenos between fov and whole dataset
-        cell_neighbor_counts.loc[current_fov_neighborhood_data.index, fov_cluster_names] = counts
-        cell_neighbor_freqs.loc[current_fov_neighborhood_data.index, fov_cluster_names] = freqs
+            # Add to neighbor counts+freqs for only matching phenos between fov and whole dataset
+            cell_neighbor_counts.loc[current_fov_neighborhood_data.index, fov_cluster_names] \
+                = counts
+            cell_neighbor_freqs.loc[current_fov_neighborhood_data.index, fov_cluster_names]\
+                = freqs
+
+            neighbor_mat_progress.set_postfix(FOV=fov)
+            neighbor_mat_progress.update(1)
 
     # Remove cells that have no neighbors within the distlim
     total_cell_count = cell_neighbor_counts.shape[0]
