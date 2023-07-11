@@ -4,6 +4,7 @@ from functools import reduce
 import numpy as np
 import pandas as pd
 import xarray as xr
+from tqdm.auto import tqdm
 from alpineer import io_utils, misc_utils
 
 import ark.settings as settings
@@ -47,28 +48,32 @@ def compute_neighborhood_diversity(neighborhood_mat, cell_type_col):
         raise ValueError("Input must be frequency values.")
 
     diversity_data = []
-    for fov in np.unique(neighborhood_mat[settings.FOV_ID]):
-        fov_neighborhoods = neighborhood_mat[neighborhood_mat[settings.FOV_ID] == fov]
+    fov_list = np.unique(neighborhood_mat[settings.FOV_ID])
+    with tqdm(total=len(fov_list), desc="Calculate Neighborhood Diversity") as diversity_progress:
+        for fov in fov_list:
+            fov_neighborhoods = neighborhood_mat[neighborhood_mat[settings.FOV_ID] == fov]
 
-        diversity_scores = []
-        cells = fov_neighborhoods[settings.CELL_LABEL]
-        for label in cells:
-            # retrieve an array of only the neighbor frequencies for the cell
-            neighbor_freqs = \
-                fov_neighborhoods[fov_neighborhoods[settings.CELL_LABEL] == label].drop(
-                    columns=[settings.FOV_ID, settings.CELL_LABEL, cell_type_col]).values[0]
+            diversity_scores = []
+            cells = fov_neighborhoods[settings.CELL_LABEL]
+            for label in cells:
+                # retrieve an array of only the neighbor frequencies for the cell
+                neighbor_freqs = \
+                    fov_neighborhoods[fov_neighborhoods[settings.CELL_LABEL] == label].drop(
+                        columns=[settings.FOV_ID, settings.CELL_LABEL, cell_type_col]).values[0]
 
-            diversity_scores.append(shannon_diversity(neighbor_freqs))
+                diversity_scores.append(shannon_diversity(neighbor_freqs))
 
-        # combine the data for cells in the image
-        fov_data = pd.DataFrame({
-            settings.FOV_ID: [fov] * len(cells),
-            settings.CELL_LABEL: cells,
-            cell_type_col: fov_neighborhoods[cell_type_col],
-            f'diversity_{cell_type_col}': diversity_scores
-        })
+            # combine the data for cells in the image
+            fov_data = pd.DataFrame({
+                settings.FOV_ID: [fov] * len(cells),
+                settings.CELL_LABEL: cells,
+                cell_type_col: fov_neighborhoods[cell_type_col],
+                f'diversity_{cell_type_col}': diversity_scores
+            })
+            diversity_data.append(fov_data)
 
-        diversity_data.append(fov_data)
+            diversity_progress.set_postfix(FOV=fov)
+            diversity_progress.update(1)
 
     # dataframe containing all fovs
     diversity_data = pd.concat(diversity_data)
@@ -211,19 +216,23 @@ def generate_cell_distance_analysis(
     fov_list = np.unique(cell_table[fov_col])
 
     cell_dists = []
-    for fov in fov_list:
-        fov_cell_table = cell_table[cell_table[fov_col] == fov]
-        fov_dist_xr = xr.load_dataarray(os.path.join(dist_mat_dir, str(fov) + '_dist_mat.xr'))
+    with tqdm(total=len(fov_list), desc="Calculate Average Distances") as distance_progress:
+        for fov in fov_list:
+            fov_cell_table = cell_table[cell_table[fov_col] == fov]
+            fov_dist_xr = xr.load_dataarray(os.path.join(dist_mat_dir, str(fov) + '_dist_mat.xr'))
 
-        # get the average distances between cell types
-        fov_cell_dists = calculate_mean_distance_to_all_cell_types(
-            fov_cell_table, fov_dist_xr, k, cell_type_col, cell_label_col)
+            # get the average distances between cell types
+            fov_cell_dists = calculate_mean_distance_to_all_cell_types(
+                fov_cell_table, fov_dist_xr, k, cell_type_col, cell_label_col)
 
-        # add the fov name and cell phenotypes to the dataframe
-        fov_cell_dists.insert(0, fov_col, fov)
-        fov_cell_dists.insert(1, cell_label_col, fov_cell_table[cell_label_col])
-        fov_cell_dists.insert(2, cell_type_col, fov_cell_table[cell_type_col])
-        cell_dists.append(fov_cell_dists)
+            # add the fov name and cell phenotypes to the dataframe
+            fov_cell_dists.insert(0, fov_col, fov)
+            fov_cell_dists.insert(1, cell_label_col, fov_cell_table[cell_label_col])
+            fov_cell_dists.insert(2, cell_type_col, fov_cell_table[cell_type_col])
+            cell_dists.append(fov_cell_dists)
+
+            distance_progress.set_postfix(FOV=fov)
+            distance_progress.update(1)
 
     # combine data for all fovs and save to csv
     all_cell_dists = pd.concat(cell_dists)
