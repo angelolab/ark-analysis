@@ -24,10 +24,7 @@ def mocked_run_deepcell(in_zip_path, output_dir, host, job_type, scale, timeout)
         image_utils.save_image(os.path.join(output_dir, f'fov{i}_{seg_type}.tif'), fov_data)
 
     batch_num = int(in_zip_path.split('.')[0].split('_')[-1])
-    if batch_num < 2:
-        zip_path = os.path.join(output_dir, 'example_output.zip')
-    else:
-        zip_path = os.path.join(output_dir, f'example_output_{batch_num}.zip')
+    zip_path = os.path.join(output_dir, f'deepcell_response_fov_batch_{batch_num}.zip')
     with ZipFile(zip_path, 'w') as zipObj:
         if batch_num > 1:
             return
@@ -69,7 +66,7 @@ def test_create_deepcell_output(mocker: MockerFixture):
                                        scale='test')
 
             # make sure DeepCell (.zip) output exists
-            assert os.path.exists(os.path.join(output_dir, 'example_output.zip'))
+            assert os.path.exists(os.path.join(output_dir, 'deepcell_response_fov_batch_1.zip'))
 
             # DeepCell output .zip file should be extracted
             assert os.path.exists(os.path.join(output_dir, 'fov1_whole_cell.tiff'))
@@ -89,8 +86,8 @@ def test_create_deepcell_output(mocker: MockerFixture):
                                    fovs=['fov1', 'fov2'], zip_size=1, parallel=True)
 
             # make sure DeepCell (.zip's) output exists
-            assert os.path.exists(os.path.join(output_dir, 'example_output.zip'))
-            assert os.path.exists(os.path.join(output_dir, 'example_output_2.zip'))
+            assert os.path.exists(os.path.join(output_dir, 'deepcell_response_fov_batch_1.zip'))
+            assert os.path.exists(os.path.join(output_dir, 'deepcell_response_fov_batch_2.zip'))
 
         with tempfile.TemporaryDirectory() as output_dir:
 
@@ -99,7 +96,7 @@ def test_create_deepcell_output(mocker: MockerFixture):
                                    fovs=['fov1', 'fov2.tiff', 'fov3.tiff'])
 
             # make sure DeepCell (.zip) output exists
-            assert os.path.exists(os.path.join(output_dir, 'example_output.zip'))
+            assert os.path.exists(os.path.join(output_dir, 'deepcell_response_fov_batch_1.zip'))
 
             # DeepCell output .zip file should be extracted
             assert os.path.exists(os.path.join(output_dir, 'fov1_whole_cell.tiff'))
@@ -115,7 +112,7 @@ def test_create_deepcell_output(mocker: MockerFixture):
             create_deepcell_output(deepcell_input_dir=input_dir, deepcell_output_dir=output_dir)
 
             # make sure DeepCell (.zip) output exists
-            assert os.path.exists(os.path.join(output_dir, 'example_output.zip'))
+            assert os.path.exists(os.path.join(output_dir, 'deepcell_response_fov_batch_1.zip'))
 
             assert os.path.exists(os.path.join(output_dir, 'fov1_whole_cell.tiff'))
             assert os.path.exists(os.path.join(output_dir, 'fov1_nuclear.tiff'))
