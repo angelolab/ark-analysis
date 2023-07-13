@@ -19,6 +19,7 @@ from urllib3 import Retry
 
 def zip_input_files(deepcell_input_dir, fov_group, batch_num):
     """Helper function which handles zipping the batch fov images into a single zip file.
+
     Args:
         deepcell_input_dir (str): path to where deepcell input image files are stored
         fov_group (list): list of fovs to process in this batch
@@ -45,6 +46,7 @@ def zip_input_files(deepcell_input_dir, fov_group, batch_num):
 
 def extract_deepcell_response(deepcell_output_dir, fov_group, batch_num, wc_suffix, nuc_suffix):
     """Helper function to extract the segmentation masks from the deepcell output zip file.
+
     Args:
         deepcell_output_dir (str):
             path to where deepcell output zips are stored
