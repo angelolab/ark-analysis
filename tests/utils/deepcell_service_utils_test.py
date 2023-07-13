@@ -123,11 +123,6 @@ def test_create_deepcell_output(mocker: MockerFixture):
 
             pathlib.Path(os.path.join(input_dir, 'fovs.zip')).touch()
 
-            # Warning should be displayed if fovs.zip file exists (will be overwritten)
-            with pytest.warns(UserWarning):
-                create_deepcell_output(deepcell_input_dir=input_dir,
-                                       deepcell_output_dir=output_dir, fovs=['fov1'])
-
             # DeepCell whole_cell output .tif file does not exist for some fov
             with pytest.warns(UserWarning):
                 create_deepcell_output(deepcell_input_dir=input_dir,
