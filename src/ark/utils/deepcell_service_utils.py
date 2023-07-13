@@ -18,6 +18,14 @@ from urllib3 import Retry
 
 
 def zip_input_files(deepcell_input_dir, fov_group, batch_num):
+    """Helper function which handles zipping the batch fov images into a single zip file.
+    Args:
+        deepcell_input_dir (str): path to where deepcell input image files are stored
+        fov_group (list): list of fovs to process in this batch
+        batch_num (int): the batch number
+    Returns:
+        str: path to deepcell input zip file
+    """
 
     # write all files to the zip file
     zip_path = os.path.join(deepcell_input_dir, f'fovs_batch_{batch_num + 1}.zip')
@@ -36,6 +44,25 @@ def zip_input_files(deepcell_input_dir, fov_group, batch_num):
 
 
 def extract_deepcell_response(deepcell_output_dir, fov_group, batch_num, wc_suffix, nuc_suffix):
+    """Helper function to extract the segmentation masks from the deepcell output zip file.
+        Args:
+            deepcell_output_dir (str):
+                path to where deepcell output zips are stored
+            fov_group (list):
+                list of fovs to process in this batch
+            batch_num (int):
+                the batch number
+            wc_suffix (str):
+                Suffix for whole cell DeepCell output filename. e.g. for fovX, DeepCell output
+                should be `<fovX>+suffix.tif`.
+                Whole cell DeepCell files by default get suffixed with `'feature_0'`,
+                it will be renamed to this arg.
+            nuc_suffix (str):
+                Suffix for nuclear DeepCell output filename. e.g. for fovX, DeepCell output
+                should be `<fovX>+suffix.tif`.
+                Nuclear DeepCell files by default get suffixed with `'feature_1'`,
+                it will be renamed to this arg.
+    """
 
     # extract the .tif output
     print("Extracting tif files from DeepCell response.")
