@@ -121,7 +121,8 @@ def test_create_deepcell_output(mocker: MockerFixture):
             assert os.path.exists(os.path.join(output_dir, 'fov3_whole_cell.tiff'))
             assert os.path.exists(os.path.join(output_dir, 'fov3_nuclear.tiff'))
 
-            pathlib.Path(os.path.join(input_dir, 'fovs.zip')).touch()
+        with tempfile.TemporaryDirectory() as output_dir:
+            # pathlib.Path(os.path.join(input_dir, 'fovs.zip')).touch()
 
             # DeepCell whole_cell output .tif file does not exist for some fov
             with pytest.warns(UserWarning):
@@ -130,6 +131,7 @@ def test_create_deepcell_output(mocker: MockerFixture):
                                        wc_suffix='_other_suffix',
                                        fovs=['fov1'])
 
+        with tempfile.TemporaryDirectory() as output_dir:
             # DeepCell nuclear output .tif file does not exist for some fov
             with pytest.warns(UserWarning):
                 create_deepcell_output(deepcell_input_dir=input_dir,
@@ -137,6 +139,7 @@ def test_create_deepcell_output(mocker: MockerFixture):
                                        nuc_suffix='_other_suffix',
                                        fovs=['fov1'])
 
+        with tempfile.TemporaryDirectory() as output_dir:
             # add additional fov for auto-batch testing
             pathlib.Path(os.path.join(input_dir, 'fov4.tiff')).touch()
 
@@ -153,7 +156,8 @@ def test_create_deepcell_output(mocker: MockerFixture):
             with ZipFile(os.path.join(input_dir, 'fovs_batch_2.zip'), 'r') as zip_batch2:
                 assert zip_batch2.namelist() == ['fov4.tiff']
 
-            # ValueError should be raised if .tiff file does not exists for some fov in fovs
+        with tempfile.TemporaryDirectory() as output_dir:
+            # ValueError should be raised if .tiff file does not exist for some fov in fovs
             with pytest.raises(ValueError):
                 create_deepcell_output(deepcell_input_dir=input_dir,
                                        deepcell_output_dir=output_dir, fovs=['fov1', 'fov5'])
