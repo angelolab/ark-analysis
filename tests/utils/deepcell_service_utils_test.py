@@ -24,7 +24,7 @@ def mocked_run_deepcell(in_zip_path, output_dir, host, job_type, scale, timeout)
         image_utils.save_image(os.path.join(output_dir, f'fov{i}_{seg_type}.tif'), fov_data)
 
     batch_num = int(in_zip_path.split('.')[0].split('_')[-1])
-    zip_path = os.path.join(output_dir, f'deepcell_response_fov_batch_{batch_num}.zip')
+    zip_path = os.path.join(output_dir, f'deepcell_response_fovs_batch_{batch_num}.zip')
     with ZipFile(zip_path, 'w') as zipObj:
         if batch_num > 1:
             return

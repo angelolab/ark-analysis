@@ -45,23 +45,23 @@ def zip_input_files(deepcell_input_dir, fov_group, batch_num):
 
 def extract_deepcell_response(deepcell_output_dir, fov_group, batch_num, wc_suffix, nuc_suffix):
     """Helper function to extract the segmentation masks from the deepcell output zip file.
-        Args:
-            deepcell_output_dir (str):
-                path to where deepcell output zips are stored
-            fov_group (list):
-                list of fovs to process in this batch
-            batch_num (int):
-                the batch number
-            wc_suffix (str):
-                Suffix for whole cell DeepCell output filename. e.g. for fovX, DeepCell output
-                should be `<fovX>+suffix.tif`.
-                Whole cell DeepCell files by default get suffixed with `'feature_0'`,
-                it will be renamed to this arg.
-            nuc_suffix (str):
-                Suffix for nuclear DeepCell output filename. e.g. for fovX, DeepCell output
-                should be `<fovX>+suffix.tif`.
-                Nuclear DeepCell files by default get suffixed with `'feature_1'`,
-                it will be renamed to this arg.
+    Args:
+        deepcell_output_dir (str):
+            path to where deepcell output zips are stored
+        fov_group (list):
+            list of fovs to process in this batch
+        batch_num (int):
+            the batch number
+        wc_suffix (str):
+            Suffix for whole cell DeepCell output filename. e.g. for fovX, DeepCell output
+            should be `<fovX>+suffix.tif`.
+            Whole cell DeepCell files by default get suffixed with `'feature_0'`,
+            it will be renamed to this arg.
+        nuc_suffix (str):
+            Suffix for nuclear DeepCell output filename. e.g. for fovX, DeepCell output
+            should be `<fovX>+suffix.tif`.
+            Nuclear DeepCell files by default get suffixed with `'feature_1'`,
+            it will be renamed to this arg.
     """
 
     # extract the .tif output
