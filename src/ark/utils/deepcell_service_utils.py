@@ -101,7 +101,7 @@ def extract_deepcell_response(deepcell_output_dir, fov_group, batch_num, wc_suff
 def create_deepcell_output(deepcell_input_dir, deepcell_output_dir, fovs=None,
                            wc_suffix='_whole_cell', nuc_suffix='_nuclear',
                            host='https://deepcell.org', job_type='mesmer',
-                           scale=1.0, timeout=3600, zip_size=5, parallel=False):
+                           scale=1.0, timeout=3600, zip_size=5):
     """Handles all of the necessary data manipulation for running deepcell tasks.
     Creates .zip files (to be used as input for DeepCell),
     calls run_deepcell_task method,
