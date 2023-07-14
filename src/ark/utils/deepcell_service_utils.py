@@ -141,9 +141,6 @@ def create_deepcell_output(deepcell_input_dir, deepcell_output_dir, fovs=None,
         zip_size (int):
             Maximum number of files to include in zip.
             Default: 100
-        parallel (bool):
-            Tries to zip, upload, and extract zip files in parallel
-            Default: False
     Raises:
         ValueError:
             Raised if there is some fov X (from fovs list) s.t.
