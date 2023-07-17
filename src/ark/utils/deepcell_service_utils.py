@@ -210,7 +210,7 @@ def create_deepcell_output(deepcell_input_dir, deepcell_output_dir, fovs=None,
 
 
 def run_deepcell_direct(input_dir, output_dir, host='https://deepcell.org',
-                        job_type='mesmer', scale=1.0, timeout=3600, num_retries=5):
+                        job_type='mesmer', scale=1.0, timeout=3600):
     """Uses direct calls to DeepCell API and saves output to output_dir.
 
     Args:
@@ -229,8 +229,6 @@ def run_deepcell_direct(input_dir, output_dir, host='https://deepcell.org',
         timeout (int):
             Approximate seconds until timeout.
             Default: 1 hour (3600)
-        num_retries (int):
-            The maximum number of times to call the Deepcell API in case of failure
     """
 
     # upload zip file
