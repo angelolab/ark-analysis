@@ -41,7 +41,12 @@ def dataset_download(request, dataset_cache_dir) -> Iterator[ExampleDataset]:
     # Download example data for a particular notebook
     example_dataset.download_example_dataset()
     yield example_dataset
-    shutil.rmtree(example_dataset.cache_dir)
+
+
+@pytest.fixture(scope="class")
+def cleanable_tmp_path(tmp_path_factory: pathlib.Path):
+    yield tmp_path_factory
+    shutil.rmtree(tmp_path_factory)
 
 
 class TestExampleDataset:
@@ -138,14 +143,15 @@ class TestExampleDataset:
                 dataset_download.dataset_paths[dataset_download.dataset][ds_n][0])
             self.dataset_test_fns[ds_n](dir_p=dataset_cache_path / ds_n)
 
+
     @pytest.mark.parametrize("_overwrite_existing", [True, False])
-    def test_move_example_dataset(self, tmp_path_factory, dataset_download: ExampleDataset,
+    def test_move_example_dataset(self, cleanable_tmp_path, dataset_download: ExampleDataset,
                                   _overwrite_existing: bool):
         """
         Tests to make sure the proper files are moved to the correct directories.
 
         Args:
-            tmp_path_factory (pytest.TempPathFactory): Factory for temporary directories under the
+            cleanable_tmp_path (pytest.TempPathFactory): Factory for temporary directories under the
                 common base temp directory.
             dataset_download (ExampleDataset): Fixture for the dataset, respective to each
                 partition (`segment_image_data`, `cluster_pixels`, `cluster_cells`,
@@ -159,7 +165,7 @@ class TestExampleDataset:
         if _overwrite_existing:
 
             # Case 1: Move Path is empty
-            tmp_dir_c1 = tmp_path_factory.mktemp("move_example_data_c1")
+            tmp_dir_c1 = cleanable_tmp_path.mktemp("move_example_data_c1")
             move_dir_c1 = tmp_dir_c1 / "example_dataset"
             dataset_download.move_example_dataset(move_dir=move_dir_c1)
 
@@ -167,7 +173,7 @@ class TestExampleDataset:
                 self.dataset_test_fns[ds_n](dir_p)
 
             # Case 2: Move Path contains files
-            tmp_dir_c2 = tmp_path_factory.mktemp("move_example_data_c2")
+            tmp_dir_c2 = cleanable_tmp_path.mktemp("move_example_data_c2")
             move_dir_c2 = tmp_dir_c2 / "example_dataset"
 
             # Add files for each config to test moving with files
@@ -187,7 +193,7 @@ class TestExampleDataset:
         # Move data if _overwrite_existing is `False`
         else:
             # Case 1: Move Path is empty
-            tmp_dir_c1 = tmp_path_factory.mktemp("move_example_data_c1")
+            tmp_dir_c1 = cleanable_tmp_path.mktemp("move_example_data_c1")
             move_dir_c1 = tmp_dir_c1 / "example_dataset"
 
             # Check that the files were moved to the empty directory
@@ -199,7 +205,7 @@ class TestExampleDataset:
                     self.dataset_test_fns[ds_n](dir_p)
 
             # Case 2: Move Path contains files
-            tmp_dir_c2 = tmp_path_factory.mktemp("move_example_data_c2")
+            tmp_dir_c2 = cleanable_tmp_path.mktemp("move_example_data_c2")
             move_dir_c2 = tmp_dir_c2 / "example_dataset"
 
             # Add files for each config to test moving with files
@@ -217,14 +223,14 @@ class TestExampleDataset:
                     assert len(list(dir_p.rglob("*"))) == 1
 
     # Will cause duplicate downloads
-    def test_get_example_dataset(self, tmp_path_factory):
+    def test_get_example_dataset(self, cleanable_tmp_path):
         """
         Tests to make sure that if an incorrect `dataset` is provided, the function
         errors out with an appropriate error message for the user.
         """
 
         with pytest.raises(ValueError):
-            get_example_dataset("incorrect_dataset", save_dir=tmp_path_factory)
+            get_example_dataset("incorrect_dataset", save_dir=cleanable_tmp_path)
 
     def test_check_empty_dst(self, tmp_path):
         """
