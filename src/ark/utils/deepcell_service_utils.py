@@ -103,7 +103,7 @@ def extract_deepcell_response(deepcell_output_dir, fov_group, batch_num, wc_suff
 def create_deepcell_output(deepcell_input_dir, deepcell_output_dir, fovs=None,
                            wc_suffix='_whole_cell', nuc_suffix='_nuclear',
                            host='https://deepcell.org', job_type='mesmer',
-                           scale=1.0, timeout=3600, zip_size=5):
+                           scale=1.0, timeout=180, zip_size=5):
     """Handles all of the necessary data manipulation for running deepcell tasks.
     Creates .zip files (to be used as input for DeepCell),
     calls run_deepcell_task method,
@@ -139,7 +139,7 @@ def create_deepcell_output(deepcell_input_dir, deepcell_output_dir, fovs=None,
             Default: 1.0
         timeout (int):
             Approximate seconds until timeout.
-            Default: 1 hour (3600)
+            Default: 3  minutes (180)
         zip_size (int):
             Maximum number of files to include in zip.
             Default: 100
@@ -187,13 +187,15 @@ def create_deepcell_output(deepcell_input_dir, deepcell_output_dir, fovs=None,
         output_zip_path = os.path.join(deepcell_output_dir, f"deepcell_response_" + batch_filename)
         if os.path.exists(output_zip_path):
             print(f"Skipping previously processed batch_{batch_num}.")
-        while not os.path.exists(output_zip_path):
+
+        total_time = 0
+        while not os.path.exists(output_zip_path) and total_time < timeout:
             # upload to deepcell
             print("Uploading files to DeepCell server.")
 
             # pass the zip file to deepcell.org
             status = run_deepcell_direct(
-                input_zip_path, deepcell_output_dir, host, job_type, scale, timeout
+                input_zip_path, deepcell_output_dir, host, job_type, scale, timeout/2
             )
 
             # ensure execution is halted if run_deepcell_direct returned non-zero exit code
@@ -206,6 +208,9 @@ def create_deepcell_output(deepcell_input_dir, deepcell_output_dir, fovs=None,
                 extract_deepcell_response(deepcell_output_dir, fov_group, batch_num, wc_suffix,
                                           nuc_suffix)
 
+            time.sleep(3.0)
+            total_time += 3
+
     deepcell_outputs = io_utils.remove_file_extensions(
         io_utils.list_files(deepcell_output_dir, substrs=[".zip"]))
     misc_utils.verify_same_elements(
@@ -214,7 +219,7 @@ def create_deepcell_output(deepcell_input_dir, deepcell_output_dir, fovs=None,
 
 
 def run_deepcell_direct(input_dir, output_dir, host='https://deepcell.org',
-                        job_type='mesmer', scale=1.0, timeout=3600):
+                        job_type='mesmer', scale=1.0, timeout=90):
     """Uses direct calls to DeepCell API and saves output to output_dir.
 
     Args:
@@ -232,7 +237,7 @@ def run_deepcell_direct(input_dir, output_dir, host='https://deepcell.org',
             Default: 1.0
         timeout (int):
             Approximate seconds until timeout.
-            Default: 1 hour (3600)
+            Default: 1.5 minutes (90)
     """
 
     # upload zip file
@@ -245,27 +250,13 @@ def run_deepcell_direct(input_dir, output_dir, host='https://deepcell.org',
         }
         f.seek(0)
 
-    # define and mount a retry instance to call the Deepcell API again if needed
-    retry_strategy = Retry(
-        total=num_retries,
-        status_forcelist=[404, 500, 502, 503, 504],
-        allowed_methods=['HEAD', 'GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'TRACE']
-    )
-    adapter = HTTPAdapter(max_retries=retry_strategy)
-
-    http = requests.Session()
-    http.mount('https://', adapter)
-    http.mount('http://', adapter)
-
-    # handles the case if the main endpoint can't be reached
     try:
-        upload_response = http.post(
+        upload_response = requests.post(
             upload_url,
             timeout=timeout,
             files=upload_fields
         )
-    except RetryError as re:
-        print(re)
+    except requests.Timeout:
         return 1
 
     # handles the case if the endpoint returns an invalid JSON
@@ -342,7 +333,7 @@ def run_deepcell_direct(input_dir, output_dir, host='https://deepcell.org',
         expire_url,
         json={
             'hash': predict_hash,
-            'expireIn': 3600,
+            'expireIn': 90,
         }
     )
 
