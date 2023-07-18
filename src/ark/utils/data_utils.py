@@ -270,7 +270,7 @@ def generate_and_save_cell_cluster_masks(
     seg_dir: Union[pathlib.Path, str],
     cell_data: pd.DataFrame,
     fov_col: str = settings.FOV_ID,
-    label_col: str = settings.CELL_SEGMENTATION_LABEL,
+    label_col: str = settings.CELL_LABEL,
     cell_cluster_col: str = settings.CELL_TYPE,
     seg_suffix: str = "_whole_cell.tiff",
     sub_dir: str = None,
@@ -291,7 +291,7 @@ def generate_and_save_cell_cluster_masks(
             The column name containing the FOV IDs . Defaults to `settings.FOV_ID` (`"fov"`).
         label_col (str, optional):
             The column name containing the cell label. Defaults to
-            `settings.CELL_SEGMENTATION_LABEL` (`"label"`).
+            `settings.CELL_LABEL` (`"label"`).
         cell_cluster_col (str, optional):
             Whether to assign SOM or meta clusters. Needs to be `"cell_som_cluster"` or
             `"cell_meta_cluster"`. Defaults to `settings.CELL_TYPE` (`"cell_meta_cluster"`).
