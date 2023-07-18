@@ -40,6 +40,8 @@ def zip_input_files(deepcell_input_dir, fov_group, batch_num):
                 basename = fov + '.tiff'
                 filename = os.path.join(deepcell_input_dir, basename)
                 zipObj.write(filename, basename)
+    else:
+        print(f'fovs_batch_{batch_num}.zip already exists.')
 
     return zip_path
 
@@ -183,9 +185,11 @@ def create_deepcell_output(deepcell_input_dir, deepcell_output_dir, fovs=None,
         # add timeout limit
         batch_filename = Path(input_zip_path).name
         output_zip_path = os.path.join(deepcell_output_dir, f"deepcell_response_" + batch_filename)
+        if os.path.exists(output_zip_path):
+            print(f"Skipping previously processed batch_{batch_num}.")
         while not os.path.exists(output_zip_path):
             # upload to deepcell
-            print('Uploading files to DeepCell server.')
+            print("Uploading files to DeepCell server.")
 
             # pass the zip file to deepcell.org
             status = run_deepcell_direct(

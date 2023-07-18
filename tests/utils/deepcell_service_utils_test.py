@@ -65,7 +65,7 @@ def test_zip_input_files(mocked_print):
         # test previously zipped batches are not re-zipped
         zip_path = zip_input_files(temp_dir, fov_group=["fov1", "fov2"], batch_num=1)
 
-        assert mocked_print.mock_calls == []
+        assert mocked_print.mock_calls == [call("fovs_batch_1.zip already exists.")]
         mocked_print.reset_mock()
 
 
