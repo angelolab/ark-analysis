@@ -1,4 +1,5 @@
 import pathlib
+import shutil
 from typing import Callable, Generator, Iterator, List
 
 import pytest
@@ -40,6 +41,7 @@ def dataset_download(request, dataset_cache_dir) -> Iterator[ExampleDataset]:
     # Download example data for a particular notebook
     example_dataset.download_example_dataset()
     yield example_dataset
+    shutil.rmtree(example_dataset.cache_dir)
 
 
 class TestExampleDataset:
