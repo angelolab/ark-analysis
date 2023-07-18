@@ -250,9 +250,9 @@ def get_storage(method):
         method_output = method(self, *method_args, **method_kwargs)
 
         total, used, free = shutil.disk_usage(self.base_dir)
-        print("Total: %d GiB" % (total // (2**30)))
-        print("Used: %d GiB" % (used // (2**30)))
-        print("Free: %d GiB" % (free // (2**30)))
+        print("Total: %d MiB" % (total // (2**20)))
+        print("Used: %d MiB" % (used // (2**20)))
+        print("Free: %d MiB" % (free // (2**20)))
         return method_output
     return _impl
 
