@@ -29,7 +29,7 @@ def zip_input_files(deepcell_input_dir, fov_group, batch_num):
     """
 
     # write all files to the zip file
-    zip_path = os.path.join(deepcell_input_dir, f'fovs_batch_{batch_num + 1}.zip')
+    zip_path = os.path.join(deepcell_input_dir, f'fovs_batch_{batch_num}.zip')
 
     # create zip files, skip any existing
     if not os.path.exists(zip_path):
@@ -70,7 +70,7 @@ def extract_deepcell_response(deepcell_output_dir, fov_group, batch_num, wc_suff
     print("Extracting tif files from DeepCell response.")
 
     batch_zip = os.path.join(
-        deepcell_output_dir, f"deepcell_response_fovs_batch_{batch_num+1}.zip")
+        deepcell_output_dir, f"deepcell_response_fovs_batch_{batch_num}.zip")
 
     with ZipFile(batch_zip, "r") as zipObj:
         for name in zipObj.namelist():
@@ -176,7 +176,7 @@ def create_deepcell_output(deepcell_input_dir, deepcell_output_dir, fovs=None,
 
     print(f'Processing tiffs in {len(fov_groups)} batches...')
 
-    for batch_num, fov_group in enumerate(fov_groups):
+    for batch_num, fov_group in enumerate(fov_groups, start=1):
         # create zipped input files
         input_zip_path = zip_input_files(deepcell_input_dir, fov_group, batch_num)
 

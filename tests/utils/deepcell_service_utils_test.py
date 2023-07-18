@@ -53,7 +53,7 @@ def test_zip_input_files(mocked_print):
         image_utils.save_image(os.path.join(temp_dir, 'fov2.tiff'), fov_data)
 
         # test successful zipping
-        zip_path = zip_input_files(temp_dir, fov_group=["fov1", "fov2"], batch_num=0)
+        zip_path = zip_input_files(temp_dir, fov_group=["fov1", "fov2"], batch_num=1)
 
         assert mocked_print.mock_calls == [call("Zipping preprocessed tiff files.")]
         mocked_print.reset_mock()
@@ -63,7 +63,7 @@ def test_zip_input_files(mocked_print):
             assert zip_batch1.namelist() == ['fov1.tiff', 'fov2.tiff']
 
         # test previously zipped batches are not re-zipped
-        zip_path = zip_input_files(temp_dir, fov_group=["fov1", "fov2"], batch_num=0)
+        zip_path = zip_input_files(temp_dir, fov_group=["fov1", "fov2"], batch_num=1)
 
         assert mocked_print.mock_calls == []
         mocked_print.reset_mock()
@@ -75,7 +75,7 @@ def test_extract_deepcell_response():
                             job_type='mesmer', scale=1.0, timeout=3600)
 
         # test successful extraction
-        extract_deepcell_response(temp_dir, ["fov1", "fov2", "fov3"], 0, wc_suffix="_whole_cell",
+        extract_deepcell_response(temp_dir, ["fov1", "fov2", "fov3"], 1, wc_suffix="_whole_cell",
                                   nuc_suffix="_nuclear")
 
         assert os.path.exists(os.path.join(temp_dir, 'fov1_whole_cell.tiff'))
@@ -91,7 +91,7 @@ def test_extract_deepcell_response():
 
         # DeepCell nuclear output .tif file does not exist
         with pytest.warns(UserWarning):
-            extract_deepcell_response(temp_dir, ["fov1", "fov2", "fov3"], 0,
+            extract_deepcell_response(temp_dir, ["fov1", "fov2", "fov3"], 1,
                                       wc_suffix="_whole_cell", nuc_suffix="_nuclear")
 
 
