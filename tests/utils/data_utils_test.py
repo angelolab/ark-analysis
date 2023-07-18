@@ -70,7 +70,7 @@ def cell_table_cluster(rng: np.random.Generator) -> Generator[pd.DataFrame, None
     """
     ct: pd.DataFrame = ark_test_utils.make_cell_table(num_cells=100)
     ct[settings.FOV_ID] = rng.choice(["fov0", "fov1"], size=100)
-    ct["segmentation_label"] = ct.groupby(by=settings.FOV_ID)["fov"].transform(
+    ct["label"] = ct.groupby(by=settings.FOV_ID)["fov"].transform(
         lambda x: np.arange(start=1, stop=len(x) + 1, dtype=int)
     )
     ct[settings.CELL_TYPE] = rng.choice(np.arange(1, 3), size=100)
@@ -82,7 +82,7 @@ class TestCellClusterMaskData:
     @pytest.fixture(autouse=True)
     def _setup(self, cell_table_cluster: pd.DataFrame):
         self.cell_table: pd.DataFrame = cell_table_cluster
-        self.label_column = "segmentation_label"
+        self.label_column = "label"
         self.cluster_column = settings.CELL_TYPE
         self.fov_col = settings.FOV_ID
 
@@ -156,7 +156,7 @@ def label_map_generator(
 
     image_data: np.ndarray = rng.integers(
         low=0,
-        high=fov0_data["segmentation_label"].max() + 1,
+        high=fov0_data["label"].max() + 1,
         size=(fov_size, fov_size),
         dtype="int16",
     )
@@ -170,7 +170,7 @@ def label_map_generator(
     ccmd = data_utils.CellClusterMaskData(
         data=cell_table_cluster,
         fov_col=settings.FOV_ID,
-        label_col="segmentation_label",
+        label_col="label",
         cluster_col=settings.CELL_TYPE,
     )
     yield (label_map, ccmd)
@@ -239,7 +239,7 @@ def test_generate_cell_cluster_mask(tmp_path: pathlib.Path, label_map_generator)
     )
 
     consensus_data_som['fov'] = fov
-    consensus_data_som['segmentation_label'] = consensus_data_som.index.values + 1
+    consensus_data_som['label'] = consensus_data_som.index.values + 1
     consensus_data_som['cell_som_cluster'] = np.tile(np.arange(1, 6), 4)
     consensus_data_som['cell_meta_cluster'] = np.tile(np.arange(1, 3), 10)
 
@@ -249,7 +249,7 @@ def test_generate_cell_cluster_mask(tmp_path: pathlib.Path, label_map_generator)
     )
 
     consensus_data_meta['fov'] = fov
-    consensus_data_meta['segmentation_label'] = consensus_data_meta.index.values + 1
+    consensus_data_meta['label'] = consensus_data_meta.index.values + 1
     consensus_data_meta['cell_som_cluster'] = np.tile(np.arange(1, 6), 4)
     consensus_data_meta['cell_meta_cluster'] = np.tile(np.arange(1, 3), 10)
 
@@ -319,7 +319,7 @@ def test_generate_and_save_cell_cluster_masks(tmp_path: pathlib.Path, sub_dir, n
         )
 
         som_data_fov['fov'] = fov
-        som_data_fov['segmentation_label'] = som_data_fov.index.values + 1
+        som_data_fov['label'] = som_data_fov.index.values + 1
         som_data_fov['cell_som_cluster'] = np.tile(np.arange(1, 6), 4)
         som_data_fov['cell_meta_cluster'] = np.tile(np.arange(1, 3), 10)
 
@@ -330,7 +330,7 @@ def test_generate_and_save_cell_cluster_masks(tmp_path: pathlib.Path, sub_dir, n
         )
 
         meta_data_fov['fov'] = fov
-        meta_data_fov['segmentation_label'] = meta_data_fov.index.values + 1
+        meta_data_fov['label'] = meta_data_fov.index.values + 1
         meta_data_fov['cell_som_cluster'] = np.tile(np.arange(1, 6), 4)
         meta_data_fov['cell_meta_cluster'] = np.tile(np.arange(1, 3), 10)
 
@@ -343,7 +343,7 @@ def test_generate_and_save_cell_cluster_masks(tmp_path: pathlib.Path, sub_dir, n
         seg_dir=tmp_path,
         cell_data=consensus_data_som,
         fov_col=settings.FOV_ID,
-        label_col=settings.CELL_SEGMENTATION_LABEL,
+        label_col=settings.CELL_LABEL,
         cell_cluster_col='cell_som_cluster',
         seg_suffix='_whole_cell.tiff',
         sub_dir=sub_dir,

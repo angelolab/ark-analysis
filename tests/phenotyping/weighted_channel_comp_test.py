@@ -49,7 +49,7 @@ def test_compute_p2c_weighted_channel_avg():
 
             # assign the fovs and labels
             fov_table['fov'] = fov
-            fov_table['segmentation_label'] = np.repeat(np.arange(5), 10)
+            fov_table['label'] = np.repeat(np.arange(5), 10)
 
             # assign dummy pixel/meta labels
             # pixel: 0-1 for fov1 and 1-2 for fov2
@@ -161,8 +161,8 @@ def test_compute_cell_cluster_weighted_channel_avg():
         weighted_cell_table.loc[5:9, 'fov'] = 'fov2'
 
         # assign dummy segmentation labels, 5 cells for each
-        weighted_cell_table.loc[0:4, 'segmentation_label'] = np.arange(5)
-        weighted_cell_table.loc[5:9, 'segmentation_label'] = np.arange(5)
+        weighted_cell_table.loc[0:4, 'label'] = np.arange(5)
+        weighted_cell_table.loc[5:9, 'label'] = np.arange(5)
 
         # assign dummy cell sizes, these won't really matter for this test
         weighted_cell_table['cell_size'] = 5
@@ -185,9 +185,9 @@ def test_compute_cell_cluster_weighted_channel_avg():
         # assign dummy consensus cluster labels
         consensus_data['cell_meta_cluster'] = np.repeat(np.arange(2), 5)
 
-        # assign the same FOV and segmentation_label data to consensus_data
-        consensus_data[['fov', 'segmentation_label']] = weighted_cell_table[
-            ['fov', 'segmentation_label']
+        # assign the same FOV and label data to consensus_data
+        consensus_data[['fov', 'label']] = weighted_cell_table[
+            ['fov', 'label']
         ].copy()
 
         # error check: bad cell_cluster_col provided
@@ -236,7 +236,7 @@ def test_generate_wc_avg_files(capsys):
         )
 
         cluster_data['fov'] = np.repeat(['fov0', 'fov1'], repeats=500)
-        cluster_data['segmentation_label'] = np.tile(np.arange(1, 501), reps=2)
+        cluster_data['label'] = np.tile(np.arange(1, 501), reps=2)
         cluster_data['cell_som_cluster'] = np.repeat(np.arange(100), 10)
         cluster_data['cell_meta_cluster'] = np.repeat(np.arange(20), 50)
 
@@ -245,7 +245,7 @@ def test_generate_wc_avg_files(capsys):
             np.random.rand(1000, 3), columns=['chan%d' % i for i in np.arange(3)]
         )
         weighted_cell_table['fov'] = np.repeat(['fov0', 'fov1'], repeats=500)
-        weighted_cell_table['segmentation_label'] = np.tile(np.arange(1, 501), reps=2)
+        weighted_cell_table['label'] = np.tile(np.arange(1, 501), reps=2)
 
         # write dummy weighted channel average table
         weighted_cell_path = os.path.join(temp_dir, 'weighted_cell_channel.feather')
@@ -359,8 +359,8 @@ def test_generate_remap_avg_wc_files():
         cluster_data.loc[500:999, 'fov'] = 'fov2'
 
         # assign dummy segmentation labels, 50 cells for each
-        cluster_data.loc[0:499, 'segmentation_label'] = np.arange(500)
-        cluster_data.loc[500:999, 'segmentation_label'] = np.arange(500)
+        cluster_data.loc[0:499, 'label'] = np.arange(500)
+        cluster_data.loc[500:999, 'label'] = np.arange(500)
 
         # create an example weighted cell table
         chans = ['chan0', 'chan1', 'chan2']
@@ -374,8 +374,8 @@ def test_generate_remap_avg_wc_files():
         weighted_cell_table.loc[500:999, 'fov'] = 'fov2'
 
         # assign dummy segmentation labels, 50 cells for each
-        weighted_cell_table.loc[0:499, 'segmentation_label'] = np.arange(500)
-        weighted_cell_table.loc[500:999, 'segmentation_label'] = np.arange(500)
+        weighted_cell_table.loc[0:499, 'label'] = np.arange(500)
+        weighted_cell_table.loc[500:999, 'label'] = np.arange(500)
 
         # assign dummy cell sizes, these won't really matter for this test
         weighted_cell_table['cell_size'] = 5

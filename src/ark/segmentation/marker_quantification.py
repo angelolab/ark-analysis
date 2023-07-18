@@ -402,10 +402,10 @@ def create_marker_count_matrices(segmentation_labels, image_data, nuclear_counts
     print("extracting data from {}".format(fov))
 
     # current mask
-    segmentation_label = segmentation_labels.loc[fov, :, :, :]
+    label = segmentation_labels.loc[fov, :, :, :]
 
     # extract the counts per cell for each marker
-    marker_counts = compute_marker_counts(image_data.loc[fov, :, :, :], segmentation_label,
+    marker_counts = compute_marker_counts(image_data.loc[fov, :, :, :], label,
                                           nuclear_counts=nuclear_counts,
                                           split_large_nuclei=split_large_nuclei,
                                           extraction=extraction,

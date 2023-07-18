@@ -21,7 +21,7 @@ def test_run_pixel_som_assignment():
         chans = ['Marker1', 'Marker2', 'Marker3', 'Marker4']
 
         # make it easy to name metadata columns
-        meta_colnames = ['fov', 'row_index', 'column_index', 'segmentation_label']
+        meta_colnames = ['fov', 'row_index', 'column_index', 'label']
 
         # create a dummy data directory
         os.mkdir(os.path.join(temp_dir, 'pixel_mat_data'))
@@ -105,7 +105,7 @@ def test_train_pixel_som():
         fovs = ['fov0', 'fov1', 'fov2']
 
         # make it easy to name columns
-        colnames = chan_list + ['fov', 'row_index', 'column_index', 'segmentation_label']
+        colnames = chan_list + ['fov', 'row_index', 'column_index', 'label']
 
         # make a dummy sub directory
         os.mkdir(os.path.join(temp_dir, 'pixel_mat_subsetted'))
@@ -158,7 +158,7 @@ def test_train_pixel_som():
 def generate_test_pixel_som_cluster_data(temp_dir, fovs, chans,
                                          generate_temp=False):
     # make it easy to name metadata columns
-    meta_colnames = ['fov', 'row_index', 'column_index', 'segmentation_label']
+    meta_colnames = ['fov', 'row_index', 'column_index', 'label']
 
     # create a dummy clustered matrix
     os.mkdir(os.path.join(temp_dir, 'pixel_mat_data'))
@@ -182,7 +182,7 @@ def generate_test_pixel_som_cluster_data(temp_dir, fovs, chans,
         fov_cluster_matrix['fov'] = fov
         fov_cluster_matrix['row_index'] = np.repeat(np.arange(1, 101), repeats=10)
         fov_cluster_matrix['column_index'] = np.tile(np.arange(1, 101), reps=10)
-        fov_cluster_matrix['segmentation_label'] = np.arange(1, 1001)
+        fov_cluster_matrix['label'] = np.arange(1, 1001)
 
         # write the dummy data to pixel_mat_data
         feather.write_dataframe(fov_cluster_matrix, os.path.join(temp_dir,
@@ -346,7 +346,7 @@ def test_generate_som_avg_files(capsys):
         fovs = ['fov0', 'fov1', 'fov2']
 
         # make it easy to name columns
-        colnames = chan_list + ['fov', 'row_index', 'column_index', 'segmentation_label']
+        colnames = chan_list + ['fov', 'row_index', 'column_index', 'label']
 
         # define sample pixel data for each FOV
         pixel_data_path = os.path.join(temp_dir, 'pixel_data_dir')

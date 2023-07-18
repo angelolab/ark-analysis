@@ -70,7 +70,9 @@ class CellClusterMaskData:
     unassigned_id: int
     mapping: DataFrameGroupBy
 
-    def __init__(self, data: pd.DataFrame, fov_col: str, label_col: str, cluster_col: str) -> None:
+    def __init__(
+        self, data: pd.DataFrame, fov_col: str, label_col: str, cluster_col: str
+    ) -> None:
         """
         A class containing the cell data, cell label column, cluster column and the mapping from a
         cell label to a cluster.
@@ -90,14 +92,25 @@ class CellClusterMaskData:
         self.cluster_column: str = cluster_col
 
         # Extract only the necessary columns: fov ID, segmentation label, cluster label
-        mapping_data: pd.DataFrame = data[[self.fov_column,
-                                           self.label_column, self.cluster_column]].copy()
+        mapping_data: pd.DataFrame = data[
+            [self.fov_column, self.label_column, self.cluster_column]
+        ].copy()
 
-        mapping_data = mapping_data.astype({self.fov_column: str, self.label_column: np.int32, self.cluster_column: np.int32})
+        mapping_data = mapping_data.astype(
+            {
+                self.fov_column: str,
+                self.label_column: np.int32,
+                self.cluster_column: np.int32,
+            }
+        )
 
-        self.unique_fovs: List[str] = ns.natsorted(mapping_data[self.fov_column].unique().tolist())
+        self.unique_fovs: List[str] = ns.natsorted(
+            mapping_data[self.fov_column].unique().tolist()
+        )
 
-        self.unassigned_id: np.int32 = np.int32(mapping_data[self.cluster_column].max() + 1)
+        self.unassigned_id: np.int32 = np.int32(
+            mapping_data[self.cluster_column].max() + 1
+        )
 
         # For each FOV map the segmentation label 0 to the cluster label 0
         cluster0_mapping: pd.DataFrame = pd.DataFrame(
@@ -106,33 +119,21 @@ class CellClusterMaskData:
                 self.label_column: np.repeat(0, repeats=len(self.unique_fovs)),
                 self.cluster_column: np.repeat(0, repeats=len(self.unique_fovs)),
             }
-        ).astype({self.fov_column: str, self.label_column: np.int32, self.cluster_column: np.int32})
+        ).astype(
+            {
+                self.fov_column: str,
+                self.label_column: np.int32,
+                self.cluster_column: np.int32,
+            }
+        )
 
-        mapping_data = pd.concat(objs=[
-            mapping_data,
-            cluster0_mapping
-        ])
+        mapping_data = pd.concat(objs=[mapping_data, cluster0_mapping])
 
         # Sort by FOV first, then by segmentation label
         # Then Group by FOV
         self.mapping: DataFrameGroupBy = mapping_data.sort_values(
-            by=[self.fov_column, self.label_column]).groupby(by=self.fov_column)
-
-    def fov_mapping(self, fov: str) -> pd.DataFrame:
-        """Returns the mapping for a specific FOV.
-
-        Args:
-            fov (str):
-                The FOV to get the mapping for.
-
-        Returns:
-            pd.DataFrame:
-                The mapping for the FOV.
-        """
-        misc_utils.verify_in_list(requested_fov=[fov], all_fovs=self.unique_fovs)
-        group = self.mapping.get_group(fov).reset_index(drop=True, inplace=False)
-        
-        return self.mapping.get_group(fov).reset_index(drop=True, inplace=False)
+            by=[self.fov_column, self.label_column]
+        ).groupby(by=self.fov_column)
 
 
 def label_cells_by_cluster(
@@ -290,7 +291,7 @@ def generate_and_save_cell_cluster_masks(
             The column name containing the FOV IDs . Defaults to `settings.FOV_ID` (`"fov"`).
         label_col (str, optional):
             The column name containing the cell label. Defaults to
-            `settings.CELL_SEGMENTATION_LABEL` (`"segmentation_label"`).
+            `settings.CELL_SEGMENTATION_LABEL` (`"label"`).
         cell_cluster_col (str, optional):
             Whether to assign SOM or meta clusters. Needs to be `"cell_som_cluster"` or
             `"cell_meta_cluster"`. Defaults to `settings.CELL_TYPE` (`"cell_meta_cluster"`).
@@ -474,7 +475,7 @@ def generate_and_save_neighborhood_cluster_masks(
     label_col: str = settings.CELL_LABEL,
     cluster_col: str = settings.KMEANS_CLUSTER,
     seg_suffix: str = "_whole_cell.tiff",
-    xr_channel_name="segmentation_label",
+    xr_channel_name="label",
     sub_dir: Union[pathlib.Path, str] = None,
     name_suffix: str = "",
 ):
