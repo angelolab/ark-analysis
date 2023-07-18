@@ -135,6 +135,20 @@ class CellClusterMaskData:
             by=[self.fov_column, self.label_column]
         ).groupby(by=self.fov_column)
 
+    def fov_mapping(self, fov: str) -> pd.DataFrame:
+        """Returns the mapping for a specific FOV.
+        Args:
+            fov (str):
+                The FOV to get the mapping for.
+        Returns:
+            pd.DataFrame:
+                The mapping for the FOV.
+        """
+        misc_utils.verify_in_list(requested_fov=[fov], all_fovs=self.unique_fovs)
+        group = self.mapping.get_group(fov).reset_index(drop=True, inplace=False)
+
+        return self.mapping.get_group(fov).reset_index(drop=True, inplace=False)
+
 
 def label_cells_by_cluster(
         fov: str,
