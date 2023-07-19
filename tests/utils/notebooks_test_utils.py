@@ -1,6 +1,6 @@
 import os
 from typing import Union
-
+import shutil
 import numpy as np
 import pandas as pd
 from alpineer import image_utils
@@ -82,3 +82,28 @@ def _ex_dataset_download(dataset: str, save_dir: str, cache_dir: Union[str, None
     ex_dataset.download_example_dataset()
 
     ex_dataset.move_example_dataset(move_dir=save_dir)
+
+
+def get_storage(method):
+    """
+    Gets the storage on the after the method is run. Used for debugging storage isses
+    on CI.
+
+    Args:
+        method (Callable): The function must be a class method, with access to `self` and
+        `base_dir`.
+
+    Returns:
+        method: Returns the method
+    """
+    @wraps(method)
+    def _impl(self, *method_args, **method_kwargs):
+        method_output = method(self, *method_args, **method_kwargs)
+
+        total, used, free = shutil.disk_usage(self.base_dir)
+        print(f"After: {method.__name__}")
+        print(f"Total: {total // (2**20)} MiB")
+        print(f"Used: {used // (2**20)} MiB")
+        print(f"Free: {free // (2**20)} MiB")
+        return method_output
+    return _impl

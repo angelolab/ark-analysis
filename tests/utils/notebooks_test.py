@@ -241,29 +241,13 @@ def nbcell_neighbors_context(
     shutil.rmtree(base_dir_generator)
 
 
-def get_storage(method):
-    print("before")
-
-    @wraps(method)
-    def _impl(self, *method_args, **method_kwargs):
-        method_output = method(self, *method_args, **method_kwargs)
-
-        total, used, free = shutil.disk_usage(self.base_dir)
-        pprint(f"After: {method.__name__}")
-        pprint(f"Total: {total // (2**20)} MiB")
-        pprint(f"Used: {used // (2**20)} MiB")
-        pprint(f"Free: {free // (2**20)} MiB")
-        return method_output
-    return _impl
-
-
 class Test_1_Segment_Image_Data:
     """
     Tests Notebook 1 - Segment Image Data for completion.
     NOTE: When modifying the tests, make sure the test are in the
     same order as the tagged cells in the notebook.
     """
-    # @get_storage
+
     @pytest.fixture(autouse=True, scope="function")
     def _setup(self, nb1_context, dataset_cache_dir: Union[str, None]):
         """
@@ -283,7 +267,6 @@ class Test_1_Segment_Image_Data:
         """
         self.tb.inject(base_dir_inject, "base_dir")
 
-    @get_storage
     def test_ex_data_download(self):
         notebooks_test_utils._ex_dataset_download(dataset=self.dataset, save_dir=self.base_dir,
                                                   cache_dir=self.cache_dir)
@@ -369,7 +352,6 @@ class Test_2_Pixel_Clustering:
         """
         self.tb.inject(base_dir_inject, "base_dir")
 
-    @get_storage
     def test_ex_data_download(self):
         notebooks_test_utils._ex_dataset_download(dataset=self.dataset, save_dir=self.base_dir,
                                                   cache_dir=self.cache_dir)
@@ -488,7 +470,6 @@ class Test_3_Cell_Clustering:
         """
         self.tb.inject(base_dir_inject, "base_dir")
 
-    @get_storage
     def test_ex_data_download(self):
         notebooks_test_utils._ex_dataset_download(dataset=self.dataset, save_dir=self.base_dir,
                                                   cache_dir=self.cache_dir)
@@ -596,7 +577,6 @@ class Test_3b_Generic_Cell_Clustering:
         """
         self.tb.inject(base_dir_inject, "base_dir")
 
-    @get_storage
     def test_ex_data_download(self):
         notebooks_test_utils._ex_dataset_download(dataset=self.dataset, save_dir=self.base_dir,
                                                   cache_dir=self.cache_dir)
@@ -692,7 +672,6 @@ class Test_4_Post_Clustering:
         """
         self.tb.inject(base_dir_inject, "base_dir")
 
-    @get_storage
     def test_ex_data_download(self):
         notebooks_test_utils._ex_dataset_download(dataset=self.dataset, save_dir=self.base_dir,
                                                   cache_dir=self.cache_dir)
@@ -760,7 +739,6 @@ class Test_Fiber_Segmentation:
         """
         self.tb.inject(base_dir_inject, "base_dir")
 
-    @get_storage
     def test_ex_data_download(self):
         notebooks_test_utils._ex_dataset_download(dataset=self.dataset, save_dir=self.base_dir,
                                                   cache_dir=self.cache_dir)
@@ -804,7 +782,6 @@ class Test_Mixing_Score:
         """
         self.tb.inject(base_dir_inject, "base_dir")
 
-    @get_storage
     def test_ex_data_download(self):
         notebooks_test_utils._ex_dataset_download(dataset=self.dataset, save_dir=self.base_dir,
                                                   cache_dir=self.cache_dir)
@@ -865,7 +842,6 @@ class Test_Cell_Neighbors():
                         """
         self.tb.inject(base_dir_inject, "base_dir")
 
-    @get_storage
     def test_ex_data_download(self):
         notebooks_test_utils._ex_dataset_download(dataset=self.dataset, save_dir=self.base_dir,
                                                   cache_dir=self.cache_dir)

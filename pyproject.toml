@@ -71,7 +71,6 @@ test = [
     "pytest-randomly",
     "pytest-asyncio",
     "testbook",
-    "pytest-print",
 ]
 lab_ext = [
     "jupyterlab-lsp",
