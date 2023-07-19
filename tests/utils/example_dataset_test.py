@@ -43,8 +43,8 @@ def dataset_download(request, dataset_cache_dir) -> Iterator[ExampleDataset]:
     yield example_dataset
 
 
-@pytest.fixture(scope="class")
-def cleanable_tmp_path(tmp_path_factory: pathlib.Path):
+@pytest.fixture(scope="function")
+def cleanable_tmp_path(tmp_path_factory: pytest.TempPathFactory) -> Iterator[pathlib.Path]:
     data_path = tmp_path_factory.mktemp("data")
     yield data_path
     shutil.rmtree(data_path)
@@ -165,16 +165,23 @@ class TestExampleDataset:
         if _overwrite_existing:
 
             # Case 1: Move Path is empty
-            tmp_dir_c1 = cleanable_tmp_path.mktemp("move_example_data_c1")
-            move_dir_c1 = tmp_dir_c1 / "example_dataset"
+            tmp_dir_c1: pathlib.Path = cleanable_tmp_path / "move_example_data_c1"
+            tmp_dir_c1.mkdir(parents=True, exist_ok=False)
+
+            move_dir_c1: pathlib.Path = tmp_dir_c1 / "example_dataset"
+            move_dir_c1.mkdir(parents=True, exist_ok=False)
+
             dataset_download.move_example_dataset(move_dir=move_dir_c1)
 
             for dir_p, ds_n in self._suffix_paths(dataset_download, parent_dir=move_dir_c1):
                 self.dataset_test_fns[ds_n](dir_p)
 
             # Case 2: Move Path contains files
-            tmp_dir_c2 = cleanable_tmp_path.mktemp("move_example_data_c2")
-            move_dir_c2 = tmp_dir_c2 / "example_dataset"
+            tmp_dir_c2: pathlib.Path = cleanable_tmp_path / "move_example_data_c2"
+            tmp_dir_c2.mkdir(parents=True, exist_ok=False)
+
+            move_dir_c2: pathlib.Path = tmp_dir_c2 / "example_dataset"
+            move_dir_c2.mkdir(parents=True, exist_ok=False)
 
             # Add files for each config to test moving with files
             for dir_p, ds_n in self._suffix_paths(dataset_download, parent_dir=move_dir_c2):
@@ -193,8 +200,10 @@ class TestExampleDataset:
         # Move data if _overwrite_existing is `False`
         else:
             # Case 1: Move Path is empty
-            tmp_dir_c1 = cleanable_tmp_path.mktemp("move_example_data_c1")
+            tmp_dir_c1: pathlib.Path = cleanable_tmp_path / "move_example_data_c1"
+            tmp_dir_c1.mkdir(parents=True, exist_ok=False)
             move_dir_c1 = tmp_dir_c1 / "example_dataset"
+            move_dir_c1.mkdir(parents=True, exist_ok=False)
 
             # Check that the files were moved to the empty directory
             # Make sure warning is raised
@@ -205,8 +214,10 @@ class TestExampleDataset:
                     self.dataset_test_fns[ds_n](dir_p)
 
             # Case 2: Move Path contains files
-            tmp_dir_c2 = cleanable_tmp_path.mktemp("move_example_data_c2")
+            tmp_dir_c2 = cleanable_tmp_path / "move_example_data_c2"
+            tmp_dir_c2.mkdir(parents=True, exist_ok=False)
             move_dir_c2 = tmp_dir_c2 / "example_dataset"
+            move_dir_c2.mkdir(parents=True, exist_ok=False)
 
             # Add files for each config to test moving with files
             for dir_p, ds_n in self._suffix_paths(dataset_download, parent_dir=move_dir_c2):
