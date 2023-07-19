@@ -45,8 +45,9 @@ def dataset_download(request, dataset_cache_dir) -> Iterator[ExampleDataset]:
 
 @pytest.fixture(scope="class")
 def cleanable_tmp_path(tmp_path_factory: pathlib.Path):
-    yield tmp_path_factory
-    shutil.rmtree(tmp_path_factory)
+    data_path = tmp_path_factory.mktemp("data")
+    yield data_path
+    shutil.rmtree(data_path)
 
 
 class TestExampleDataset:
@@ -143,7 +144,6 @@ class TestExampleDataset:
                 dataset_download.dataset_paths[dataset_download.dataset][ds_n][0])
             self.dataset_test_fns[ds_n](dir_p=dataset_cache_path / ds_n)
 
-
     @pytest.mark.parametrize("_overwrite_existing", [True, False])
     def test_move_example_dataset(self, cleanable_tmp_path, dataset_download: ExampleDataset,
                                   _overwrite_existing: bool):
@@ -151,8 +151,8 @@ class TestExampleDataset:
         Tests to make sure the proper files are moved to the correct directories.
 
         Args:
-            cleanable_tmp_path (pytest.TempPathFactory): Factory for temporary directories under the
-                common base temp directory.
+            cleanable_tmp_path (pytest.TempPathFactory): Factory for temporary directories under
+                the common base temp directory.
             dataset_download (ExampleDataset): Fixture for the dataset, respective to each
                 partition (`segment_image_data`, `cluster_pixels`, `cluster_cells`,
                 `post_clustering`).

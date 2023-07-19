@@ -1,3 +1,5 @@
+from pprint import pprint
+from functools import wraps
 import pathlib
 import shutil
 from typing import Iterator, Tuple, Union
@@ -241,23 +243,21 @@ def nbcell_neighbors_context(
     shutil.rmtree(base_dir_generator)
 
 
-from functools import wraps
-from pprint import pprint
-
 def get_storage(method):
     print("before")
-    
+
     @wraps(method)
     def _impl(self, *method_args, **method_kwargs):
         method_output = method(self, *method_args, **method_kwargs)
 
         total, used, free = shutil.disk_usage(self.base_dir)
         pprint(f"After: {method.__name__}")
-        pprint(f"Total: {total // (2**20)} MiB" )
+        pprint(f"Total: {total // (2**20)} MiB")
         pprint(f"Used: {used // (2**20)} MiB")
         pprint(f"Free: {free // (2**20)} MiB")
         return method_output
     return _impl
+
 
 class Test_1_Segment_Image_Data:
     """
@@ -370,7 +370,7 @@ class Test_2_Pixel_Clustering:
             base_dir = r"{self.base_dir}"
         """
         self.tb.inject(base_dir_inject, "base_dir")
-    
+
     @get_storage
     def test_ex_data_download(self):
         notebooks_test_utils._ex_dataset_download(dataset=self.dataset, save_dir=self.base_dir,
