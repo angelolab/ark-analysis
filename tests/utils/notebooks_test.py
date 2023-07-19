@@ -8,8 +8,6 @@ import pytest
 from testbook import testbook
 from testbook.client import TestbookNotebookClient
 
-from ark.utils import example_dataset
-
 from . import notebooks_test_utils
 
 
@@ -849,12 +847,14 @@ class Test_Cell_Neighbors():
     same order as the tagged cells in the notebook.
     """
     @pytest.fixture(autouse=True, scope="function")
-    def _setup(self, nbcell_neighbors_context):
+    def _setup(self, nbcell_neighbors_context, dataset_cache_dir: Union[str, None]):
         """
         Sets up necessary data and paths to run the notebooks.
         """
         self.tb: testbook = nbcell_neighbors_context[0]
-        self.base_dir: pathlib.Path = nbcell_neighbors_context[1]
+        self.dataset: str = "post_clustering"
+        self.base_dir: str = nbcell_neighbors_context[1].as_posix()
+        self.cache_dir = dataset_cache_dir
 
     def test_imports(self):
         self.tb.execute_cell("import")
@@ -865,11 +865,15 @@ class Test_Cell_Neighbors():
                         """
         self.tb.inject(base_dir_inject, "base_dir")
 
+    @get_storage
+    def test_ex_data_download(self):
+        notebooks_test_utils._ex_dataset_download(dataset=self.dataset, save_dir=self.base_dir,
+                                                  cache_dir=self.cache_dir)
+
     def test_file_paths(self):
         self.tb.execute_cell("file_path")
 
     def test_create_dirs(self):
-        example_dataset.get_example_dataset("post_clustering", self.base_dir, True)
         self.tb.execute_cell("create_dirs")
 
     def test_diversity_args(self):
