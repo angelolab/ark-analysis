@@ -1,3 +1,4 @@
+from functools import wraps
 import os
 from typing import Union
 import shutil
@@ -86,8 +87,8 @@ def _ex_dataset_download(dataset: str, save_dir: str, cache_dir: Union[str, None
 
 def get_storage(method):
     """
-    Gets the storage on the after the method is run. Used for debugging storage isses
-    on CI.
+    Gets the storage after the method is run. Used for debugging storage isses
+    on CI in the notebooks.
 
     Args:
         method (Callable): The function must be a class method, with access to `self` and
