@@ -254,10 +254,9 @@ def get_storage(method):
         total, used, free = shutil.disk_usage(self.base_dir)
         pprint(f"After: {method.__name__}")
         pprint(f"Total: {total // (2**20)} MiB" )
-        pprint(f"Used: {total // (2**20)} MiB")
-        pprint(f"Free: {total // (2**20)} MiB")
+        pprint(f"Used: {used // (2**20)} MiB")
+        pprint(f"Free: {free // (2**20)} MiB")
         return method_output
-    print("after")
     return _impl
 
 class Test_1_Segment_Image_Data:
