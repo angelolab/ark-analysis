@@ -413,45 +413,6 @@ def test_create_pixel_matrix_base(fovs, chans, sub_dir, seg_dir_include,
             # NOTE: need to account for rounding if multiplying by 0.1 leads to non-int
             assert round(flowsom_data_fov.shape[0] * 0.1) == flowsom_sub_fov.shape[0]
 
-        # check that correct values are passed to helper function
-        mocker.patch(
-            'ark.phenotyping.pixie_preprocessing.preprocess_fov',
-            mocked_preprocess_fov
-        )
-
-        if sub_dir is None:
-            sub_dir = ''
-
-        # create fake data where all channels in each fov are the same
-        new_tiff_dir = os.path.join(temp_dir, 'new_tiff_dir')
-        os.makedirs(new_tiff_dir)
-        for fov in fovs:
-            img = (np.random.rand(100) * 100).reshape((10, 10))
-            fov_dir = os.path.join(new_tiff_dir, fov, sub_dir)
-            os.makedirs(fov_dir)
-            for chan in chans:
-                image_utils.save_image(os.path.join(fov_dir, chan + '.tiff'), img)
-
-        # recreate the output directory
-        rmtree(sample_pixel_output_dir)
-        os.mkdir(sample_pixel_output_dir)
-
-        # create normalization file
-        data_dir = os.path.join(temp_dir, 'pixel_mat_data')
-
-        # generate the data
-        mults = [(1 / 2) ** i for i in range(len(chans))]
-
-        pixie_preprocessing.create_pixel_matrix(
-            fovs=fovs,
-            channels=chans,
-            base_dir=temp_dir,
-            tiff_dir=new_tiff_dir,
-            img_sub_folder=sub_dir,
-            seg_dir=seg_dir,
-            multiprocess=multiprocess
-        )
-
 
 # TODO: clean up the following tests
 def generate_create_pixel_matrix_test_data(temp_dir):
@@ -497,10 +458,9 @@ def test_create_pixel_matrix_missing_fov(multiprocess, capsys):
             index=PIXEL_MATRIX_CHANS,
             columns=['fov0', 'fov2']
         )
-        feather.write_dataframe(
-            sample_quant_data,
-            os.path.join(temp_dir, 'pixel_output_dir', 'quant_dat.feather')
-        )
+        sample_quant_data.index.name = 'channel'
+        sample_quant_data.to_csv(
+            os.path.join(temp_dir, 'pixel_mat_data', 'channel_norm_post_rowsum_perfov.csv'))
 
         pixie_preprocessing.create_pixel_matrix(
             fovs=PIXEL_MATRIX_FOVS,
@@ -531,10 +491,8 @@ def test_create_pixel_matrix_missing_fov(multiprocess, capsys):
         # test the case where we've written a FOV to data but not subset
         # NOTE: in this case, the value in quant_dat will also not have been written
         os.remove(os.path.join(temp_dir, 'pixel_mat_subsetted', 'fov1.feather'))
-        feather.write_dataframe(
-            sample_quant_data,
-            os.path.join(temp_dir, 'pixel_output_dir', 'quant_dat.feather')
-        )
+        sample_quant_data.to_csv(
+            os.path.join(temp_dir, 'pixel_mat_data', 'channel_norm_post_rowsum_perfov.csv'))
 
         pixie_preprocessing.create_pixel_matrix(
             fovs=PIXEL_MATRIX_FOVS,
@@ -561,12 +519,10 @@ def test_create_pixel_matrix_missing_fov(multiprocess, capsys):
         )
 
         # test the case where we've written a FOV to subset but not data (very rare)
-        # NOTE: in this case, the value in quant_dat will also not have been written
+        # NOTE: in this case, the value in quantile_dat will also not have been written
         os.remove(os.path.join(temp_dir, 'pixel_mat_data', 'fov1.feather'))
-        feather.write_dataframe(
-            sample_quant_data,
-            os.path.join(temp_dir, 'pixel_output_dir', 'quant_dat.feather')
-        )
+        sample_quant_data.to_csv(
+            os.path.join(temp_dir, 'pixel_mat_data', 'channel_norm_post_rowsum_perfov.csv'))
 
         pixie_preprocessing.create_pixel_matrix(
             fovs=PIXEL_MATRIX_FOVS,
