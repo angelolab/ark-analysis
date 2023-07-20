@@ -9,7 +9,6 @@ from .merge_masks import merge_masks, merge_masks_seq, combine_masks
 from .ez_seg_display import (
     display_channel_image,
     overlay_mask_outlines,
-    auto_scale_image,
     multiple_mask_displays,
     create_overlap_and_merge_visual,
 )
@@ -27,7 +26,6 @@ __all__ = [
     "renumber_masks",
     "display_channel_image",
     "overlay_mask_outlines",
-    "auto_scale_image",
     "multiple_mask_displays",
     "create_overlap_and_merge_visual",
 ]

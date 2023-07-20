@@ -1,12 +1,73 @@
-from typing import Dict, Optional, Tuple
+import pathlib
+from typing import Dict, Optional, Tuple, Union
 import numpy as np
 from skimage import measure, filters, morphology
 from skimage.util import map_array
 import pandas as pd
-from alpineer import misc_utils
+from alpineer import misc_utils, load_utils
+import xarray as xr
 
 
 def create_object_masks(
+    fov_path: Union[str, pathlib.Path],
+    object_shape_type: str = "blob",
+    sigma: int = 1,
+    thresh: Optional[np.float32] = None,
+    hole_size: Optional[int] = None,
+    fov_dim: int = 400,
+    min_object_area: int = 100,
+    max_object_area: int = 100000,
+) -> xr.DataArray:
+    """
+    Calculates a mask for each channel in the FOV for circular or 'blob'-like objects such as: single large cells or amyloid
+    plaques. It will blur the input image, then threshold the blurred image on either a given
+    fixed value, or an adaptive thresholding method. In addition it removes small holes using
+    that same thresholding input and filters out objects which are either too small or too large.
+
+    Args:
+        input_image (np.ndarray): The numpy array (image) to perform segmentation on.
+        object_shape_type (str, optional): Specify whether the object is either "blob" or
+        "projection" shaped. Defaults to "blob".
+        sigma (int): The standard deviation for Gaussian kernel, used for bluring the
+        image. Defaults to 1.
+        thresh (np.float32, optional): The global threshold value for image thresholding if
+        desired. Defaults to None.
+        hole_size (int, optional): A specific area to close small holes over in object masks.
+        Defaults to None.
+        fov_dim (int): The dimension in μm of the FOV.
+        min_object_area (int): The minimum size (area) of an object to capture in
+        pixels. Defaults to 100.
+        max_object_area (int): The maximum size (area) of an object to capture in
+        pixels. Defaults to 100000.
+
+    Returns:
+        xr.DataArray: The object masks for all channels in a FOV.
+    """
+
+    fov_xr: xr.DataArray = (
+        load_utils.load_imgs_from_dir(data_dir=fov_path)
+        .drop_vars("compartments")
+        .squeeze()
+    )
+
+    object_masks: xr.DataArray = xr.zeros_like(other=fov_xr)
+
+    for channel in fov_xr.channels:
+        object_masks.loc[dict(channels=channel)] = _create_object_mask(
+            input_image=fov_xr.sel(channels=channel),
+            object_shape_type=object_shape_type,
+            sigma=sigma,
+            thresh=thresh,
+            hole_size=hole_size,
+            fov_dim=fov_dim,
+            min_object_area=min_object_area,
+            max_object_area=max_object_area,
+        )
+
+    return object_masks
+
+
+def _create_object_mask(
     input_image: np.ndarray,
     object_shape_type: str = "blob",
     sigma: int = 1,

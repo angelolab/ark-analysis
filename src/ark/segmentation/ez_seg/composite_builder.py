@@ -31,10 +31,7 @@ def composite_builder(
     """
     
     # TODO:
-    # - Investigate holding objects in memory with xarray after the composite builder step
-    # - Investigate using dask to parallelize the composite builder step
-
-    # set up composite array dimensions using images to be added or if none, images to be subtracted.
+    # Switch over to spatialdata 
     image_shape = data.shape[1:]
     image_names: np.ndarray = data.fovs.values
 
@@ -94,14 +91,6 @@ def add_to_composite(
         if composite_method == "binary":
             composite_array = composite_array.clip(min=None, max=1)
     else:
-        # TODO:
-        # "scan left" the `np.bitwise_or` operator (overloaded with `|`) over the filtered images
-        # _ = [
-        #     composite_array := composite_array | filtered_images[fov].values
-        #     for fov in filtered_images.fovs.values
-        # ]
-        # Or look into numpy's reduce implementation
-        # np.bitwise_or.reduce(data.loc[images_to_add].values, axis=0)
         for fov in filtered_images.fovs.values:
             composite_array |= filtered_images.sel(fovs=fov).values
     return composite_array
@@ -129,11 +118,6 @@ def subtract_from_composite(
     """
 
     filtered_images: xr.DataArray = data.sel(fovs=images_to_subtract)
-    # TODO:
-    # - Also look into numpy's reduce function
-    # - Look into turning composite arrays into classes with their own `__add__` and `__sub__` methods
-    # - Look into xarray accessors: https://docs.xarray.dev/en/stable/internals/extending-xarray.html
-
     # for each channel to subtract
     for channel in filtered_images.fovs.values:
         channel_data = filtered_images.sel(fovs=channel)
