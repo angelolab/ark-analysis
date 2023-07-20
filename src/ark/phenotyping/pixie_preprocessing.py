@@ -336,7 +336,7 @@ def create_pixel_matrix(fovs, channels, base_dir, tiff_dir, seg_dir,
             fovs=fovs,
             channels=channels,
             img_sub_folder=img_sub_folder,
-            percentile=channel_percentile
+            percentile=channel_percentile_postnorm
         )
         # save output
         feather.write_dataframe(channel_norm_df, channel_norm_path, compression='uncompressed')
