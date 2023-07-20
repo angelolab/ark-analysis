@@ -1,36 +1,68 @@
-import cv2
+import pathlib
+from typing import Union
+from matplotlib.axes import Axes
+from skimage.io import imread
+from skimage.util import img_as_ubyte
 import numpy as np
 import matplotlib.pyplot as plt
+from matploblib.figure import Figure
+from matplotlib import gridspec
+from alpineer import io_utils
+
 
 # displaying a channel or composite
-def display_channel_image(base_image_path):
+def display_channel_image(base_image_path: Union[str, pathlib.Path]) -> None:
+    """
+    Displays the base image.
+
+    Args:
+        base_image_path (Union[str, pathlib.Path]): The path to the image.
+    """
+    if isinstance(base_image_path, str):
+        base_image_path = pathlib.Path(base_image_path)
+    io_utils.validate_paths(base_image_path)
+
     # Load the base image
-    base_image = cv2.imread(base_image_path)
+    base_image: np.ndarray = imread(base_image_path, as_gray=True)
 
     # Auto-scale the base image
-    base_image_scaled = auto_scale_image(base_image)
+    base_image_scaled = img_as_ubyte(base_image)
 
     # Display the original base image
-    plt.figure(figsize=(12, 6))
-    plt.subplot(121)
-    plt.imshow(cv2.cvtColor(base_image_scaled, cv2.COLOR_BGR2RGB))
-    plt.title("Base Image")
-    plt.axis('off')
+    fig: Figure = plt.figure(dpi=300, figsize=(6, 6))
+    fig.set_layout_engine(layout="constrained")
+    gs = gridspec.GridSpec(1, 1, figure=fig)
+    fig.suptitle(f"{base_image_path.name}")
 
-    plt.tight_layout()
+    ax: Axes = fig.add_subplot(gs[0, 0])
+    ax.imshow(base_image_scaled)
+
+    ax.axis("off")
+
     plt.show()
 
+
 # for displaying segmentation masks overlaid upon a base channel or composite
-def overlay_mask_outlines(base_image_path, mask_image_path):
+def overlay_mask_outlines(base_image_path, mask_image_path) -> None:
+    """_summary_
+
+    Args:
+        base_image_path (_type_): _description_
+        mask_image_path (_type_): _description_
+    """
+    if isinstance(base_image_path, str):
+        base_image_path = pathlib.Path(base_image_path)
+    if isinstance(mask_image_path, str):
+        mask_image_path = pathlib.Path(mask_image_path)
+    io_utils.validate_paths([base_image_path, mask_image_path])
+
     # Load the base image and mask image
-    base_image = cv2.imread(base_image_path)
-    mask_image = cv2.imread(mask_image_path)
+    # Autoscale the base image
+    base_image: np.ndarray = img_as_ubyte(image=imread(base_image_path, as_gray=True))
+    mask_image: np.ndarray = imread(mask_image_path, as_gray=True)
 
     # Auto-scale the base image
-    base_image_scaled = auto_scale_image(base_image)
-
-    # Convert the mask image to grayscale
-    mask_gray = cv2.cvtColor(mask_image, cv2.COLOR_BGR2GRAY)
+    base_image_scaled = img_as_ubyte(base_image)
 
     # Apply Canny edge detection to extract outlines
     edges = cv2.Canny(mask_gray, 30, 100)
@@ -49,23 +81,11 @@ def overlay_mask_outlines(base_image_path, mask_image_path):
     plt.subplot(121)
     plt.imshow(cv2.cvtColor(base_image_scaled, cv2.COLOR_BGR2RGB))
     plt.title("Base Image")
-    plt.axis('off')
+    plt.axis("off")
 
     plt.tight_layout()
     plt.show()
 
-# auto scales channel images
-def auto_scale_image(image):
-    # Convert the image to grayscale (will reimplement for non-MIBI data later)
-    gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-
-    # Calculate the minimum and maximum pixel values
-    min_val, max_val, _, _ = cv2.minMaxLoc(gray)
-
-    # Scale the image to the full 0-255 range
-    scaled_image = np.uint8(255 * (image - min_val) / (max_val - min_val))
-
-    return scaled_image
 
 # show all merged masks
 def multiple_mask_displays(merge_mask_list, base_mask):
@@ -83,17 +103,20 @@ def multiple_mask_displays(merge_mask_list, base_mask):
     # Iterate through the images and display them
     for i in range(num_images):
         # Read the image using cv2.imread()
-        image = create_overlap_and_merge_visual(object_name=merge_mask_list[i], base_name=base_mask)
+        image = create_overlap_and_merge_visual(
+            object_name=merge_mask_list[i], base_name=base_mask
+        )
 
         # Display the image
         axs[i].imshow(image)
-        axs[i].axis('off')
+        axs[i].axis("off")
 
     # Adjust the spacing and layout
     fig.tight_layout()
 
     # Display the figure
     plt.show()
+
 
 # for showing the overlap between two masks
 def create_overlap_and_merge_visual(object_name, base_name):
