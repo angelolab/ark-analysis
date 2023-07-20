@@ -1,6 +1,7 @@
 import multiprocessing
 import os
 from functools import partial
+from shutil import rmtree
 
 import feather
 import numpy as np
