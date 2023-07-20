@@ -210,13 +210,13 @@ def add_consensus_labels_cell_table(base_dir, cell_table_path, cell_som_input_da
     cell_table = pd.read_csv(cell_table_path)
 
     # for a simpler merge, rename label to label in consensus_data
-    cell_som_results = cell_som_input_data.rename(
-        {'label': 'label'}, axis=1
-    )
+    # if it is `segmentation_label`
+    if "segmentation_label" in cell_som_input_data.columns:
+        cell_som_input_data.rename(columns={"segmentation_label": "label"}, inplace=True)
 
     # merge the cell table with the consensus data to retrieve the meta clusters
     cell_table_merged = cell_table.merge(
-        cell_som_results, how='left', on=['fov', 'label']
+        cell_som_input_data, how='left', on=['fov', 'label']
     )
 
     # adjust column names and drop consensus data-specific columns
