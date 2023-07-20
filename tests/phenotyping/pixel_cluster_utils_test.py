@@ -119,13 +119,13 @@ def test_normalize_rows():
     fov_pixel_matrix['fov'] = 'fov0'
     fov_pixel_matrix['row_index'] = -1
     fov_pixel_matrix['column_index'] = -1
-    fov_pixel_matrix['segmentation_label'] = -1
+    fov_pixel_matrix['label'] = -1
 
     # define the meta cols for ease of use
-    meta_cols = ['fov', 'row_index', 'column_index', 'segmentation_label']
+    meta_cols = ['fov', 'row_index', 'column_index', 'label']
 
-    # TEST 1: normalize the matrix and keep the segmentation_label column
-    # NOTE: this test errors out if 'segmentation_label' is not included in fov_pixel_matrix_sub
+    # TEST 1: normalize the matrix and keep the label column
+    # NOTE: this test errors out if 'label' is not included in fov_pixel_matrix_sub
     fov_pixel_matrix_sub = pixel_cluster_utils.normalize_rows(fov_pixel_matrix, chan_sub)
 
     # assert the same channels we subsetted on are found in fov_pixel_matrix_sub
@@ -138,8 +138,8 @@ def test_normalize_rows():
     # this also checks that all the zero-sum rows have been removed
     assert np.all(fov_pixel_matrix_sub.drop(columns=meta_cols).values == [1 / 3, 2 / 3])
 
-    # TEST 2: normalize the matrix and drop the segmentation_label column
-    meta_cols.remove('segmentation_label')
+    # TEST 2: normalize the matrix and drop the label column
+    meta_cols.remove('label')
 
     fov_pixel_matrix_sub = pixel_cluster_utils.normalize_rows(
         fov_pixel_matrix, chan_sub, include_seg_label=False

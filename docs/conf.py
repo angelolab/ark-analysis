@@ -63,6 +63,7 @@ extensions = ['IPython.sphinxext.ipython_console_highlighting',  # syntax-highli
 # set parameter to read Google docstring and not NumPy
 # redundant to add since it's default True but good to know
 napoleon_google_docstring = True
+napoleon_include_init_with_doc = True
 
 # contains list of modules to be marked up
 # will ensure 'clean' imports of all the following libraries
@@ -73,6 +74,7 @@ autodoc_mock_imports = ['cryptography',
                         'h5py',
                         'ipywidgets',
                         'natsort',
+                        'numba',
                         'numpy',
                         'matplotlib',
                         'natsort',

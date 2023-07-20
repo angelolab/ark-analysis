@@ -22,9 +22,9 @@ def test_calc_dist_matrix():
 
         # generate sample label data
         # NOTE: this function should support varying FOV sizes
-        _write_labels(label_dir, ["fov8"], ["segmentation_label"], (10, 10),
+        _write_labels(label_dir, ["fov8"], ["label"], (10, 10),
                       '', True, np.uint8, suffix='_whole_cell')
-        _write_labels(label_dir, ["fov9"], ["segmentation_label"], (5, 5),
+        _write_labels(label_dir, ["fov9"], ["label"], (5, 5),
                       '', True, np.uint8, suffix='_whole_cell')
 
         # generate the distance matrices

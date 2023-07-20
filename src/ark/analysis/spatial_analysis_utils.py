@@ -23,7 +23,7 @@ def calc_dist_matrix(label_dir, save_path, prefix='_whole_cell'):
 
     Args:
         label_dir (str):
-            path to segmentation masks indexed by `(fov, cell_id, cell_id, segmentation_label)`
+            path to segmentation masks indexed by `(fov, cell_id, cell_id, label)`
         save_path (str):
             path to save the distance matrices
         prefix (str):
@@ -45,11 +45,11 @@ def calc_dist_matrix(label_dir, save_path, prefix='_whole_cell'):
             # load in the data
             fov_data = load_utils.load_imgs_from_dir(
                 label_dir, [fov_file], match_substring=prefix,
-                trim_suffix=prefix, xr_channel_names=['segmentation_label']
+                trim_suffix=prefix, xr_channel_names=['label']
             )
 
             # keep just the middle two dimensions
-            fov_data = fov_data.loc[fov_name, :, :, 'segmentation_label'].values
+            fov_data = fov_data.loc[fov_name, :, :, 'label'].values
 
             # extract region properties of label map, then just get centroids
             props = skimage.measure.regionprops(fov_data)

@@ -88,5 +88,5 @@ Description: users may want to run cell clustering on custom expression inputs o
 The CSV should contain the following columns
 
 * `fov`: name of the FOV the cell comes from
-* `segmentation_label`: the name of the segmentation label
+* `label`: the name of the segmentation label
 * A set of expression columns defining the properties of each cell desired for clustering

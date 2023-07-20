@@ -26,7 +26,7 @@ def test_cell_consensus_cluster(pixel_cluster_prefix, capsys):
         )
 
         cluster_data['fov'] = np.repeat(['fov0', 'fov1'], repeats=500)
-        cluster_data['segmentation_label'] = np.tile(np.arange(1, 501), reps=2)
+        cluster_data['label'] = np.tile(np.arange(1, 501), reps=2)
         cluster_data['cell_som_cluster'] = np.repeat(np.arange(100), 10)
 
         # compute average values of all cluster_cols for cell SOM clusters
@@ -111,7 +111,7 @@ def test_generate_meta_avg_files(capsys):
         )
 
         cluster_data['fov'] = np.repeat(['fov0', 'fov1'], repeats=500)
-        cluster_data['segmentation_label'] = np.tile(np.arange(1, 501), reps=2)
+        cluster_data['label'] = np.tile(np.arange(1, 501), reps=2)
         cluster_data['cell_som_cluster'] = np.repeat(np.arange(100), 10)
         cluster_data['cell_meta_cluster'] = np.repeat(np.arange(20), 50)
 
@@ -247,8 +247,8 @@ def test_apply_cell_meta_cluster_remapping(weighted_cell_channel_exists):
         cluster_data.loc[500:999, 'fov'] = 'fov2'
 
         # assign dummy segmentation labels, 50 cells for each
-        cluster_data.loc[0:499, 'segmentation_label'] = np.arange(500)
-        cluster_data.loc[500:999, 'segmentation_label'] = np.arange(500)
+        cluster_data.loc[0:499, 'label'] = np.arange(500)
+        cluster_data.loc[500:999, 'label'] = np.arange(500)
 
         # define a dummy remap scheme and save
         # NOTE: cell mappings don't have the same issue of having more SOM clusters defined
@@ -383,8 +383,8 @@ def test_generate_remap_avg_count_files():
         cluster_data.loc[500:999, 'fov'] = 'fov2'
 
         # assign dummy segmentation labels, 50 cells for each
-        cluster_data.loc[0:499, 'segmentation_label'] = np.arange(500)
-        cluster_data.loc[500:999, 'segmentation_label'] = np.arange(500)
+        cluster_data.loc[0:499, 'label'] = np.arange(500)
+        cluster_data.loc[500:999, 'label'] = np.arange(500)
 
         # create an example cell SOM pixel counts table
         som_pixel_counts = pd.DataFrame(
