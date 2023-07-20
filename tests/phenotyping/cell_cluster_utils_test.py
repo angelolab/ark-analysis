@@ -39,7 +39,7 @@ def test_compute_cell_som_cluster_cols_avg():
             cluster_data['fov'] = 'fov'
             cluster_data['row_index'] = -1
             cluster_data['column_index'] = -1
-            cluster_data['segmentation_label'] = -1
+            cluster_data['label'] = -1
 
             # assign cell cluster labels
             cluster_data['cell_som_cluster'] = np.repeat(np.arange(10), 100)
@@ -140,7 +140,7 @@ def test_create_c2pc_data():
 
             # assign the fovs and labels
             fov_table['fov'] = fov
-            fov_table['segmentation_label'] = np.repeat(np.arange(5), 10)
+            fov_table['label'] = np.repeat(np.arange(5), 10)
 
             # assign dummy pixel/meta labels
             # pixel: 0-1 for fov1 and 1-2 for fov2
@@ -252,7 +252,7 @@ def test_create_c2pc_data():
 
             # assign the fovs and labels
             fov_table['fov'] = fov
-            fov_table['segmentation_label'] = np.repeat(np.arange(10), 5)
+            fov_table['label'] = np.repeat(np.arange(10), 5)
 
             fov_table['pixel_som_cluster'] = np.repeat(np.arange(5), 10)
             fov_table['pixel_meta_cluster_rename'] = np.repeat(np.arange(5), 10)
@@ -391,7 +391,7 @@ def test_add_consensus_labels_cell_table():
             'pixel_meta_cluster_rename_1': np.random.rand(300),
             'pixel_meta_cluster_rename_2': np.random.rand(300),
             'pixel_meta_cluster_rename_3': np.random.rand(300),
-            'segmentation_label': np.tile(np.arange(1, 101), 3),
+            'label': np.tile(np.arange(1, 101), 3),
             'cell_som_cluster': np.tile(np.arange(1, 101), 3),
             'cell_meta_cluster': np.tile(np.arange(1, 21), 15),
             'cell_meta_cluster_rename': np.tile(

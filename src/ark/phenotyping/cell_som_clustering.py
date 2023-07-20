@@ -97,8 +97,11 @@ def cluster_cells(base_dir, cell_pysom, cell_som_cluster_cols, overwrite=False):
     if cell_pysom.weights is None:
         raise ValueError("Using untrained cell_pysom object, please invoke train_cell_som first")
 
+    if "segmentation_label" in cell_pysom.cell_data.columns:
+        cell_pysom.cell_data.rename(columns={"segmentation_label": "label"}, inplace=True)
+
     # non-pixel cluster inputs won't be cell size normalized
-    cols_to_drop = ['fov', 'segmentation_label']
+    cols_to_drop = ['fov', 'label']
     if 'cell_size' in cell_pysom.cell_data.columns.values:
         cols_to_drop.append('cell_size')
 

@@ -268,7 +268,7 @@ def generate_meta_avg_files(fovs, channels, base_dir, pixel_cc, data_dir='pixel_
     pixel_channel_avg_som_cluster["pixel_som_cluster"] =\
         pixel_channel_avg_som_cluster["pixel_som_cluster"].astype(int)
     pixel_channel_avg_som_cluster = pd.merge_asof(
-        pixel_channel_avg_som_cluster, pixel_cc.mapping, on='pixel_som_cluster'
+        pixel_channel_avg_som_cluster, pixel_cc.mapping, on="pixel_som_cluster"
     )
 
     # resave channel-averaged results across all pixel SOM clusters with metacluster assignments
