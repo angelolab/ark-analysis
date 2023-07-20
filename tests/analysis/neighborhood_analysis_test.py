@@ -242,14 +242,12 @@ def test_compute_cell_ratios():
     })
     ratios = neighborhood_analysis.compute_cell_ratios(
         cell_neighbors_mat, ['cell1'], ['cell2'], ['fov1'])
-    assert ratios.equals(pd.DataFrame({'fov': 'fov1', 'pop1_pop2_ratio': [4/3],
-                                       'pop2_pop1_ratio': [3/4]}))
+    assert ratios.equals(pd.DataFrame({'fov': 'fov1', 'cell_ratio': [4/3]}))
 
     # check zero denom
     ratios = neighborhood_analysis.compute_cell_ratios(
         cell_neighbors_mat, ['cell1'], ['cell3'], ['fov1'])
-    assert ratios.equals(pd.DataFrame({'fov': 'fov1', 'pop1_pop2_ratio': [np.nan],
-                                       'pop2_pop1_ratio': [np.nan]}))
+    assert ratios.equals(pd.DataFrame({'fov': 'fov1', 'cell_ratio': [np.nan]}))
 
 
 def test_compute_mixing_score():
@@ -267,50 +265,54 @@ def test_compute_mixing_score():
     with pytest.raises(ValueError, match='The following cell types were included in both '
                                          'the target and reference populations'):
         neighborhood_analysis.compute_mixing_score(
-            cell_neighbors_mat, 'fov1', target_cells=['cell1'], reference_cells=['cell1'],
+            cell_neighbors_mat, target_cells=['cell1'], reference_cells=['cell1'],
             mixing_type='homogeneous')
 
     with pytest.raises(ValueError, match='Not all values given in list provided column'):
         neighborhood_analysis.compute_mixing_score(
-            cell_neighbors_mat, 'fov1', target_cells=['cell1'], reference_cells=['cell2'],
+            cell_neighbors_mat, target_cells=['cell1'], reference_cells=['cell2'],
             mixing_type='homogeneous', cell_col='bad_column')
     with pytest.raises(ValueError, match='Please provide a valid mixing_type'):
         neighborhood_analysis.compute_mixing_score(
-            cell_neighbors_mat, 'fov1', target_cells=['cell1'], reference_cells=['cell2'],
+            cell_neighbors_mat, target_cells=['cell1'], reference_cells=['cell2'],
             mixing_type='bad')
 
     # check that extra cell type is ignored
-    score = neighborhood_analysis.compute_mixing_score(
-        cell_neighbors_mat, 'fov1', target_cells=['cell1', 'cell3', 'cell_not_in_fov'],
-        reference_cells=['cell2'], mixing_type='homogeneous')
+    score, cell_count = neighborhood_analysis.compute_mixing_score(
+        cell_neighbors_mat, target_cells=['cell1', 'cell3', 'cell_not_in_fov'],
+        reference_cells=['cell2'], cell_count_thresh=0, mixing_type='homogeneous')
     assert score == 3 / 12
+    assert cell_count == 7
 
     # test homogeneous mixing
-    score = neighborhood_analysis.compute_mixing_score(
-        cell_neighbors_mat, 'fov1', target_cells=['cell1', 'cell3'], reference_cells=['cell2'],
-        mixing_type='homogeneous')
+    score, _ = neighborhood_analysis.compute_mixing_score(
+        cell_neighbors_mat, target_cells=['cell1', 'cell3'], reference_cells=['cell2'],
+        cell_count_thresh=0, mixing_type='homogeneous')
     assert score == 3/12
+    assert cell_count == 7
 
     # test percent mixing
-    score = neighborhood_analysis.compute_mixing_score(
-        cell_neighbors_mat, 'fov1', target_cells=['cell1', 'cell3'], reference_cells=['cell2'],
-        mixing_type='percent')
+    score, _ = neighborhood_analysis.compute_mixing_score(
+        cell_neighbors_mat, target_cells=['cell1', 'cell3'], reference_cells=['cell2'],
+        cell_count_thresh=0, mixing_type='percent')
     assert score == 3 / 9
 
     # test ratio threshold
-    cold_score = neighborhood_analysis.compute_mixing_score(
-        cell_neighbors_mat, 'fov1', target_cells=['cell1'], reference_cells=['cell2'],
-        ratio_threshold=0.5, mixing_type='homogeneous')
+    cold_score, cell_count = neighborhood_analysis.compute_mixing_score(
+        cell_neighbors_mat, target_cells=['cell1'], reference_cells=['cell2'],
+        cell_count_thresh=0, ratio_threshold=0.5, mixing_type='homogeneous')
     assert math.isnan(cold_score)
+    assert cell_count == 6
 
     # test cell count threshold
-    cold_score = neighborhood_analysis.compute_mixing_score(
-        cell_neighbors_mat, 'fov1', target_cells=['cell1'], reference_cells=['cell2'],
-        cell_count_thresh=5, mixing_type='homogeneous')
+    cold_score, _ = neighborhood_analysis.compute_mixing_score(
+        cell_neighbors_mat, target_cells=['cell1'], reference_cells=['cell2'],
+        cell_count_thresh=10, mixing_type='homogeneous')
     assert math.isnan(cold_score)
 
     # check zero cells denominator
-    cold_score = neighborhood_analysis.compute_mixing_score(
-        cell_neighbors_mat, 'fov1', target_cells=['cell4'], reference_cells=['cell2'],
+    cold_score, cell_count = neighborhood_analysis.compute_mixing_score(
+        cell_neighbors_mat, target_cells=['cell4'], reference_cells=['cell2'],
         cell_count_thresh=0, mixing_type='homogeneous')
     assert math.isnan(cold_score)
+    assert cell_count == 3

@@ -186,6 +186,10 @@ def run_fiber_segmentation(data_dir, fiber_channel, out_dir, img_sub_folder=None
         fiber_object_table.append(subtable)
 
     fiber_object_table = pd.concat(fiber_object_table)
+
+    # append fiber knn alignment and save table to csv
+    if len(fiber_object_table) > 0:
+        fiber_object_table = calculate_fiber_alignment(fiber_object_table)
     fiber_object_table.to_csv(os.path.join(out_dir, 'fiber_object_table.csv'), index=False,
                               compression=csv_compression)
 
@@ -356,9 +360,6 @@ def segment_fibers(data_xr, fiber_channel, out_dir, fov, blur=2, contrast_scalin
     fiber_object_table = pd.DataFrame(fiber_object_table)
     fiber_object_table.insert(0, settings.FOV_ID, fov)
 
-    # append fiber knn alignment
-    fiber_object_table = calculate_fiber_alignment(fiber_object_table)
-
     if save_csv:
         fiber_object_table.to_csv(os.path.join(out_dir, 'fiber_object_table.csv'))
 
@@ -418,8 +419,12 @@ def generate_tile_stats(fov_table, fov_fiber_img, fov_length, tile_length, min_f
 
     fov_table = fov_table.reset_index(drop=True)
     fov = fov_table.fov[0]
-    alignment, length, pixel_density, fiber_density = [], [], [], []
+    alignment, pixel_density, fiber_density, tile_stats = [], [], [], []
     fov_list, tile_x, tile_y = [], [], []
+
+    # other tile stats
+    properties = ["major_axis_length", "minor_axis_length", "orientation", "area",
+                  "eccentricity", "euler_number"]
 
     # create tiles based on provided tile_length
     for i, j in itertools.product(
@@ -446,26 +451,35 @@ def generate_tile_stats(fov_table, fov_fiber_img, fov_length, tile_length, min_f
             tile_table['centroid-1'] >= x_range[0], tile_table['centroid-1'] < x_range[1])]
 
         # tile must have a certain number of fibers to receive values, otherwise NaN
-        avg_alignment, avg_length, p_density, f_density = [np.nan]*4
+        avg_alignment, p_density, f_density = [np.nan]*3
+        tile_avgs = np.array([np.nan]*len(properties))
 
         if len(tile_table) >= min_fiber_num:
+            # alignment
             align_scores = tile_table['alignment_score'].values
             align_scores = align_scores[~np.isnan(align_scores)]
             avg_alignment = np.mean(align_scores) if len(align_scores) >= min_fiber_num else np.nan
 
-            avg_length = np.mean(tile_table['major_axis_length'].values)
+            # take the average of the properties
+            tile_avgs = tile_table[properties].mean().array
 
+            # density
             p_density, f_density = calculate_density(tile_table, tile_length ** 2)
 
         alignment.append(avg_alignment)
-        length.append(avg_length)
         pixel_density.append(p_density)
         fiber_density.append(f_density)
+        tile_stats.append(tile_avgs)
+
+    tile_stats = np.vstack(tile_stats)
 
     fov_tile_stats = pd.DataFrame(zip(
-        fov_list, tile_y, tile_x, alignment, length, pixel_density, fiber_density),
-        columns=['fov', 'tile_y', 'tile_x', 'alignment', 'avg_length',
-                 'pixel_density', 'fiber_density'])
+        fov_list, tile_y, tile_x, pixel_density, fiber_density, alignment),
+        columns=['fov', 'tile_y', 'tile_x', 'pixel_density', 'fiber_density',
+                 'avg_alignment_score'])
+
+    for metric in properties:
+        fov_tile_stats[f"avg_{metric}"] = tile_stats.T[0]
 
     return fov_tile_stats
 
@@ -501,7 +515,11 @@ def generate_summary_stats(fiber_object_table, fibseg_dir, tile_length=512, min_
     save_dir = os.path.join(fibseg_dir, f'tile_stats_{tile_length}')
     fovs = np.unique(fiber_object_table.fov)
     fov_stats, tile_stats = [], []
-    fov_alignment, fov_avg_length, fov_pixel_density, fov_fiber_density = [], [], [], []
+    fov_alignment, fov_pixel_density, fov_fiber_density, fov_avg_stats = [], [], [], []
+
+    # stat list
+    properties = ["major_axis_length", "minor_axis_length", "orientation", "area",
+                  "eccentricity", "euler_number", "alignment_score"]
 
     # get fov level and tile level stats for each image
     for fov in fovs:
@@ -509,13 +527,8 @@ def generate_summary_stats(fiber_object_table, fibseg_dir, tile_length=512, min_
         fov_length = fov_fiber_img.shape[0]
         fov_table = fiber_object_table[fiber_object_table.fov == fov]
 
-        # fov level stats
-        # alignment
-        fov_align_scores = fov_table['alignment_score'].values
-        fov_alignment.append(np.mean(fov_align_scores[~np.isnan(fov_align_scores)]))
-
-        # length
-        fov_avg_length.append(np.mean(fov_table['major_axis_length'].values))
+        # take the average of the fov level properties
+        avg_stats = fov_table[properties].mean().array
 
         # density
         fov_p_density, fov_p_density = calculate_density(fov_table, fov_length**2)
@@ -526,15 +539,19 @@ def generate_summary_stats(fiber_object_table, fibseg_dir, tile_length=512, min_
         fov_tile_stats = generate_tile_stats(fov_table, fov_fiber_img, fov_length, tile_length,
                                              min_fiber_num, save_dir, save_tiles)
 
+        fov_avg_stats.append(avg_stats)
         tile_stats.append(fov_tile_stats)
 
     fov_stats = pd.DataFrame({
         'fov': fovs,
-        'alignment': fov_alignment,
-        'avg_length': fov_avg_length,
         'pixel_density': fov_pixel_density,
         'fiber_density': fov_fiber_density
         })
+
+    fov_prop_stats = np.vstack(fov_avg_stats)
+    for i, metric in enumerate(properties):
+        fov_stats[f"avg_{metric}"] = fov_prop_stats.T[0]
+
     fov_stats.to_csv(os.path.join(fibseg_dir, f'fiber_stats_table.csv'), index=False)
 
     tile_stats = pd.concat(tile_stats)

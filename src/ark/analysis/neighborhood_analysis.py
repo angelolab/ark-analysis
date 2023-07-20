@@ -6,6 +6,7 @@ import numpy as np
 import pandas as pd
 import seaborn as sns
 import xarray as xr
+from tqdm.notebook import tqdm
 from alpineer import misc_utils
 
 import ark.settings as settings
@@ -75,25 +76,32 @@ def create_neighborhood_matrix(all_data, dist_mat_dir, included_fovs=None, distl
 
     cell_neighbor_freqs = cell_neighbor_counts.copy(deep=True)
 
-    for fov in included_fovs:
-        # Subsetting expression matrix to only include patients with correct fov label
-        current_fov_idx = all_neighborhood_data.loc[:, fov_col] == fov
-        current_fov_neighborhood_data = all_neighborhood_data[current_fov_idx]
+    with tqdm(total=len(included_fovs), desc="Neighbors Matrix Generation") \
+            as neighbor_mat_progress:
+        for fov in included_fovs:
+            # Subsetting expression matrix to only include patients with correct fov label
+            current_fov_idx = all_neighborhood_data.loc[:, fov_col] == fov
+            current_fov_neighborhood_data = all_neighborhood_data[current_fov_idx]
 
-        # Get the subset of phenotypes included in the current fov
-        fov_cluster_names = current_fov_neighborhood_data[cell_type_col].drop_duplicates()
+            # Get the subset of phenotypes included in the current fov
+            fov_cluster_names = current_fov_neighborhood_data[cell_type_col].drop_duplicates()
 
-        # Retrieve fov-specific distance matrix from distance matrix dictionary
-        dist_matrix = xr.load_dataarray(os.path.join(dist_mat_dir, str(fov) + '_dist_mat.xr'))
+            # Retrieve fov-specific distance matrix from distance matrix dictionary
+            dist_matrix = xr.load_dataarray(os.path.join(dist_mat_dir, str(fov) + '_dist_mat.xr'))
 
-        # Get cell_neighbor_counts and cell_neighbor_freqs for fovs
-        counts, freqs = spatial_analysis_utils.compute_neighbor_counts(
-            current_fov_neighborhood_data, dist_matrix, distlim, self_neighbor,
-            cell_label_col=cell_label_col, cluster_name_col=cell_type_col)
+            # Get cell_neighbor_counts and cell_neighbor_freqs for fovs
+            counts, freqs = spatial_analysis_utils.compute_neighbor_counts(
+                current_fov_neighborhood_data, dist_matrix, distlim, self_neighbor,
+                cell_label_col=cell_label_col, cluster_name_col=cell_type_col)
 
-        # Add to neighbor counts + freqs for only the matching phenos between fov and whole dataset
-        cell_neighbor_counts.loc[current_fov_neighborhood_data.index, fov_cluster_names] = counts
-        cell_neighbor_freqs.loc[current_fov_neighborhood_data.index, fov_cluster_names] = freqs
+            # Add to neighbor counts+freqs for only matching phenos between fov and whole dataset
+            cell_neighbor_counts.loc[current_fov_neighborhood_data.index, fov_cluster_names] \
+                = counts
+            cell_neighbor_freqs.loc[current_fov_neighborhood_data.index, fov_cluster_names]\
+                = freqs
+
+            neighbor_mat_progress.set_postfix(FOV=fov)
+            neighbor_mat_progress.update(1)
 
     # Remove cells that have no neighbors within the distlim
     total_cell_count = cell_neighbor_counts.shape[0]
@@ -372,7 +380,7 @@ def compute_cell_ratios(neighbors_mat, target_cells, reference_cells, fov_list, 
             - the reference/target ratios of each FOV
     """
 
-    targ_ref_ratio, ref_targ_ratio = [], []
+    targ_ref_ratio, ref_targ_ratio = np.empty(0), np.empty(0)
     for fov in fov_list:
         # subset neighbors mat by fov, drop fov name and labels
         neighbors_mat_fov = neighbors_mat[neighbors_mat[fov_col] == fov]
@@ -386,38 +394,42 @@ def compute_cell_ratios(neighbors_mat, target_cells, reference_cells, fov_list, 
             neighbors_mat_fov[cell_col].isin(reference_cells)].shape[0]
 
         if target_total == 0 or reference_total == 0:
-            targ_ref_ratio.append(np.nan)
-            ref_targ_ratio.append(np.nan)
+            targ_ref_ratio = np.append(targ_ref_ratio, np.nan)
+            ref_targ_ratio = np.append(ref_targ_ratio, np.nan)
         else:
-            targ_ref_ratio.append(target_total / reference_total)
-            ref_targ_ratio.append(reference_total / target_total)
+            targ_ref_ratio = np.append(targ_ref_ratio, target_total / reference_total)
+            ref_targ_ratio = np.append(ref_targ_ratio, reference_total / target_total)
 
     # remove nan values for plotting
-    targ_ref_remove_nan = [x for x in targ_ref_ratio if str(x) != 'nan']
-    ref_targ_remove_nan = [x for x in ref_targ_ratio if str(x) != 'nan']
+    targ_ref_remove_nan = targ_ref_ratio[~np.isnan(targ_ref_ratio)]
+    ref_targ_remove_nan = ref_targ_ratio[~np.isnan(ref_targ_ratio)]
+
+    # filter values
+    targ_ref_filter = targ_ref_remove_nan[targ_ref_remove_nan < 15]
+    ref_targ_filter = ref_targ_remove_nan[ref_targ_remove_nan < 15]
 
     # create ratio plots
     sns.set(rc={'figure.figsize': (16, 4)})
     fig, (ax1, ax2) = plt.subplots(1, 2)
     fig.suptitle("Population 1 / Population 2 Ratios")
-    ax1.boxplot(targ_ref_remove_nan, 0, 'c', vert=False)
+    ax1.boxplot(targ_ref_filter, 0, 'c', vert=False)
     ax1.set(xlabel='Ratio')
-    ax2.hist(targ_ref_remove_nan, bins=bin_number)
+    ax2.hist(targ_ref_filter, bins=bin_number)
     ax2.set(xlabel='Ratio', ylabel='Count')
     fig2, (ax3, ax4) = plt.subplots(1, 2)
     fig2.suptitle("Population 2 / Population 1 Ratios")
-    ax3.boxplot(ref_targ_remove_nan, 0, 'c', vert=False)
+    ax3.boxplot(ref_targ_filter, 0, 'c', vert=False)
     ax3.set(xlabel='Ratio')
-    ax4.hist(ref_targ_remove_nan, bins=bin_number)
+    ax4.hist(ref_targ_filter, bins=bin_number)
     ax4.set(xlabel='Ratio', ylabel='Count')
 
-    ratio_data = pd.DataFrame(list(zip(fov_list, targ_ref_ratio, ref_targ_ratio)),
-                              columns=['fov', 'pop1_pop2_ratio', 'pop2_pop1_ratio'])
+    ratio_data = pd.DataFrame(list(zip(fov_list, targ_ref_ratio)),
+                              columns=['fov', 'cell_ratio'])
     return ratio_data
 
 
-def compute_mixing_score(fov_neighbors_mat, fov, target_cells, reference_cells, mixing_type,
-                         ratio_threshold=5, cell_count_thresh=0,
+def compute_mixing_score(fov_neighbors_mat, target_cells, reference_cells, mixing_type,
+                         ratio_threshold=5, cell_count_thresh=200,
                          cell_col=settings.CELL_TYPE, fov_col=settings.FOV_ID,
                          label_col=settings.CELL_LABEL):
     """ Compute and return the mixing score for the specified target/reference cell types
@@ -425,8 +437,6 @@ def compute_mixing_score(fov_neighbors_mat, fov, target_cells, reference_cells, 
     Args:
         fov_neighbors_mat (pandas.DataFrame):
             a neighborhood matrix, created from create_neighborhood_matrix and subsetted for 1 fov
-        fov (str):
-            single fov to compute mixing score for
         target_cells (list):
             invading cell phenotypes
         reference_cells (list):
@@ -437,7 +447,7 @@ def compute_mixing_score(fov_neighbors_mat, fov, target_cells, reference_cells, 
             maximum ratio of cell_types required to calculate a mixing score,
             under this labeled "cold"
         cell_count_thresh (int):
-            minimum number of cells in each population to calculate a mixing score,
+            minimum number of total cells from both populations to calculate a mixing score,
             under this labeled "cold"
         cell_col (str):
             column with the cell phenotype
@@ -470,14 +480,16 @@ def compute_mixing_score(fov_neighbors_mat, fov, target_cells, reference_cells, 
     # get number of target and reference cells in sample
     target_total = fov_neighbors_mat[fov_neighbors_mat[cell_col].isin(target_cells)].shape[0]
     ref_total = fov_neighbors_mat[fov_neighbors_mat[cell_col].isin(reference_cells)].shape[0]
-    if ref_total < cell_count_thresh or target_total < cell_count_thresh:
-        return np.nan
-    elif ref_total == 0 or target_total == 0:
-        return np.nan
 
-    # check threshold
+    # check cell count threshold
+    if (target_total + ref_total) < cell_count_thresh:
+        return np.nan, (target_total + ref_total)
+    elif ref_total == 0 or target_total == 0:
+        return np.nan, (target_total + ref_total)
+
+    # check ratio threshold
     if ref_total/target_total > ratio_threshold or target_total/ref_total > ratio_threshold:
-        return np.nan
+        return np.nan, (target_total + ref_total)
 
     # condense to total number of cell type interactions
     fov_neighbors_mat[cell_col] = fov_neighbors_mat[cell_col].replace(target_cells, 'target')
@@ -508,4 +520,4 @@ def compute_mixing_score(fov_neighbors_mat, fov, target_cells, reference_cells, 
         # homogenous mixing
         mixing_score = reference_target / (target_target + reference_reference)
 
-    return mixing_score
+    return mixing_score, (target_total + ref_total)

@@ -581,10 +581,9 @@ def test_create_pixel_matrix_missing_fov(multiprocess, capsys):
             index=PIXEL_MATRIX_CHANS,
             columns=['fov0', 'fov2']
         )
-        feather.write_dataframe(
-            sample_quant_data,
-            os.path.join(temp_dir, 'pixel_output_dir', 'quant_dat.feather')
-        )
+        sample_quant_data.index.name = 'channel'
+        sample_quant_data.to_csv(
+            os.path.join(temp_dir, 'pixel_mat_data', 'channel_norm_post_rowsum_perfov.csv'))
 
         pixie_preprocessing.create_pixel_matrix(
             fovs=PIXEL_MATRIX_FOVS,
@@ -615,10 +614,8 @@ def test_create_pixel_matrix_missing_fov(multiprocess, capsys):
         # test the case where we've written a FOV to data but not subset
         # NOTE: in this case, the value in quant_dat will also not have been written
         os.remove(os.path.join(temp_dir, 'pixel_mat_subsetted', 'fov1.feather'))
-        feather.write_dataframe(
-            sample_quant_data,
-            os.path.join(temp_dir, 'pixel_output_dir', 'quant_dat.feather')
-        )
+        sample_quant_data.to_csv(
+            os.path.join(temp_dir, 'pixel_mat_data', 'channel_norm_post_rowsum_perfov.csv'))
 
         pixie_preprocessing.create_pixel_matrix(
             fovs=PIXEL_MATRIX_FOVS,
@@ -645,12 +642,10 @@ def test_create_pixel_matrix_missing_fov(multiprocess, capsys):
         )
 
         # test the case where we've written a FOV to subset but not data (very rare)
-        # NOTE: in this case, the value in quant_dat will also not have been written
+        # NOTE: in this case, the value in quantile_dat will also not have been written
         os.remove(os.path.join(temp_dir, 'pixel_mat_data', 'fov1.feather'))
-        feather.write_dataframe(
-            sample_quant_data,
-            os.path.join(temp_dir, 'pixel_output_dir', 'quant_dat.feather')
-        )
+        sample_quant_data.to_csv(
+            os.path.join(temp_dir, 'pixel_mat_data', 'channel_norm_post_rowsum_perfov.csv'))
 
         pixie_preprocessing.create_pixel_matrix(
             fovs=PIXEL_MATRIX_FOVS,

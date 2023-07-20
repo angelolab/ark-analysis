@@ -104,14 +104,11 @@ def create_c2pc_data(fovs, pixel_data_path, cell_table_path,
     # convert labels to int type
     cell_table['label'] = cell_table['label'].astype(int)
 
-    # rename cell_table label as segmentation_label for joining purposes
-    cell_table = cell_table.rename(columns={'label': 'segmentation_label'})
-
     # subset on only the fovs the user has specified
     cell_table = cell_table[cell_table['fov'].isin(fovs)]
 
     # define cell_table columns to subset on for merging
-    cell_table_cols = ['fov', 'segmentation_label', 'cell_size']
+    cell_table_cols = ['fov', 'label', 'cell_size']
 
     for fov in fovs:
         # read in the pixel dataset for the fov
@@ -119,10 +116,13 @@ def create_c2pc_data(fovs, pixel_data_path, cell_table_path,
             os.path.join(pixel_data_path, fov + '.feather')
         )
 
-        # create a groupby object that aggregates the segmentation_label and the pixel_cluster_col
+        if "segmentation_label" in fov_pixel_data.columns:
+            fov_pixel_data.rename(columns={"segmentation_label": "label"}, inplace=True)
+
+        # create a groupby object that aggregates the label and the pixel_cluster_col
         # intermediate step for creating a pivot table, makes it easier
         group_by_cluster_col = fov_pixel_data.groupby(
-            ['segmentation_label', pixel_cluster_col]
+            ['label', pixel_cluster_col]
         ).size().reset_index(name='count')
 
         # if cluster labels end up as float (can happen with numeric types), convert to int
@@ -133,7 +133,7 @@ def create_c2pc_data(fovs, pixel_data_path, cell_table_path,
 
         # counts number of pixel SOM/meta clusters per cell
         num_cluster_per_seg_label = group_by_cluster_col.pivot(
-            index='segmentation_label', columns=pixel_cluster_col, values='count'
+            index='label', columns=pixel_cluster_col, values='count'
         ).fillna(0).astype(int)
 
         # renames the columns to have 'pixel_som_cluster_' or 'pixel_meta_cluster_rename_' prefix
@@ -144,7 +144,7 @@ def create_c2pc_data(fovs, pixel_data_path, cell_table_path,
 
         # get intersection of the segmentation labels between cell_table_indices
         # and num_cluster_per_seg_label
-        cell_table_labels = list(cell_table[cell_table['fov'] == fov]['segmentation_label'])
+        cell_table_labels = list(cell_table[cell_table['fov'] == fov]['label'])
         cluster_labels = list(num_cluster_per_seg_label.index.values)
         label_intersection = list(set(cell_table_labels).intersection(cluster_labels))
 
@@ -153,7 +153,7 @@ def create_c2pc_data(fovs, pixel_data_path, cell_table_path,
         cell_table_indices = pd.Index(
             cell_table[
                 (cell_table['fov'] == fov) &
-                (cell_table['segmentation_label'].isin(label_intersection))
+                (cell_table['label'].isin(label_intersection))
             ].index.values
         )
 
@@ -209,14 +209,14 @@ def add_consensus_labels_cell_table(base_dir, cell_table_path, cell_som_input_da
     # read in the data, ensure sorted by FOV column just in case
     cell_table = pd.read_csv(cell_table_path)
 
-    # for a simpler merge, rename segmentation_label to label in consensus_data
-    cell_som_results = cell_som_input_data.rename(
-        {'segmentation_label': 'label'}, axis=1
-    )
+    # for a simpler merge, rename label to label in consensus_data
+    # if it is `segmentation_label`
+    if "segmentation_label" in cell_som_input_data.columns:
+        cell_som_input_data.rename(columns={"segmentation_label": "label"}, inplace=True)
 
     # merge the cell table with the consensus data to retrieve the meta clusters
     cell_table_merged = cell_table.merge(
-        cell_som_results, how='left', on=['fov', 'label']
+        cell_som_input_data, how='left', on=['fov', 'label']
     )
 
     # adjust column names and drop consensus data-specific columns

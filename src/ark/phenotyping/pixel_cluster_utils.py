@@ -110,11 +110,11 @@ def normalize_rows(pixel_data, channels, include_seg_label=True):
     Args:
         pixel_data (pandas.DataFrame):
             The dataframe containing the pixel data for a given fov
-            Includes channel and meta (`fov`, `segmentation_label`, etc.) columns
+            Includes channel and meta (`fov`, `label`, etc.) columns
         channels (list):
             List of channels to subset over
         include_seg_label (bool):
-            Whether to include `'segmentation_label'` as a metadata column
+            Whether to include `'label'` as a metadata column
 
     Returns:
         pandas.DataFrame:
@@ -130,9 +130,9 @@ def normalize_rows(pixel_data, channels, include_seg_label=True):
     # define the meta columns to add back
     meta_cols = ['fov', 'row_index', 'column_index']
 
-    # add the segmentation_label column if it should be kept
+    # add the label column if it should be kept
     if include_seg_label:
-        meta_cols.append('segmentation_label')
+        meta_cols.append('label')
 
     # add back meta columns, making sure to remove 0-row indices
     pixel_data_sub[meta_cols] = pixel_data.loc[pixel_data_sub.index.values, meta_cols]

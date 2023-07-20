@@ -172,6 +172,11 @@ def cluster_pixels(fovs, channels, base_dir, pixel_pysom, data_dir='pixel_mat_da
     while i < len(data_files):
         try:
             sample_fov = feather.read_dataframe(os.path.join(base_dir, data_dir, data_files[i]))
+
+            if "segmentation_label" in sample_fov.columns:
+                sample_fov.rename(
+                    columns={"segmentation_label": "label"},
+                    inplace=True)
         except (ArrowInvalid, OSError, IOError):
             i += 1
             continue
@@ -179,7 +184,7 @@ def cluster_pixels(fovs, channels, base_dir, pixel_pysom, data_dir='pixel_mat_da
 
     # for verification purposes, drop the metadata columns
     cols_to_drop = ['fov', 'row_index', 'column_index']
-    for col in ['segmentation_label', 'pixel_som_cluster',
+    for col in ['label', 'pixel_som_cluster',
                 'pixel_meta_cluster', 'pixel_meta_cluster_rename']:
         if col in sample_fov.columns.values:
             cols_to_drop.append(col)
