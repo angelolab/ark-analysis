@@ -22,7 +22,7 @@ def test_run_pixel_consensus_assignment():
         chans = ['Marker1', 'Marker2', 'Marker3', 'Marker4']
 
         # make it easy to name metadata columns
-        meta_colnames = ['fov', 'row_index', 'column_index', 'segmentation_label']
+        meta_colnames = ['fov', 'row_index', 'column_index', 'label']
 
         # create a dummy data directory
         os.mkdir(os.path.join(temp_dir, 'pixel_mat_data'))
@@ -107,7 +107,7 @@ def test_run_pixel_consensus_assignment():
 def generate_test_pixel_consensus_cluster_data(temp_dir, fovs, chans,
                                                generate_temp=False):
     # make it easy to name metadata columns
-    meta_colnames = ['fov', 'row_index', 'column_index', 'segmentation_label']
+    meta_colnames = ['fov', 'row_index', 'column_index', 'label']
 
     # create a dummy clustered matrix
     os.mkdir(os.path.join(temp_dir, 'pixel_mat_data'))
@@ -131,7 +131,7 @@ def generate_test_pixel_consensus_cluster_data(temp_dir, fovs, chans,
         fov_cluster_matrix['fov'] = fov
         fov_cluster_matrix['row_index'] = np.repeat(np.arange(1, 101), repeats=10)
         fov_cluster_matrix['column_index'] = np.tile(np.arange(1, 101), reps=10)
-        fov_cluster_matrix['segmentation_label'] = np.arange(1, 1001)
+        fov_cluster_matrix['label'] = np.arange(1, 1001)
 
         # assign dummy cluster labels
         fov_cluster_matrix['pixel_som_cluster'] = np.repeat(np.arange(100), repeats=10)
@@ -269,7 +269,7 @@ def test_generate_meta_avg_files(capsys):
         fovs = ['fov0', 'fov1', 'fov2']
 
         # make it easy to name columns
-        colnames = chan_list + ['fov', 'row_index', 'column_index', 'segmentation_label']
+        colnames = chan_list + ['fov', 'row_index', 'column_index', 'label']
 
         # define sample pixel data for each FOV
         pixel_data_path = os.path.join(temp_dir, 'pixel_data_dir')
@@ -375,7 +375,7 @@ def test_update_pixel_meta_labels():
         chans = ['Marker1', 'Marker2', 'Marker3', 'Marker4']
 
         # make it easy to name metadata columns
-        meta_colnames = ['fov', 'row_index', 'column_index', 'segmentation_label']
+        meta_colnames = ['fov', 'row_index', 'column_index', 'label']
 
         # create a dummy data directory
         os.mkdir(os.path.join(temp_dir, 'pixel_mat_data'))
@@ -455,7 +455,7 @@ def test_update_pixel_meta_labels():
 def generate_test_apply_pixel_meta_cluster_remapping_data(temp_dir, fovs, chans,
                                                           generate_temp=False):
     # make it easy to name metadata columns
-    meta_colnames = ['fov', 'row_index', 'column_index', 'segmentation_label']
+    meta_colnames = ['fov', 'row_index', 'column_index', 'label']
 
     # create a dummy data directory
     os.mkdir(os.path.join(temp_dir, 'pixel_mat_data'))
@@ -741,7 +741,7 @@ def test_generate_remap_avg_files():
         fovs = ['fov0', 'fov1', 'fov2']
 
         # make it easy to name columns
-        colnames = chan_list + ['fov', 'row_index', 'column_index', 'segmentation_label']
+        colnames = chan_list + ['fov', 'row_index', 'column_index', 'label']
 
         # define sample pixel data for each FOV
         pixel_data_path = os.path.join(temp_dir, 'pixel_data_dir')
