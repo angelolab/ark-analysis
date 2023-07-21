@@ -102,14 +102,14 @@ However, the repository will still need to be cloned if you wish to use the Jupy
 We recommend using the latest release of `ark`. You can find all the versions available in the [Releases Section](https://github.com/angelolab/ark-analysis/releases).
 Open terminal and navigate to where you want the code stored. 
 
-Currently, the latest release is `v0.6.3`.
-Then install the latest release with:
+
+If you would like to use the latest version of `ark` simply clone the project and create the Conda environment.
 
 ```sh
-git clone -b v0.6.3 https://github.com/angelolab/ark-analysis.git
+git clone https://github.com/angelolab/ark-analysis.git
+cd ark-analysis
+conda env create -f environment.yml
 ```
-
-You may also install previous releases by simply changing the version after the `-b`.
 
 #### Setting up Docker
 
@@ -117,7 +117,7 @@ There is a complementary [setup video](https://youtu.be/EXMGdi_Izdw).
 
 Next, you'll need to download Docker Desktop:
  - First, [download](https://hub.docker.com/?overlay=onboarding) Docker Desktop. 
- - Once it's sucessfully installed, make sure it is running by looking in toolbar for the Docker whale icon. 
+ - Once it's successfully installed, make sure it is running by looking in toolbar for the Docker whale icon. 
 
 
 #### Running on Windows
