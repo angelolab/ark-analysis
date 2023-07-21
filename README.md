@@ -106,7 +106,6 @@ Open terminal and navigate to where you want the code stored.
 If you would like to use the latest version of `ark` simply clone the project and create the Conda environment.
 
 ```sh
-git clone -b v0.6.4 https://github.com/angelolab/ark-analysis.git
 git clone https://github.com/angelolab/ark-analysis.git
 cd ark-analysis
 conda env create -f environment.yml
