@@ -196,17 +196,16 @@ def create_deepcell_output(deepcell_input_dir, deepcell_output_dir, fovs=None,
                 input_zip_path, deepcell_output_dir, host, job_type, scale, timeout
             )
 
-            # if current batch fails, continue to next batch
-            if status != 0:
-                unprocessed_fovs[batch_num] = fov_group
-            # successful output
-            else:
+            # successful deepcell response
+            if status == 0:
                 # extract segmentation masks from deepcell output
                 extract_deepcell_response(deepcell_output_dir, fov_group, batch_num, wc_suffix,
                                           nuc_suffix)
 
             total_time = time.time() - start
 
+        if status != 0:
+            unprocessed_fovs[batch_num] = fov_group
         if total_time >= timeout:
             print(f"This batch exceeded the allotted processing time of {timeout / 60} minutes "
                   f"and will be skipped.")
