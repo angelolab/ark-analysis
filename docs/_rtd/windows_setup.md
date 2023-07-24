@@ -33,7 +33,7 @@ After finishing the installer guidelines, go to your Command Prompt and type `gi
 
 Go to [Docker for Windows install](https://docs.docker.com/desktop/windows/install) to download `Docker Desktop`. 
 
-Open the shortcut (which should be added to your Desktop after installation) and open `Docker Desktop`. If the engine starts up successfully, Docker has been configured. Note that the engine may take a while to setup properly.
+Open the shortcut (which should be added to your Desktop after installation) and open `Docker Desktop`. If the engine starts up successfully, Docker has been configured. Note that the engine may take a while to set up properly.
 
 ### Setting up the repo
 
@@ -46,7 +46,12 @@ In your Command Prompt, follow similar steps to clone the `ark-analysis` repo an
 To run the script, you have to use `bash start_docker.sh`. If you run into issues with invalid carriage returns (`\r`), please run the following before trying again:
 
 * Run `wsl sudo apt-get install dos2unix`
-* Run `wsl dos2unix start_docker.sh` and `wsl dos2unix update_notebooks.sh`
+* Run the following commands:
+  > `wsl dos2unix start_docker.sh`
+  
+  > `wsl dos2unix start_jupyter.sh`
+
+  > `wsl dos2unix update_notebooks.sh`
 
 ### Addressing `docker` not found
 
