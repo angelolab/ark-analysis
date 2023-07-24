@@ -10,11 +10,8 @@ from zipfile import ZIP_DEFLATED, ZipFile
 import numpy as np
 import requests
 from alpineer import image_utils, io_utils, load_utils, misc_utils
-from requests.adapters import HTTPAdapter
-from requests.exceptions import RetryError
 from tifffile import imread
 from tqdm.notebook import tqdm
-from urllib3 import Retry
 
 
 def zip_input_files(deepcell_input_dir, fov_group, batch_num):
@@ -142,7 +139,7 @@ def create_deepcell_output(deepcell_input_dir, deepcell_output_dir, fovs=None,
             Default: 3  minutes (180)
         zip_size (int):
             Maximum number of files to include in zip.
-            Default: 100
+            Default: 5
     Raises:
         ValueError:
             Raised if there is some fov X (from fovs list) s.t.
@@ -178,6 +175,7 @@ def create_deepcell_output(deepcell_input_dir, deepcell_output_dir, fovs=None,
 
     print(f'Processing tiffs in {len(fov_groups)} batches...')
 
+    unprocessed_fovs = {}
     for batch_num, fov_group in enumerate(fov_groups, start=1):
         # create zipped input files
         input_zip_path = zip_input_files(deepcell_input_dir, fov_group, batch_num)
@@ -195,13 +193,13 @@ def create_deepcell_output(deepcell_input_dir, deepcell_output_dir, fovs=None,
 
             # pass the zip file to deepcell.org
             status = run_deepcell_direct(
-                input_zip_path, deepcell_output_dir, host, job_type, scale, timeout/2
+                input_zip_path, deepcell_output_dir, host, job_type, scale, timeout
             )
 
-            # ensure execution is halted if run_deepcell_direct returned non-zero exit code
+            # if current batch fails, continue to next batch
             if status != 0:
-                print("The following FOVs could not be processed: %s" % ','.join(fov_group))
-                return
+                unprocessed_fovs[batch_num] = fov_group
+                break
             # successful output
             else:
                 # extract segmentation masks from deepcell output
@@ -211,11 +209,10 @@ def create_deepcell_output(deepcell_input_dir, deepcell_output_dir, fovs=None,
             time.sleep(3.0)
             total_time += 3
 
-    deepcell_outputs = io_utils.remove_file_extensions(
-        io_utils.list_files(deepcell_output_dir, substrs=[".zip"]))
-    misc_utils.verify_same_elements(
-        output_files=deepcell_outputs,
-        expected_files=[f"deepcell_response_fovs_batch_{i + 1}" for i in range(len(fov_groups))])
+    if unprocessed_fovs:
+        print("\nThe following batches were not processed:")
+        for batch in unprocessed_fovs.keys():
+            print(f"fovs_batch_{batch} {unprocessed_fovs[batch]}")
 
 
 def run_deepcell_direct(input_dir, output_dir, host='https://deepcell.org',
@@ -256,7 +253,8 @@ def run_deepcell_direct(input_dir, output_dir, host='https://deepcell.org',
             timeout=timeout,
             files=upload_fields
         )
-    except requests.Timeout:
+    except (requests.ConnectionError, requests.ReadTimeout) as e:
+        print("This batch exceeded the allotted processing time and will be skipped.")
         return 1
 
     # handles the case if the endpoint returns an invalid JSON
@@ -317,10 +315,16 @@ def run_deepcell_direct(input_dir, output_dir, host='https://deepcell.org',
         total_time += 3
     progress_bar.close()
 
+    # print timeout message
+    if total_time >= timeout:
+        print("This batch exceeded the allotted processing time and will be skipped.")
+        return 1
+
     # when done, download result or examine errors
     if len(redis_response['value'][4]) > 0:
         # error happened
         print(f"Encountered Failure(s): {unquote_plus(redis_response['value'][4])}")
+        return 1
 
     deepcell_output = requests.get(redis_response['value'][2], allow_redirects=True)
 
