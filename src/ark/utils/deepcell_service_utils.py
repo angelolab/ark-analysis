@@ -201,7 +201,7 @@ def create_deepcell_output(deepcell_input_dir, deepcell_output_dir, fovs=None,
                 # extract segmentation masks from deepcell output
                 extract_deepcell_response(deepcell_output_dir, fov_group, batch_num, wc_suffix,
                                           nuc_suffix)
-                continue
+                break
 
             total_time = time.time() - start
 
