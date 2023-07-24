@@ -100,7 +100,7 @@ def extract_deepcell_response(deepcell_output_dir, fov_group, batch_num, wc_suff
 def create_deepcell_output(deepcell_input_dir, deepcell_output_dir, fovs=None,
                            wc_suffix='_whole_cell', nuc_suffix='_nuclear',
                            host='https://deepcell.org', job_type='mesmer',
-                           scale=1.0, timeout=180, zip_size=5):
+                           scale=1.0, timeout=300, zip_size=5):
     """Handles all of the necessary data manipulation for running deepcell tasks.
     Creates .zip files (to be used as input for DeepCell),
     calls run_deepcell_task method,
@@ -136,7 +136,7 @@ def create_deepcell_output(deepcell_input_dir, deepcell_output_dir, fovs=None,
             Default: 1.0
         timeout (int):
             Approximate seconds until timeout.
-            Default: 3  minutes (180)
+            Default: 5  minutes (300)
         zip_size (int):
             Maximum number of files to include in zip.
             Default: 5
@@ -186,11 +186,11 @@ def create_deepcell_output(deepcell_input_dir, deepcell_output_dir, fovs=None,
         if os.path.exists(output_zip_path):
             print(f"Skipping previously processed batch_{batch_num}.")
 
+        # upload to deepcell
+        print("Uploading files to DeepCell server.")
         total_time = 0
+        start = time.time()
         while not os.path.exists(output_zip_path) and total_time < timeout:
-            # upload to deepcell
-            print("Uploading files to DeepCell server.")
-
             # pass the zip file to deepcell.org
             status = run_deepcell_direct(
                 input_zip_path, deepcell_output_dir, host, job_type, scale, timeout
@@ -199,15 +199,17 @@ def create_deepcell_output(deepcell_input_dir, deepcell_output_dir, fovs=None,
             # if current batch fails, continue to next batch
             if status != 0:
                 unprocessed_fovs[batch_num] = fov_group
-                break
             # successful output
             else:
                 # extract segmentation masks from deepcell output
                 extract_deepcell_response(deepcell_output_dir, fov_group, batch_num, wc_suffix,
                                           nuc_suffix)
 
-            time.sleep(3.0)
-            total_time += 3
+            total_time = time.time() - start
+
+        if total_time >= timeout:
+            print(f"This batch exceeded the allotted processing time of {timeout / 60} minutes "
+                  f"and will be skipped.")
 
     if unprocessed_fovs:
         print("\nThe following batches were not processed:")
@@ -216,7 +218,7 @@ def create_deepcell_output(deepcell_input_dir, deepcell_output_dir, fovs=None,
 
 
 def run_deepcell_direct(input_dir, output_dir, host='https://deepcell.org',
-                        job_type='mesmer', scale=1.0, timeout=90):
+                        job_type='mesmer', scale=1.0, timeout=300):
     """Uses direct calls to DeepCell API and saves output to output_dir.
 
     Args:
@@ -234,7 +236,7 @@ def run_deepcell_direct(input_dir, output_dir, host='https://deepcell.org',
             Default: 1.0
         timeout (int):
             Approximate seconds until timeout.
-            Default: 1.5 minutes (90)
+            Default: 5 minutes (300)
     """
 
     # upload zip file
@@ -254,7 +256,6 @@ def run_deepcell_direct(input_dir, output_dir, host='https://deepcell.org',
             files=upload_fields
         )
     except (requests.ConnectionError, requests.ReadTimeout) as e:
-        print("This batch exceeded the allotted processing time and will be skipped.")
         return 1
 
     # handles the case if the endpoint returns an invalid JSON
@@ -317,7 +318,6 @@ def run_deepcell_direct(input_dir, output_dir, host='https://deepcell.org',
 
     # print timeout message
     if total_time >= timeout:
-        print("This batch exceeded the allotted processing time and will be skipped.")
         return 1
 
     # when done, download result or examine errors
