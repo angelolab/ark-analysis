@@ -330,7 +330,6 @@ def create_pixel_matrix(fovs, channels, base_dir, tiff_dir, seg_dir,
 
     # load existing channel_norm_path if exists, otherwise generate
     if not os.path.exists(channel_norm_path):
-        print("Generating channel norm data")
         # compute channel percentiles
         channel_norm_df = pixel_cluster_utils.calculate_channel_percentiles(
             tiff_dir=tiff_dir,
@@ -347,7 +346,6 @@ def create_pixel_matrix(fovs, channels, base_dir, tiff_dir, seg_dir,
 
     # load existing pixel_thresh_path if exists, otherwise generate
     if not os.path.exists(pixel_thresh_path):
-        print("Generating pixel norm data")
         # compute pixel percentiles
         pixel_thresh_val = pixel_cluster_utils.calculate_pixel_intensity_percentile(
             tiff_dir=tiff_dir, fovs=fovs, channels=channels,

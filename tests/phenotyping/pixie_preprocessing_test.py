@@ -259,6 +259,13 @@ def mocked_preprocess_fov(base_dir, tiff_dir, data_dir, subset_dir, seg_dir, seg
     # subset for the channel data
     img_data = img_xr.loc[fov, :, :, channels].values.astype(np.float32)
 
+    # create vector for normalizing image data
+    norm_vect = channel_norm_df['norm_val'].values
+    norm_vect = np.array(norm_vect).reshape([1, 1, len(norm_vect)])
+
+    # normalize image data
+    img_data = img_data / norm_vect
+
     # set seed for subsetting
     np.random.seed(seed)
 
