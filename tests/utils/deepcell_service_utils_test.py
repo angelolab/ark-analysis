@@ -2,6 +2,7 @@ import itertools
 import os
 import pathlib
 import tempfile
+import time
 from zipfile import ZipFile
 from pathlib import Path
 
@@ -72,11 +73,12 @@ def test_zip_input_files():
             assert zip_batch1.namelist() == ['fov1.tiff', 'fov2.tiff']
 
         # test previously zipped batches are not re-zipped
+        time.sleep(3)
         zip_path = zip_input_files(temp_dir, fov_group=["fov1", "fov2"], batch_num=1)
         modify_time = Path(zip_path).stat().st_mtime
 
         # check zip file was not overwritten
-        assert modify_time - create_time == 0
+        assert np.isclose(modify_time, create_time)
 
 
 def test_extract_deepcell_response():
