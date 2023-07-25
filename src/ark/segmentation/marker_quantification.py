@@ -402,10 +402,10 @@ def create_marker_count_matrices(segmentation_labels, image_data, nuclear_counts
     print("extracting data from {}".format(fov))
 
     # current mask
-    segmentation_label = segmentation_labels.loc[fov, :, :, :]
+    label = segmentation_labels.loc[fov, :, :, :]
 
     # extract the counts per cell for each marker
-    marker_counts = compute_marker_counts(image_data.loc[fov, :, :, :], segmentation_label,
+    marker_counts = compute_marker_counts(image_data.loc[fov, :, :, :], label,
                                           nuclear_counts=nuclear_counts,
                                           split_large_nuclei=split_large_nuclei,
                                           extraction=extraction,
@@ -425,6 +425,9 @@ def create_marker_count_matrices(segmentation_labels, image_data, nuclear_counts
 
     arcsinh = pd.DataFrame(data=marker_counts_arcsinh.values[0, :, :],
                            columns=marker_counts_arcsinh.features)
+
+    normalized[settings.CELL_LABEL] = normalized[settings.CELL_LABEL].astype(np.int32)
+    arcsinh[settings.CELL_LABEL] = arcsinh[settings.CELL_LABEL].astype(np.int32)
 
     if nuclear_counts:
         # append nuclear counts pandas array with modified column name
@@ -448,7 +451,7 @@ def create_marker_count_matrices(segmentation_labels, image_data, nuclear_counts
 
 
 def generate_cell_table(segmentation_dir, tiff_dir, img_sub_folder="TIFs",
-                        is_mibitiff=False, fovs=None, dtype="int16",
+                        is_mibitiff=False, fovs=None,
                         extraction='total_intensity', nuclear_counts=False,
                         fast_extraction=False, **kwargs):
     """This function takes the segmented data and computes the expression matrices batch-wise
@@ -466,8 +469,6 @@ def generate_cell_table(segmentation_dir, tiff_dir, img_sub_folder="TIFs",
             a list of fovs we wish to analyze, if None will default to all fovs
         is_mibitiff (bool):
             a flag to indicate whether or not the base images are MIBItiffs
-        dtype (str/type):
-            data type of base images
         extraction (str):
             extraction function used to compute marker counts
         nuclear_counts (bool):

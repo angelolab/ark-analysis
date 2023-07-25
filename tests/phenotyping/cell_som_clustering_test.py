@@ -49,7 +49,7 @@ def test_train_cell_som():
 
             # assign the fovs and labels
             fov_table['fov'] = fov
-            fov_table['segmentation_label'] = np.repeat(np.arange(50), 20)
+            fov_table['label'] = np.repeat(np.arange(50), 20)
 
             # assign dummy pixel/meta labels
             # pixel: 0-9 for fov1 and 5-14 for fov2
@@ -143,7 +143,7 @@ def test_cluster_cells(pixel_cluster_prefix, existing_som_col, capsys):
         # add metadata
         cluster_counts['fov'] = -1
         cluster_counts['cell_size'] = -1
-        cluster_counts['segmentation_label'] = -1
+        cluster_counts['label'] = -1
 
         if existing_som_col:
             cluster_counts['cell_som_cluster'] = -1
@@ -235,7 +235,7 @@ def test_generate_som_avg_files(capsys):
         # add metadata
         cluster_counts['fov'] = -1
         cluster_counts['cell_size'] = -1
-        cluster_counts['segmentation_label'] = -1
+        cluster_counts['label'] = -1
 
         # add dummy SOM cluster assignments
         cluster_counts['cell_som_cluster'] = np.repeat(np.arange(1, 5), repeats=25)

@@ -233,7 +233,7 @@ def generate_test_label_map(size_img=(1024, 1024), num_A=100, num_B=100, num_C=1
     sample_img[0, :, :, 0] = deepcopy(label_mat)
     sample_img_xr = xr.DataArray(
         sample_img,
-        coords=[[1], range(size_img[0]), range(size_img[1]), ['segmentation_label']],
+        coords=[[1], range(size_img[0]), range(size_img[1]), ['label']],
         dims=['fovs', 'rows', 'cols', 'channels']
     )
 
