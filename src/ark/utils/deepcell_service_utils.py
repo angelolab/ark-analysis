@@ -185,10 +185,11 @@ def create_deepcell_output(deepcell_input_dir, deepcell_output_dir, fovs=None,
         output_zip_path = os.path.join(deepcell_output_dir, f"deepcell_response_" + batch_filename)
         if os.path.exists(output_zip_path):
             print(f"Skipping previously processed batch_{batch_num}.")
+        else:
+            print("Uploading files to DeepCell server.")
 
         # upload to deepcell
-        print("Uploading files to DeepCell server.")
-        total_time = 0
+        total_time, status = 0, 0
         start = time.time()
         while not os.path.exists(output_zip_path) and total_time < timeout:
             # pass the zip file to deepcell.org
