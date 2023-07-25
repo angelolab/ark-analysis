@@ -100,12 +100,12 @@ def pixel_pyflowsom_object(pixel_som_base_dir) -> Iterator[
         # generate dummy sub data for fov
         fov_data = pd.DataFrame(
             np.random.rand(500, 10),
-            columns=channels + ['fov', 'row_index', 'column_index', 'segmentation_label']
+            columns=channels + ['fov', 'row_index', 'column_index', 'label']
         )
         fov_data['fov'] = fov
         fov_data['row_index'] = np.repeat(np.arange(1, 51), 10)
         fov_data['col_index'] = np.tile(np.arange(1, 11), 50)
-        fov_data['segmentation_label'] = np.arange(1, 501)
+        fov_data['label'] = np.arange(1, 501)
 
         feather.write_dataframe(fov_data, os.path.join(pixel_sub_path, fov + '.feather'))
 
@@ -158,12 +158,12 @@ def cell_pyflowsom_object(cell_som_base_dir) -> Iterator[
     # define dummy cell data
     cluster_counts_size_norm = pd.DataFrame(
         np.random.randint(1, 10, (500, 9)),
-        columns=['cell_size', 'fov'] + count_cols + ['segmentation_label']
+        columns=['cell_size', 'fov'] + count_cols + ['label']
     )
     cluster_counts_size_norm['cell_size'] = 150
     cluster_counts_size_norm.loc[0:249, 'fov'] = 'fov0'
     cluster_counts_size_norm.loc[250:499, 'fov'] = 'fov1'
-    cluster_counts_size_norm['segmentation_label'] = np.arange(1, 501)
+    cluster_counts_size_norm['label'] = np.arange(1, 501)
 
     # generate dummy weights data, this will be used to test loading in an existing weights file
     weights_vals = pd.DataFrame(np.random.rand(200, 6), columns=count_cols)
@@ -285,7 +285,7 @@ class TestPixelSOMCluster:
 
     def test_normalize_data(self):
         # create a random dataset with the same columns
-        meta_cols = ['fov', 'row_index', 'column_index', 'segmentation_label']
+        meta_cols = ['fov', 'row_index', 'column_index', 'label']
         sample_external_data = pd.DataFrame(
             np.random.rand(1000, 10),
             columns=self.pixel_pysom_nonweights.columns + meta_cols
@@ -373,7 +373,7 @@ class TestPixelSOMCluster:
         # NOTE: test on shuffled data to ensure column matching
         col_shuffle = deepcopy(self.pixel_pysom_nonweights.columns)
         random.shuffle(col_shuffle)
-        meta_cols = ['fov', 'row_index', 'column_index', 'segmentation_label']
+        meta_cols = ['fov', 'row_index', 'column_index', 'label']
         sample_external_data = pd.DataFrame(
             np.random.rand(1000, 10),
             columns=col_shuffle + meta_cols

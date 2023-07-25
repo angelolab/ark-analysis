@@ -1,3 +1,5 @@
+from pprint import pprint
+from functools import wraps
 import pathlib
 import shutil
 from typing import Iterator, Tuple, Union
@@ -5,8 +7,6 @@ from typing import Iterator, Tuple, Union
 import pytest
 from testbook import testbook
 from testbook.client import TestbookNotebookClient
-
-from ark.utils import example_dataset
 
 from . import notebooks_test_utils
 
@@ -66,7 +66,8 @@ def nb1_context(
     SEGMENT_IMAGE_DATA_PATH: pathlib.Path = templates_dir / "1_Segment_Image_Data.ipynb"
     with testbook(SEGMENT_IMAGE_DATA_PATH, timeout=6000, execute=False) as nb_context_manager:
         yield nb_context_manager, base_dir_generator / "nb1"
-    shutil.rmtree(base_dir_generator / "nb1")
+    print("after init class")
+    shutil.rmtree(base_dir_generator)
 
 
 @pytest.fixture(scope="class")
@@ -91,7 +92,7 @@ def nb2_context(
     CLUSTER_PIXELS: pathlib.Path = templates_dir / "2_Pixie_Cluster_Pixels.ipynb"
     with testbook(CLUSTER_PIXELS, timeout=6000, execute=False) as nb_context_manager:
         yield nb_context_manager, base_dir_generator / "nb2"
-    shutil.rmtree(base_dir_generator / "nb2")
+    shutil.rmtree(base_dir_generator)
 
 
 @pytest.fixture(scope="class")
@@ -115,7 +116,7 @@ def nb3_context(
     CLUSTER_CELLS: pathlib.Path = templates_dir / "3_Pixie_Cluster_Cells.ipynb"
     with testbook(CLUSTER_CELLS, timeout=6000, execute=False) as nb_context_manager:
         yield nb_context_manager, base_dir_generator / "nb3"
-    shutil.rmtree(base_dir_generator / "nb3")
+    shutil.rmtree(base_dir_generator)
 
 
 @pytest.fixture(scope="class")
@@ -139,7 +140,7 @@ def nb3b_context(
     CLUSTER_CELLS: pathlib.Path = templates_dir / "generic_cell_clustering.ipynb"
     with testbook(CLUSTER_CELLS, timeout=6000, execute=False) as nb_context_manager:
         yield nb_context_manager, base_dir_generator / "nb3b"
-    shutil.rmtree(base_dir_generator / "nb3b")
+    shutil.rmtree(base_dir_generator)
 
 
 @pytest.fixture(scope="class")
@@ -163,7 +164,7 @@ def nb4_context(
     POST_CLUSTERING: pathlib.Path = templates_dir / "4_Post_Clustering.ipynb"
     with testbook(POST_CLUSTERING, timeout=6000, execute=False) as nb_context_manager:
         yield nb_context_manager, base_dir_generator / "nb4"
-    shutil.rmtree(base_dir_generator / "nb4")
+    shutil.rmtree(base_dir_generator)
 
 
 @pytest.fixture(scope="class")
@@ -189,7 +190,7 @@ def nbfib_seg_context(
     )
     with testbook(EXAMPLE_FIBER_SEGMENTATION, timeout=6000, execute=False) as nb_context_manager:
         yield nb_context_manager, base_dir_generator / "efs"
-    shutil.rmtree(base_dir_generator / "efs")
+    shutil.rmtree(base_dir_generator)
 
 
 @pytest.fixture(scope="class")
@@ -213,7 +214,7 @@ def nbmixing_context(
     EXAMPLE_MIXING: pathlib.Path = templates_dir / "Calculate_Mixing_Scores.ipynb"
     with testbook(EXAMPLE_MIXING, timeout=6000, execute=False) as nb_context_manager:
         yield nb_context_manager, base_dir_generator / "cms"
-    shutil.rmtree(base_dir_generator / "cms")
+    shutil.rmtree(base_dir_generator)
 
 
 @pytest.fixture(scope="class")
@@ -237,7 +238,7 @@ def nbcell_neighbors_context(
     EXAMPLE_CELL_NEIGHBORS: pathlib.Path = templates_dir / "cell_neighbors_analysis.ipynb"
     with testbook(EXAMPLE_CELL_NEIGHBORS, timeout=6000, execute=False) as nb_context_manager:
         yield nb_context_manager, base_dir_generator / "cna"
-    shutil.rmtree(base_dir_generator / "cna")
+    shutil.rmtree(base_dir_generator)
 
 
 class Test_1_Segment_Image_Data:
@@ -823,12 +824,14 @@ class Test_Cell_Neighbors():
     same order as the tagged cells in the notebook.
     """
     @pytest.fixture(autouse=True, scope="function")
-    def _setup(self, nbcell_neighbors_context):
+    def _setup(self, nbcell_neighbors_context, dataset_cache_dir: Union[str, None]):
         """
         Sets up necessary data and paths to run the notebooks.
         """
         self.tb: testbook = nbcell_neighbors_context[0]
-        self.base_dir: pathlib.Path = nbcell_neighbors_context[1]
+        self.dataset: str = "post_clustering"
+        self.base_dir: str = nbcell_neighbors_context[1].as_posix()
+        self.cache_dir = dataset_cache_dir
 
     def test_imports(self):
         self.tb.execute_cell("import")
@@ -839,11 +842,14 @@ class Test_Cell_Neighbors():
                         """
         self.tb.inject(base_dir_inject, "base_dir")
 
+    def test_ex_data_download(self):
+        notebooks_test_utils._ex_dataset_download(dataset=self.dataset, save_dir=self.base_dir,
+                                                  cache_dir=self.cache_dir)
+
     def test_file_paths(self):
         self.tb.execute_cell("file_path")
 
     def test_create_dirs(self):
-        example_dataset.get_example_dataset("post_clustering", self.base_dir, True)
         self.tb.execute_cell("create_dirs")
 
     def test_diversity_args(self):

@@ -59,7 +59,7 @@ def create_fov_pixel_data(fov, channels, img_data, seg_labels,
     # assign segmentation labels if it is not None
     if seg_labels is not None:
         seg_labels_flat = seg_labels.flatten()
-        pixel_mat['segmentation_label'] = seg_labels_flat
+        pixel_mat['label'] = seg_labels_flat
 
     # remove any rows with channels that sum to zero prior to normalization
     pixel_mat = pixel_mat.loc[(pixel_mat[channels] != 0).any(axis=1), :].reset_index(drop=True)
@@ -295,9 +295,9 @@ def create_pixel_matrix(fovs, channels, base_dir, tiff_dir, seg_dir,
     # define the columns to drop for 99.9% normalization
     cols_to_drop = ['fov', 'row_index', 'column_index']
 
-    # account for segmentation_label if seg_dir is set
+    # account for label if seg_dir is set
     if seg_dir:
-        cols_to_drop.append('segmentation_label')
+        cols_to_drop.append('label')
 
     if multiprocess:
         # define the multiprocessing context

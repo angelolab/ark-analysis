@@ -123,9 +123,11 @@ def compute_p2c_weighted_channel_avg(pixel_channel_avg, channels, cell_counts,
     weighted_cell_channel = pd.DataFrame(
         weighted_cell_channel, columns=channels
     )
+    if "segmentation_label" in weighted_cell_channel.columns:
+        weighted_cell_channel.rename({"segmentation_label": "label"}, inplace=True)
 
     # add columns back
-    meta_cols = ['cell_size', 'fov', 'segmentation_label']
+    meta_cols = ['cell_size', 'fov', 'label']
     weighted_cell_channel[meta_cols] = cell_counts_sub.reset_index(drop=True)[meta_cols]
 
     # normalize the channel columns by the cell size
@@ -181,12 +183,12 @@ def compute_cell_cluster_weighted_channel_avg(fovs, channels, base_dir,
     cell_table = cell_table[cell_table['fov'].isin(fovs)]
 
     # need to ensure that both cell_table and cluster_data have FOVs and segmentation_labels sorted
-    # in the same order, this can be done by simply sorting by fov and segmentation_label for both
+    # in the same order, this can be done by simply sorting by fov and label for both
     cell_table = cell_table.sort_values(
-        by=['fov', 'segmentation_label']
+        by=['fov', 'label']
     ).reset_index(drop=True)
     cell_cluster_data = cell_cluster_data.sort_values(
-        by=['fov', 'segmentation_label']
+        by=['fov', 'label']
     ).reset_index(drop=True)
 
     # add an extra check to ensure that the FOVs and segmentation labels are in the same order
@@ -197,8 +199,8 @@ def compute_cell_cluster_weighted_channel_avg(fovs, channels, base_dir,
     )
     misc_utils.verify_same_elements(
         enforce_order=True,
-        cell_table_labels=list(cell_table['segmentation_label']),
-        cluster_data_labels=list(cell_cluster_data['segmentation_label'])
+        cell_table_labels=list(cell_table['label']),
+        cluster_data_labels=list(cell_cluster_data['label'])
     )
 
     # assign the cluster labels to cell_table
