@@ -52,9 +52,9 @@ def create_object_masks(
 
     object_masks: xr.DataArray = xr.zeros_like(other=fov_xr)
 
-    for channel in fov_xr.channels:
-        object_masks.loc[dict(channels=channel)] = _create_object_mask(
-            input_image=fov_xr.sel(channels=channel),
+    for channel in fov_xr.fovs:
+        object_masks.loc[dict(fovs=channel)] = _create_object_mask(
+            input_image=fov_xr.sel(fovs=channel),
             object_shape_type=object_shape_type,
             sigma=sigma,
             thresh=thresh,

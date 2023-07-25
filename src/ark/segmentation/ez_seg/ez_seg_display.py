@@ -12,10 +12,9 @@ from matplotlib import gridspec
 from alpineer import io_utils
 
 
-# displaying a channel or composite
 def display_channel_image(base_image_path: Union[str, pathlib.Path]) -> None:
     """
-    Displays the base image.
+    Displays a channel or a composite image.
 
     Args:
         base_image_path (Union[str, pathlib.Path]): The path to the image.
@@ -24,13 +23,11 @@ def display_channel_image(base_image_path: Union[str, pathlib.Path]) -> None:
         base_image_path = pathlib.Path(base_image_path)
     io_utils.validate_paths(base_image_path)
 
-    # Load the base image
     base_image: np.ndarray = imread(base_image_path, as_gray=True)
 
-    # Auto-scale the base image
     base_image_scaled = img_as_ubyte(base_image)
 
-    # Display the original base image
+    # Plot
     fig: Figure = plt.figure(dpi=300, figsize=(6, 6))
     fig.set_layout_engine(layout="constrained")
     gs = gridspec.GridSpec(1, 1, figure=fig)
@@ -45,7 +42,8 @@ def display_channel_image(base_image_path: Union[str, pathlib.Path]) -> None:
 
 # for displaying segmentation masks overlaid upon a base channel or composite
 def overlay_mask_outlines(base_image_path, mask_image_path) -> None:
-    """_summary_
+    """
+    Displays a segmentation mask overlaid on a base image (channel or composite)
 
     Args:
         base_image_path (_type_): _description_
@@ -89,7 +87,6 @@ def overlay_mask_outlines(base_image_path, mask_image_path) -> None:
     fig.show()
 
 
-# show all merged masks
 def multiple_mask_displays(merge_mask_list, base_mask) -> None:
     # Create a grid to display the images
     num_images = len(merge_mask_list) * 2
@@ -107,7 +104,7 @@ def multiple_mask_displays(merge_mask_list, base_mask) -> None:
     fig.set_layout_engine(layout="constrained")
     gs = gridspec.GridSpec(nrows=grid_rows, ncols=grid_cols, figure=fig)
 
-    for mask, (grix_row, grid_col) in enumerate(
+    for mask, (grix_row, grid_col) in zip(
         merge_mask_list, itertools.product(grid_rows, grid_cols)
     ):
         modified_mask = create_overlap_and_merge_visual(
@@ -125,9 +122,9 @@ def multiple_mask_displays(merge_mask_list, base_mask) -> None:
 
 
 # for showing the overlap between two masks
-def create_overlap_and_merge_visual(object_name, base_name) -> np.ndarray:
+def create_overlap_and_merge_visual(object_name, base_image_path) -> np.ndarray:
     # read in masks
-    if isinstance(base_image_path, str):
+    if isinstance(base_name_path, str):
         base_image_path = pathlib.Path(base_image_path)
     if isinstance(mask_image_path, str):
         mask_image_path = pathlib.Path(mask_image_path)
@@ -138,8 +135,8 @@ def create_overlap_and_merge_visual(object_name, base_name) -> np.ndarray:
     merged_mask: np.ndarray = imread(object_name + "_merged.tiff", as_gray=True)
 
     # Create an image with the size of the masks
-    image: np.ndarray = np.zeros(shape=(*object_name.shape, 3),  dtype=np.uint8)
-    
+    image: np.ndarray = np.zeros(shape=(*object_name.shape, 3), dtype=np.uint8)
+
     # Assign colors to the non-overlapping areas of each mask
     image[object_name > 0] = (255, 0, 0)  # Blue for mask1
     image[base_name > 0] = (0, 0, 255)  # Red for mask2
