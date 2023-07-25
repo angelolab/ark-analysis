@@ -3,6 +3,7 @@ import os
 import pathlib
 import tempfile
 from zipfile import ZipFile
+from pathlib import Path
 
 import numpy as np
 import pytest
@@ -56,8 +57,7 @@ def mocked_run_deepcell(in_zip_path, output_dir, host, job_type, scale, timeout,
     return 0
 
 
-@patch("builtins.print")
-def test_zip_input_files(mocked_print):
+def test_zip_input_files():
     with tempfile.TemporaryDirectory() as temp_dir:
         fov_data = np.ones(shape=(10, 10), dtype="float32")
         image_utils.save_image(os.path.join(temp_dir, 'fov1.tiff'), fov_data)
@@ -65,8 +65,7 @@ def test_zip_input_files(mocked_print):
 
         # test successful zipping
         zip_path = zip_input_files(temp_dir, fov_group=["fov1", "fov2"], batch_num=1)
-        assert mocked_print.mock_calls == [call("Zipping preprocessed tiff files.")]
-        mocked_print.reset_mock()
+        create_time = Path(zip_path).stat().st_ctime
 
         # check zip contents
         with ZipFile(os.path.join(temp_dir, 'fovs_batch_1.zip'), 'r') as zip_batch1:
@@ -74,7 +73,10 @@ def test_zip_input_files(mocked_print):
 
         # test previously zipped batches are not re-zipped
         zip_path = zip_input_files(temp_dir, fov_group=["fov1", "fov2"], batch_num=1)
-        assert mocked_print.mock_calls == [call("fovs_batch_1.zip already exists.")]
+        modify_time = Path(zip_path).stat().st_mtime
+
+        # check zip file was not overwritten
+        assert modify_time - create_time == 0
 
 
 def test_extract_deepcell_response():

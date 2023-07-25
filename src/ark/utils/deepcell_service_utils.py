@@ -30,15 +30,12 @@ def zip_input_files(deepcell_input_dir, fov_group, batch_num):
 
     # create zip files, skip any existing
     if not os.path.exists(zip_path):
-        print('Zipping preprocessed tiff files.')
         with ZipFile(zip_path, 'w', compression=ZIP_DEFLATED) as zipObj:
             for fov in fov_group:
                 # file has .tiff extension
                 basename = fov + '.tiff'
                 filename = os.path.join(deepcell_input_dir, basename)
                 zipObj.write(filename, basename)
-    else:
-        print(f'fovs_batch_{batch_num}.zip already exists.')
 
     return zip_path
 
@@ -66,8 +63,6 @@ def extract_deepcell_response(deepcell_output_dir, fov_group, batch_num, wc_suff
     """
 
     # extract the .tif output
-    print("Extracting tif files from DeepCell response.")
-
     batch_zip = os.path.join(
         deepcell_output_dir, f"deepcell_response_fovs_batch_{batch_num}.zip")
 
@@ -185,8 +180,6 @@ def create_deepcell_output(deepcell_input_dir, deepcell_output_dir, fovs=None,
         output_zip_path = os.path.join(deepcell_output_dir, f"deepcell_response_" + batch_filename)
         if os.path.exists(output_zip_path):
             print(f"Skipping previously processed batch_{batch_num}.")
-        else:
-            print("Uploading files to DeepCell server.")
 
         # upload to deepcell
         total_time, status = 0, 0
@@ -285,7 +278,8 @@ def run_deepcell_direct(input_dir, output_dir, host='https://deepcell.org',
     # check redis every 3 seconds
     redis_url = host + '/api/redis'
 
-    print('Segmentation progress:')
+    batch_num = (io_utils.remove_file_extensions([filename])[0]).split("_")[-1]
+    print(f'Segmentation progress for batch_{batch_num}:')
     progress_bar = tqdm(total=100,
                         bar_format='{l_bar}{bar}| {n_fmt}/{total_fmt} [{elapsed}<{remaining}]')
 
