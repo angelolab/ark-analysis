@@ -251,8 +251,9 @@ def plot_cluster(
 def plot_neighborhood_cluster_result(img_xr: xr.DataArray,
                                      fovs: list[str],
                                      k: int,
-                                     save_dir: Union[str, pathlib.Path] = None,
                                      cmap_name: str = "tab20",
+                                     cbar_visible: bool = True,
+                                     save_dir: Union[str, pathlib.Path] = None,
                                      fov_col: str = "fovs",
                                      dpi: int = 300,
                                      figsize=(10, 10)
@@ -267,10 +268,12 @@ def plot_neighborhood_cluster_result(img_xr: xr.DataArray,
             A list of FOVs to plot.
         k (int):
             The number of neighborhoods / clusters.
-        save_dir (Union[str, pathlib.Path], optional):
-            The image will be saved to this location if provided. Defaults to None.
         cmap_name (str, optional):
             The Colormap to use for clustering results. Defaults to "tab20".
+        cbar_visible (bool, optional):
+            Whether or not to display the colorbar. Defaults to True.
+        save_dir (Union[str, pathlib.Path], optional):
+            The image will be saved to this location if provided. Defaults to None.
         fov_col (str, optional):
             The column with the fov names in `img_xr`. Defaults to "fovs".
         dpi (int, optional):
@@ -299,6 +302,7 @@ def plot_neighborhood_cluster_result(img_xr: xr.DataArray,
             fov=fov.fovs.values,
             cmap=cmap,
             norm=norm,
+            cbar_visible=cbar_visible,
             cbar_labels=cbar_labels,
             dpi=dpi,
             figsize=figsize
@@ -316,25 +320,31 @@ def plot_pixel_cell_cluster_overlay(img_xr: xr.DataArray,
                                     cluster_type: Union[Literal["pixel"], Literal["cell"]]="pixel",
                                     cbar_visible: bool = True,
                                     save_dir=None,
-                                    fov_col="fovs",
+                                    fov_col: str ="fovs",
                                     dpi=300,
                                     figsize=(10, 10)):
     """Overlays the pixel and cell clusters on an image
 
     Args:
-        img_xr (xarray.DataArray):
-            xarray containing labeled pixel or cell clusters
-        fovs (list):
-            list of fovs to display
+        img_xr (xr.DataArray):
+            DataArray containing labeled pixel or cell clusters
+        fovs (list[str]):
+            A list of FOVs to plot.
         cluster_id_to_name_path (str):
-            a path to a CSV identifying the pixel/cell cluster to manually-defined name mapping
+            A path to a CSV identifying the pixel/cell cluster to manually-defined name mapping
             this is output by the remapping visualization found in `metacluster_remap_gui`
         metacluster_colors (dict):
-            maps each metacluster id to a color
-        cluster_type (str):
-            the type of clustering being done
+            Dictionary which maps each metacluster id to a color
+        cluster_type ("pixel" or "cell"):
+            the type of clustering being done.
+        cbar_visible (bool, optional):
+            Whether or not to display the colorbar. Defaults to True.
         save_dir (str):
             If provided, the image will be saved to this location.
+        fov_col (str):
+            The column with the fov names in `img_xr`. Defaults to "fovs".
+        dpi (int):
+            The resolution of the image to use for saving. Defaults to 300.
         figsize (tuple):
             Size of the image that will be displayed.
     """
