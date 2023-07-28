@@ -194,6 +194,8 @@ def plot_cluster(
             A colormap to use for the cluster image.
         norm (colors.BoundaryNorm):
             A normalization to use for the cluster image.
+        cbar_visible (bool, optional):
+            Whether or not to display the colorbar. Defaults to True.
         cbar_labels (list[str], optional):
             Colorbar labels for the clusters. Devaults to None, where
             the labels will be automatically generated.
