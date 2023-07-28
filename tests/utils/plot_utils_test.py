@@ -5,6 +5,7 @@ import tempfile
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Dict, Generator, List
+from matplotlib import cm
 
 import matplotlib.colors as colors
 import natsort
@@ -45,6 +46,70 @@ def _generate_image_data(img_dims):
     return np.random.randint(low=0, high=100, size=img_dims)
 
 
+@pytest.fixture(scope="module")
+def metacluster_colors(n_metaclusters: int) -> Generator[Dict, None, None]:
+    """
+    Generates a dictionary of metacluster colors and yields the dictionary.
+
+    Yields:
+        Generator[dict, None, None]: Yields the dictionary of metacluster colors.
+    """
+    sample_mapping = {
+        i: tuple(np.random.rand(4)) for i in np.arange(n_metaclusters)
+    }
+
+    yield sample_mapping
+
+
+def test_plot_cluster(rng: np.random.Generator):
+    cluster_image: np.ndarray = rng.integers(0, 6, size=(10, 10))
+
+    cbar_labels = ["Empty"]
+    cbar_labels.extend([f"Cluster {i}" for i in range(6)])
+    cmap = cm.get_cmap("tab20")
+    norm = colors.BoundaryNorm(np.arange(8), cmap.N)
+
+    fig = plot_utils.plot_cluster(image=cluster_image,
+                                  fov="test_fov",
+                                  cmap=cmap,
+                                  norm=norm,
+                                  cbar_labels=cbar_labels,
+                                  figsize=(5, 5),)
+
+
+def test_plot_neighborhood_cluster_result(tmp_path: pathlib.Path):
+    sample_img_data = np.random.randint(0, 20, size=(3, 1024, 1024))
+    sample_img_xr = xr.DataArray(
+        sample_img_data,
+        coords=[['fov1', 'fov2', 'fov3'], np.arange(1024), np.arange(1024)],
+        dims=['fovs', 'x', 'y']
+    )
+
+    plot_utils.plot_neighborhood_cluster_result(img_xr=sample_img_xr,
+                                                fovs=sample_img_xr.fovs.values,
+                                                k=5,
+                                                save_dir=tmp_path,
+                                                cmap_name="tab20",
+                                                fov_col="fovs",
+                                                dpi=10,
+                                                figsize=(5, 5),
+                                                )
+
+    for fov in sample_img_xr.fovs.values:
+        assert os.path.exists(os.path.join(tmp_path, f"{fov}.png"))
+
+    with pytest.raises(ValueError):
+        plot_utils.plot_neighborhood_cluster_result(img_xr=sample_img_xr,
+                                                    fovs=["bad_fov"],
+                                                    k=5,
+                                                    save_dir=tmp_path,
+                                                    cmap_name="tab20",
+                                                    fov_col="fovs",
+                                                    dpi=10,
+                                                    figsize=(5, 5),
+                                                    )
+
+
 def test_plot_pixel_cell_cluster_overlay(metacluster_colors):
     sample_img_data = np.random.randint(0, 20, size=(3, 1024, 1024))
     sample_img_xr = xr.DataArray(
@@ -67,7 +132,7 @@ def test_plot_pixel_cell_cluster_overlay(metacluster_colors):
 
     with tempfile.TemporaryDirectory() as td:
         # define the path to the cluster map
-        mapping_path = os.path.join(td, 'sample_mapping_path.csv')
+        cluster_id_to_name_path = os.path.join(td, 'sample_mapping_path.csv')
 
         # invalid columns provided in mapping
         df = pd.DataFrame.from_dict({
@@ -75,16 +140,16 @@ def test_plot_pixel_cell_cluster_overlay(metacluster_colors):
             'pixel_meta_cluster': np.repeat(np.arange(5), 4),
             'pixel_meta_cluster_rename': ['meta' + str(i) for i in np.repeat(np.arange(5), 4)]
         })
-        df.to_csv(mapping_path, index=False)
+        df.to_csv(cluster_id_to_name_path, index=False)
 
         with pytest.raises(ValueError):
             plot_utils.plot_pixel_cell_cluster_overlay(
-                sample_img_xr, ['fov1', 'fov2'], mapping_path, {}
+                sample_img_xr, ['fov1', 'fov2'], cluster_id_to_name_path, {}
             )
 
         # rename bad_cluster_col to cluster so it passes that test
         df = df.rename({'bad_cluster_col': 'pixel_som_cluster'}, axis=1)
-        df.to_csv(mapping_path, index=False)
+        df.to_csv(cluster_id_to_name_path, index=False)
 
         # invalid sample_mapping dict provided, metaclusters do not match
         # those found in mapping_path
@@ -92,15 +157,12 @@ def test_plot_pixel_cell_cluster_overlay(metacluster_colors):
 
         with pytest.raises(ValueError):
             plot_utils.plot_pixel_cell_cluster_overlay(
-                sample_img_xr, ['fov1', 'fov2'], mapping_path, bad_sample_mapping
+                sample_img_xr, ['fov1', 'fov2'], cluster_id_to_name_path, bad_sample_mapping
             )
-
-        # define a valid mapping
-        sample_mapping = metacluster_colors
 
         # test 1: save_dir not specified
         plot_utils.plot_pixel_cell_cluster_overlay(
-            sample_img_xr, ['fov1', 'fov2'], mapping_path, sample_mapping
+            sample_img_xr, ['fov1', 'fov2'], cluster_id_to_name_path, metacluster_colors
         )
 
         # assert no files created in temp_dir
@@ -109,7 +171,7 @@ def test_plot_pixel_cell_cluster_overlay(metacluster_colors):
 
         # test 2: save_dir specified
         plot_utils.plot_pixel_cell_cluster_overlay(
-            sample_img_xr, ['fov1', 'fov2'], mapping_path, sample_mapping,
+            sample_img_xr, ['fov1', 'fov2'], cluster_id_to_name_path, metacluster_colors,
             save_dir=td
         )
 
@@ -521,21 +583,6 @@ def cluster_id_to_name_mapping(
     df.to_csv(mapping_path, index=False)
 
     yield mapping_path
-
-
-@pytest.fixture(scope="module")
-def metacluster_colors(n_metaclusters: int) -> Generator[Dict, None, None]:
-    """
-    Generates a dictionary of metacluster colors and yields the dictionary.
-
-    Yields:
-        Generator[dict, None, None]: Yields the dictionary of metacluster colors.
-    """
-    sample_mapping = {
-        i: tuple(np.random.rand(4)) for i in np.arange(n_metaclusters)
-    }
-
-    yield sample_mapping
 
 
 class TestMetaclusterColormap():

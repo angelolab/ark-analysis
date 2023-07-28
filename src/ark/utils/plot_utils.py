@@ -4,9 +4,12 @@ import shutil
 from dataclasses import dataclass, field
 from operator import contains
 from typing import Dict, List, Literal, Optional, Tuple, Union
+from matplotlib import gridspec
+from matplotlib.axes import Axes
 
 import matplotlib.cm as cm
 import matplotlib.colors as colors
+from matplotlib.figure import Figure
 import matplotlib.pyplot as plt
 import natsort
 import numpy as np
@@ -170,24 +173,108 @@ class MetaclusterColormap:
         return relabeled_fov
 
 
-def plot_neighborhood_cluster_result(img_xr, fovs, k, save_dir=None, cmap_name='tab20',
-                                     fov_col='fovs', figsize=(10, 10)):
-    """Takes an xarray containing labeled images and displays them.
+def plot_cluster(
+        image: np.ndarray,
+        fov: str,
+        cmap: colors.ListedColormap,
+        norm: colors.BoundaryNorm,
+        cbar_visible: bool = True,
+        cbar_labels: list[str] = None,
+        dpi: int = 300,
+        figsize: tuple[int, int] = (10, 10)) -> Figure:
+    """
+    Plots the cluster image with the provided colormap.
+
     Args:
-        img_xr (xarray.DataArray):
-            xarray containing labeled cell objects.
-        fovs (list):
-            list of fovs to display.
+        image (np.ndarray):
+            The cluster image to plot.
+        fov (str):
+            The name of the clustered FOV.
+        cmap (colors.ListedColormap):
+            A colormap to use for the cluster image.
+        norm (colors.BoundaryNorm):
+            A normalization to use for the cluster image.
+        cbar_labels (list[str], optional):
+            Colorbar labels for the clusters. Devaults to None, where
+            the labels will be automatically generated.
+        dpi (int, optional):
+            The resolution of the image to use for saving. Defaults to 300.
+        figsize (tuple, optional):
+            The size of the image to display. Defaults to (10, 10).
+
+    Returns:
+        Figure: Returns the cluster image as a matplotlib Figure.
+    """
+    # Default colorbar labels
+    if cbar_labels is None:
+        cbar_labels = [f"Cluster {x}" for x in range(1, len(cmap.colors))]
+
+    fig: Figure = plt.figure(figsize=figsize, dpi=dpi)
+    fig.set_layout_engine(layout="tight")
+    gs = gridspec.GridSpec(nrows=1, ncols=2, figure=fig, width_ratios=[60, 1])
+    fig.suptitle(f"{fov}")
+
+    # Image axis
+    ax: Axes = fig.add_subplot(gs[0, 0])
+    # Colorbar Axis
+    cax: Axes = fig.add_subplot(gs[0, 1])
+
+    ax.axis("off")
+    ax.grid(visible=False)
+
+    ax.imshow(
+        X=image,
+        cmap=cmap,
+        norm=norm,
+        origin="upper",
+        aspect="equal",
+        interpolation=None,
+    )
+    
+    if cbar_visible:
+        # Manually set the colorbar
+        cbar = fig.colorbar(cm.ScalarMappable(norm=norm, cmap=cmap), cax=cax,
+                            orientation="vertical", use_gridspec=True, pad=0.1)
+        cbar.ax.set_yticks(
+            ticks=np.arange(len(cbar_labels)),
+            labels=cbar_labels
+        )
+        cbar.minorticks_off()
+    else:
+        cax.axis("off")
+    
+    return fig
+
+
+def plot_neighborhood_cluster_result(img_xr: xr.DataArray,
+                                     fovs: list[str],
+                                     k: int,
+                                     save_dir: Union[str, pathlib.Path] = None,
+                                     cmap_name: str = "tab20",
+                                     fov_col: str = "fovs",
+                                     dpi: int = 300,
+                                     figsize=(10, 10)
+                                     ) -> None:
+    """
+    Plots the neighborhood clustering results for the provided FOVs.
+
+    Args:
+        img_xr (xr.DataArray):
+            DataArray containing labeled cells.
+        fovs (list[str]):
+            A list of FOVs to plot.
         k (int):
-            number of clusters (neighborhoods)
-        save_dir (str):
-            If provided, the image will be saved to this location.
-        cmap_name (str):
-            Cmap to use for the image that will be displayed.
-        fov_col (str):
-            column with the fovs names in `img_xr`.
-        figsize (tuple):
-            Size of the image that will be displayed.
+            The number of neighborhoods / clusters.
+        save_dir (Union[str, pathlib.Path], optional):
+            The image will be saved to this location if provided. Defaults to None.
+        cmap_name (str, optional):
+            The Colormap to use for clustering results. Defaults to "tab20".
+        fov_col (str, optional):
+            The column with the fov names in `img_xr`. Defaults to "fovs".
+        dpi (int, optional):
+            The resolution of the image to use for saving. Defaults to 300.
+        figsize (tuple, optional):
+            The size of the image to display. Defaults to (10, 10).
     """
 
     # verify the fovs are valid
@@ -200,45 +287,35 @@ def plot_neighborhood_cluster_result(img_xr, fovs, k, save_dir=None, cmap_name='
     bounds = [i-0.5 for i in np.linspace(0, k+1, k+2)]
     norm = colors.BoundaryNorm(bounds, cmap.N)
 
-    for fov in fovs:
-        # define the figure
-        plt.figure(figsize=figsize)
+    cbar_labels = ["Empty"]
+    cbar_labels.extend([f"Cluster {x}" for x in range(1, k+1)])
 
-        # define the axis
-        ax = plt.gca()
+    for fov in img_xr.sel({fov_col: fovs}):
 
-        # make the title
-        plt.title(fov)
-
-        # show the image on the figure
-        im = plt.imshow(img_xr[img_xr[fov_col] == fov].values.squeeze(),
-                        cmap=cmap, norm=norm, interpolation='none')
-
-        # remove the axes
-        plt.axis('off')
-
-        # remove the gridlines
-        plt.grid(visible=None)
-
-        # ensure the colorbar matches up with the margins on the right
-        divider = make_axes_locatable(ax)
-        cax = divider.append_axes("right", size="5%", pad=0.05)
-
-        # draw the colorbar
-        tick_names = ['Cluster'+str(x) for x in range(1, k+1)]
-        tick_names = ['Empty'] + tick_names
-        cbar = plt.colorbar(im, cax=cax, ticks=np.arange(len(tick_names)))
-        cbar.set_ticks(cbar.ax.get_yticks())
-        cbar.ax.set_yticklabels(tick_names)
+        fig: Figure = plot_cluster(
+            image=fov.values.squeeze(),
+            fov=fov.fovs.values,
+            cmap=cmap,
+            norm=norm,
+            cbar_labels=cbar_labels,
+            dpi=dpi,
+            figsize=figsize
+        )
 
         # save if specified
         if save_dir:
-            misc_utils.save_figure(save_dir, f'{fov}.png')
+            fig.savefig(fname=os.path.join(save_dir, f"{fov.fovs.values}.png"), dpi=300)
 
 
-# TODO: possibly need to merge this with plot_neighborhood_cluster_result
-def plot_pixel_cell_cluster_overlay(img_xr, fovs, cluster_id_to_name_path, metacluster_colors,
-                                    cluster_type='pixel', save_dir=None, fov_col='fovs',
+def plot_pixel_cell_cluster_overlay(img_xr: xr.DataArray,
+                                    fovs: list[str],
+                                    cluster_id_to_name_path: Union[str, pathlib.Path],
+                                    metacluster_colors: Dict,
+                                    cluster_type: Union[Literal["pixel"], Literal["cell"]]="pixel",
+                                    cbar_visible: bool = True,
+                                    save_dir=None,
+                                    fov_col="fovs",
+                                    dpi=300,
                                     figsize=(10, 10)):
     """Overlays the pixel and cell clusters on an image
 
@@ -256,8 +333,6 @@ def plot_pixel_cell_cluster_overlay(img_xr, fovs, cluster_id_to_name_path, metac
             the type of clustering being done
         save_dir (str):
             If provided, the image will be saved to this location.
-        fov_col (str):
-            column with the fovs names in `img_xr`.
         figsize (tuple):
             Size of the image that will be displayed.
     """
@@ -278,50 +353,25 @@ def plot_pixel_cell_cluster_overlay(img_xr, fovs, cluster_id_to_name_path, metac
     mcc = MetaclusterColormap(cluster_type=cluster_type,
                               cluster_id_to_name_path=cluster_id_to_name_path,
                               metacluster_colors=metacluster_colors)
-    for fov in fovs:
-        # retrieve the image associated with the FOV
-        fov_img = img_xr[img_xr[fov_col] == fov].values
 
-        fov_img: np.ndarray = mcc.assign_metacluster_cmap(fov_img)
+    for fov in img_xr.sel({fov_col: fovs}):
+        fov: xr.DataArray
+        fov_img = mcc.assign_metacluster_cmap(fov_img=fov.squeeze())
 
-        # define the figure
-        fig = plt.figure(figsize=figsize)
-
-        # make the title
-        plt.title(fov)
-
-        # display the image
-        overlay = plt.imshow(
-            fov_img.squeeze(),
+        fig: Figure = plot_cluster(
+            image=fov_img.squeeze(),
+            fov=fov.fovs.values,
             cmap=mcc.cmap,
             norm=mcc.norm,
-            origin='upper'
+            cbar_visible=cbar_visible,
+            cbar_labels=mcc.metacluster_id_to_name[f'{cluster_type}_meta_cluster_rename'].values,
+            dpi=dpi,
+            figsize=figsize,
         )
-
-        # remove the axes
-        plt.axis('off')
-
-        # remove the gridlines
-        plt.grid(visible=False)
-
-        # define the colorbar with annotations
-        cax = fig.add_axes([0.9, 0.1, 0.01, 0.8])
-        cbar = plt.colorbar(
-            overlay,
-            ticks=np.arange(len(mcc.mc_colors)),
-            cax=cax,
-            orientation='vertical'
-        )
-        cbar.ax.set_yticklabels(
-            mcc.metacluster_id_to_name[f'{cluster_type}_meta_cluster_rename'].values)
-
-        # explicitly turn off intermediate minor ticks
-        for mt in cbar.ax.yaxis.get_minor_ticks():
-            mt.set_visible(False)
 
         # save if specified
         if save_dir:
-            misc_utils.save_figure(save_dir, f"{fov}.png")
+            fig.savefig(fname=os.path.join(save_dir, f"{fov.fovs.values}.png"), dpi=300)
 
 
 def tif_overlay_preprocess(segmentation_labels, plotting_tif):
