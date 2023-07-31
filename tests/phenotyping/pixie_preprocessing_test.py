@@ -396,7 +396,7 @@ def test_create_pixel_matrix_base(fovs, chans, sub_dir, seg_dir_include,
                 seg_dir=seg_dir
             )
 
-        # make the channel_norm.feather file if the test requires it
+        # make the channel_norm_pre_rownorm.feather file if the test requires it
         # NOTE: pixel_mat_data already created in the previous validation tests
         if channel_norm_include:
             # helps test if channel_norm.feather contains a different set of channels
@@ -408,7 +408,9 @@ def test_create_pixel_matrix_base(fovs, chans, sub_dir, seg_dir_include,
 
             feather.write_dataframe(
                 sample_channel_norm_df,
-                os.path.join(temp_dir, sample_pixel_output_dir, 'channel_norm.feather'),
+                os.path.join(
+                    temp_dir, sample_pixel_output_dir, 'channel_norm_pre_rownorm.feather'
+                ),
                 compression='uncompressed'
             )
 
@@ -447,7 +449,7 @@ def test_create_pixel_matrix_base(fovs, chans, sub_dir, seg_dir_include,
         # if there wasn't originally a channel_norm.feather or if overwritten, assert one created
         if not channel_norm_include or norm_diff_chan:
             assert os.path.exists(
-                os.path.join(temp_dir, sample_pixel_output_dir, 'channel_norm.feather')
+                os.path.join(temp_dir, sample_pixel_output_dir, 'channel_norm_pre_rownorm.feather')
             )
 
         # if there wasn't originally a pixel_thresh.feather or if overwritten, assert one created
@@ -457,7 +459,7 @@ def test_create_pixel_matrix_base(fovs, chans, sub_dir, seg_dir_include,
             )
 
         # check that we created a norm vals file
-        assert os.path.exists(os.path.join(temp_dir, 'channel_norm_post_rowsum.feather'))
+        assert os.path.exists(os.path.join(temp_dir, 'channel_norm_post_rownorm.feather'))
 
         for fov in fovs:
             fov_data_path = os.path.join(
@@ -529,7 +531,7 @@ def test_create_pixel_matrix_base(fovs, chans, sub_dir, seg_dir_include,
 
         feather.write_dataframe(
             sample_channel_norm_df,
-            os.path.join(temp_dir, sample_pixel_output_dir, 'channel_norm.feather'),
+            os.path.join(temp_dir, sample_pixel_output_dir, 'channel_norm_pre_rownorm.feather'),
             compression='uncompressed'
         )
 
@@ -590,7 +592,7 @@ def test_create_pixel_matrix_missing_fov(multiprocess, capsys):
         )
         sample_quant_data.index.name = 'channel'
         sample_quant_data.to_csv(
-            os.path.join(temp_dir, 'pixel_mat_data', 'channel_norm_post_rowsum_perfov.csv'))
+            os.path.join(temp_dir, 'pixel_mat_data', 'channel_norm_post_rownorm_perfov.csv'))
 
         pixie_preprocessing.create_pixel_matrix(
             fovs=PIXEL_MATRIX_FOVS,
@@ -622,7 +624,7 @@ def test_create_pixel_matrix_missing_fov(multiprocess, capsys):
         # NOTE: in this case, the value in quant_dat will also not have been written
         os.remove(os.path.join(temp_dir, 'pixel_mat_subsetted', 'fov1.feather'))
         sample_quant_data.to_csv(
-            os.path.join(temp_dir, 'pixel_mat_data', 'channel_norm_post_rowsum_perfov.csv'))
+            os.path.join(temp_dir, 'pixel_mat_data', 'channel_norm_post_rownorm_perfov.csv'))
 
         pixie_preprocessing.create_pixel_matrix(
             fovs=PIXEL_MATRIX_FOVS,
@@ -652,7 +654,7 @@ def test_create_pixel_matrix_missing_fov(multiprocess, capsys):
         # NOTE: in this case, the value in quantile_dat will also not have been written
         os.remove(os.path.join(temp_dir, 'pixel_mat_data', 'fov1.feather'))
         sample_quant_data.to_csv(
-            os.path.join(temp_dir, 'pixel_mat_data', 'channel_norm_post_rowsum_perfov.csv'))
+            os.path.join(temp_dir, 'pixel_mat_data', 'channel_norm_post_rownorm_perfov.csv'))
 
         pixie_preprocessing.create_pixel_matrix(
             fovs=PIXEL_MATRIX_FOVS,

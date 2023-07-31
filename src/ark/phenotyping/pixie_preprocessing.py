@@ -190,9 +190,12 @@ def create_pixel_matrix(fovs, channels, base_dir, tiff_dir, seg_dir,
                         pixel_output_dir='pixel_output_dir',
                         data_dir='pixel_mat_data',
                         subset_dir='pixel_mat_subsetted',
-                        norm_vals_name='channel_norm_post_rowsum.feather', is_mibitiff=False,
-                        blur_factor=2, subset_proportion=0.1, seed=42,
-                        channel_percentile_postnorm=0.999, multiprocess=False, batch_size=5):
+                        norm_vals_pre_rownorm_name='channel_norm_pre_rownorm.feather',
+                        norm_vals_post_rownorm_name='channel_norm_post_rownorm.feather',
+                        pixel_thresh_name='pixel_thresh.feather',
+                        channel_percentile_pre_rownorm=0.99, channel_percentile_post_rownorm=0.999,
+                        is_mibitiff=False, blur_factor=2, subset_proportion=0.1, seed=42,
+                        multiprocess=False, batch_size=5):
     """For each fov, add a Gaussian blur to each channel and normalize channel sums for each pixel
 
     Saves data to `data_dir` and subsetted data to `subset_dir`
@@ -224,8 +227,16 @@ def create_pixel_matrix(fovs, channels, base_dir, tiff_dir, seg_dir,
         subset_dir (str):
             The name of the directory containing the subsetted pixel data.
             Should be placed in `pixel_output_dir`.
-        norm_vals_name (str):
-            The name of the file to store the 99.9% normalization values
+        norm_vals_name_pre_rownorm (str):
+            The name of the file to store the pre pixel-thresholded norm values
+        norm_vals_name_post_rownorm (str):
+            The name of the file to store the post pixel-thresholded norm values
+        pixel_thresh_name (str):
+            The name of the file to store the pixel threshold value
+        channel_percentile_pre_rownorm (float):
+            Percentile used to normalize channels before pixel thresholding
+        channel_percentile_post_rownorm (float):
+            Percentile used to normalize channels after pixel thresholding
         is_mibitiff (bool):
             Whether to load the images from MIBITiff
         blur_factor (int):
@@ -234,8 +245,6 @@ def create_pixel_matrix(fovs, channels, base_dir, tiff_dir, seg_dir,
             The proportion of pixels to take from each fov
         seed (int):
             The random seed to set for subsetting
-        channel_percentile_postnorm (float):
-            Percentile used to normalize channels after pixel normalization
         multiprocess (bool):
             Whether to use multiprocessing or not
         batch_size (int):
@@ -258,20 +267,20 @@ def create_pixel_matrix(fovs, channels, base_dir, tiff_dir, seg_dir,
         os.mkdir(os.path.join(base_dir, subset_dir))
 
     # define path to channel normalization values
-    channel_norm_path = os.path.join(
-        base_dir, pixel_output_dir, 'channel_norm.feather'
+    channel_norm_pre_rownorm_path = os.path.join(
+        base_dir, pixel_output_dir, norm_vals_name_pre_rownorm
     )
 
     # define path to pixel normalization values
     pixel_thresh_path = os.path.join(
-        base_dir, pixel_output_dir, 'pixel_thresh.feather'
+        base_dir, pixel_output_dir, pixel_thresh_name
     )
 
     # reset entire cohort if channels provided are different from ones in existing channel_norm
-    if os.path.exists(channel_norm_path):
-        channel_norm_df = feather.read_dataframe(channel_norm_path)
+    if os.path.exists(channel_norm_pre_rownorm_path):
+        channel_norm_pre_rownorm_df = feather.read_dataframe(channel_norm_pre_rownorm_path)
 
-        if set(channel_norm_df.columns.values) != set(channels):
+        if set(channel_norm_pre_rownorm_df.columns.values) != set(channels):
             print("New channels provided: overwriting whole cohort")
 
             # delete the existing data in data_dir and subset_dir
@@ -281,12 +290,12 @@ def create_pixel_matrix(fovs, channels, base_dir, tiff_dir, seg_dir,
             rmtree(os.path.join(base_dir, subset_dir))
             os.mkdir(os.path.join(base_dir, subset_dir))
 
-            # delete the existing channel_norm.feather and pixel_thresh.feather
-            os.remove(channel_norm_path)
+            # delete the existing channel_norm_pre_rownorm.feather and pixel_thresh.feather
+            os.remove(channel_norm_pre_rownorm_path)
             os.remove(pixel_thresh_path)
 
     # create variable for storing 99.9% values
-    quantile_path = os.path.join(base_dir, data_dir, "channel_norm_post_rowsum_perfov.csv")
+    quantile_path = os.path.join(base_dir, data_dir, "channel_norm_post_rownorm_perfov.csv")
 
     # find all the FOV files in the full data and subsetted directories
     # NOTE: this handles the case where the data file was written, but not the subset file
@@ -328,28 +337,30 @@ def create_pixel_matrix(fovs, channels, base_dir, tiff_dir, seg_dir,
         channels=channels
     )
 
-    # load existing channel_norm_path if exists, otherwise generate
-    if not os.path.exists(channel_norm_path):
+    # load existing channel_norm_pre_path if exists, otherwise generate
+    if not os.path.exists(channel_norm_pre_rownorm_path):
         # compute channel percentiles
-        channel_norm_df = pixel_cluster_utils.calculate_channel_percentiles(
+        channel_norm_pre_rownorm_df = pixel_cluster_utils.calculate_channel_percentiles(
             tiff_dir=tiff_dir,
             fovs=fovs,
             channels=channels,
             img_sub_folder=img_sub_folder,
-            percentile=channel_percentile_postnorm
+            percentile=channel_percentile_pre_rownorm
         )
         # save output
-        feather.write_dataframe(channel_norm_df, channel_norm_path, compression='uncompressed')
+        feather.write_dataframe(
+            channel_norm_pre_rownorm_df, channel_norm_pre_rownorm_path, compression='uncompressed'
+        )
     else:
         # load previously generated output
-        channel_norm_df = feather.read_dataframe(channel_norm_path)
+        channel_norm_pre_rownorm_df = feather.read_dataframe(channel_norm_pre_rownorm_path)
 
     # load existing pixel_thresh_path if exists, otherwise generate
     if not os.path.exists(pixel_thresh_path):
         # compute pixel percentiles
         pixel_thresh_val = pixel_cluster_utils.calculate_pixel_intensity_percentile(
             tiff_dir=tiff_dir, fovs=fovs, channels=channels,
-            img_sub_folder=img_sub_folder, channel_percentiles=channel_norm_df
+            img_sub_folder=img_sub_folder, channel_percentiles=channel_norm_pre_rownorm_df
         )
 
         pixel_thresh_df = pd.DataFrame({'pixel_thresh_val': [pixel_thresh_val]})
@@ -362,7 +373,7 @@ def create_pixel_matrix(fovs, channels, base_dir, tiff_dir, seg_dir,
     fov_data_func = partial(
         preprocess_fov, base_dir, tiff_dir, data_dir, subset_dir,
         seg_dir, seg_suffix, img_sub_folder, is_mibitiff, channels, blur_factor,
-        subset_proportion, pixel_thresh_val, seed, channel_norm_df
+        subset_proportion, pixel_thresh_val, seed, channel_norm_pre_rownorm_df
     )
 
     # define variable to keep track of number of fovs processed
@@ -392,7 +403,7 @@ def create_pixel_matrix(fovs, channels, base_dir, tiff_dir, seg_dir,
                     # drop the metadata columns and generate the 99.9% quantile values for the FOV
                     fov_full_pixel_data = pixel_mat_data.drop(columns=cols_to_drop)
                     quant_dat_fov = fov_full_pixel_data.replace(0, np.nan).quantile(
-                        q=channel_percentile_postnorm, axis=0).rename(fov)
+                        q=channel_percentile_post_rownorm, axis=0).rename(fov)
                     quant_dat_fov.index.name = "channel"
 
                     # update the file with the newly processed fov quantile value
@@ -410,7 +421,7 @@ def create_pixel_matrix(fovs, channels, base_dir, tiff_dir, seg_dir,
             # drop the metadata columns and generate the 99.9% quantile values for the FOV
             fov_full_pixel_data = pixel_mat_data.drop(columns=cols_to_drop)
             quant_dat_fov = fov_full_pixel_data.replace(0, np.nan).quantile(
-                q=channel_percentile_postnorm, axis=0).rename(fov)
+                q=channel_percentile_post_rownorm, axis=0).rename(fov)
             quant_dat_fov.index.name = "channel"
 
             # update the file with the newly processed fov quantile values
@@ -430,7 +441,7 @@ def create_pixel_matrix(fovs, channels, base_dir, tiff_dir, seg_dir,
 
     # save 99.9% normalization values
     feather.write_dataframe(mean_quant.T,
-                            os.path.join(base_dir, norm_vals_name),
+                            os.path.join(base_dir, norm_vals_name_post_rownorm),
                             compression='uncompressed')
 
     # delete quantile data file
