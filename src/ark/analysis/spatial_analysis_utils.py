@@ -39,6 +39,8 @@ def calc_dist_matrix(label_dir, save_path, prefix='_whole_cell'):
     # iterate for each fov
     with tqdm(total=len(fov_files), desc="Distance Matrix Generation") as dist_mat_progress:
         for fov_file in fov_files:
+            dist_mat_progress.set_postfix(FOV=fov_name)
+
             # retrieve the fov name
             fov_name = fov_file.replace(prefix + '.tiff', '')
 
@@ -66,7 +68,6 @@ def calc_dist_matrix(label_dir, save_path, prefix='_whole_cell'):
                 format='NETCDF3_64BIT'
             )
 
-            dist_mat_progress.set_postfix(FOV=fov_name)
             dist_mat_progress.update(1)
 
 

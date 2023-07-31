@@ -51,6 +51,8 @@ def compute_neighborhood_diversity(neighborhood_mat, cell_type_col):
     fov_list = np.unique(neighborhood_mat[settings.FOV_ID])
     with tqdm(total=len(fov_list), desc="Calculate Neighborhood Diversity") as diversity_progress:
         for fov in fov_list:
+            diversity_progress.set_postfix(FOV=fov)
+
             fov_neighborhoods = neighborhood_mat[neighborhood_mat[settings.FOV_ID] == fov]
 
             diversity_scores = []
@@ -72,7 +74,6 @@ def compute_neighborhood_diversity(neighborhood_mat, cell_type_col):
             })
             diversity_data.append(fov_data)
 
-            diversity_progress.set_postfix(FOV=fov)
             diversity_progress.update(1)
 
     # dataframe containing all fovs
@@ -218,6 +219,8 @@ def generate_cell_distance_analysis(
     cell_dists = []
     with tqdm(total=len(fov_list), desc="Calculate Average Distances") as distance_progress:
         for fov in fov_list:
+            distance_progress.set_postfix(FOV=fov)
+
             fov_cell_table = cell_table[cell_table[fov_col] == fov]
             fov_dist_xr = xr.load_dataarray(os.path.join(dist_mat_dir, str(fov) + '_dist_mat.xr'))
 
@@ -231,7 +234,6 @@ def generate_cell_distance_analysis(
             fov_cell_dists.insert(2, cell_type_col, fov_cell_table[cell_type_col])
             cell_dists.append(fov_cell_dists)
 
-            distance_progress.set_postfix(FOV=fov)
             distance_progress.update(1)
 
     # combine data for all fovs and save to csv
