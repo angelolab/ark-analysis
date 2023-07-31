@@ -2,41 +2,113 @@ import itertools
 import os
 import pathlib
 import tempfile
+import time
 from zipfile import ZipFile
+from pathlib import Path
 
 import numpy as np
 import pytest
 import tifffile
-from alpineer import image_utils, test_utils
+from alpineer import image_utils, test_utils, io_utils
 from pytest_mock import MockerFixture
 from skimage import io
+from unittest.mock import call, patch
 
 from ark.utils import deepcell_service_utils
-from ark.utils.deepcell_service_utils import (_convert_deepcell_seg_masks,
-                                              create_deepcell_output)
+from ark.utils.deepcell_service_utils import (_convert_deepcell_seg_masks, create_deepcell_output,
+                                              zip_input_files, extract_deepcell_response)
 
 
-def mocked_run_deepcell(in_zip_path, output_dir, host, job_type, scale, timeout):
+def mocked_zip_input(input_dir, fovs, batch_num):
     fov_data = np.ones(shape=(10, 10), dtype="float32")
-    fov_seg_pairs = list(itertools.product(range(1, 4), ['feature_0', 'feature_1']))
+    for fov in fovs:
+        image_utils.save_image(os.path.join(input_dir, f'{fov}.tiff'), fov_data)
 
-    for i, seg_type in fov_seg_pairs:
-        image_utils.save_image(os.path.join(output_dir, f'fov{i}_{seg_type}.tif'), fov_data)
+    zip_input_files(input_dir, fovs, batch_num)
+
+
+def mocked_bad_run_deepcell(in_zip_path, output_dir, host, job_type, scale, timeout):
+    return mocked_run_deepcell(
+        in_zip_path, output_dir, host, job_type, scale, timeout, missing=True)
+
+
+def mocked_run_deepcell(in_zip_path, output_dir, host, job_type, scale, timeout, missing=False):
+    fov_data = np.ones(shape=(10, 10), dtype="float32")
+    with ZipFile(in_zip_path, 'r') as zipObj:
+        fovs = io_utils.remove_file_extensions(zipObj.namelist())
+
+    if missing:
+        fov_seg_pairs = list(itertools.product(fovs, ['feature_0']))
+    else:
+        fov_seg_pairs = list(itertools.product(fovs, ['feature_0', 'feature_1']))
+
+    # temp write output files for zip
+    for fov, seg_type in fov_seg_pairs:
+        image_utils.save_image(os.path.join(output_dir, f'{fov}_{seg_type}.tif'), fov_data)
 
     batch_num = int(in_zip_path.split('.')[0].split('_')[-1])
-    if batch_num < 2:
-        zip_path = os.path.join(output_dir, 'example_output.zip')
-    else:
-        zip_path = os.path.join(output_dir, f'example_output_{batch_num}.zip')
+    zip_path = os.path.join(output_dir, f'deepcell_response_fovs_batch_{batch_num}.zip')
+    # write deepcell output into zip file
     with ZipFile(zip_path, 'w') as zipObj:
-        if batch_num > 1:
-            return
-        for i, seg_type in fov_seg_pairs:
-            filename = os.path.join(output_dir, f'fov{i}_{seg_type}.tif')
+        for fov, seg_type in fov_seg_pairs:
+            filename = os.path.join(output_dir, f'{fov}_{seg_type}.tif')
             zipObj.write(filename, os.path.basename(filename))
             os.remove(filename)
 
     return 0
+
+
+def test_zip_input_files():
+    with tempfile.TemporaryDirectory() as temp_dir:
+        fov_data = np.ones(shape=(10, 10), dtype="float32")
+        image_utils.save_image(os.path.join(temp_dir, 'fov1.tiff'), fov_data)
+        image_utils.save_image(os.path.join(temp_dir, 'fov2.tiff'), fov_data)
+
+        # test successful zipping
+        zip_path = zip_input_files(temp_dir, fov_group=["fov1", "fov2"], batch_num=1)
+        create_time = Path(zip_path).stat().st_ctime
+
+        # check zip contents
+        with ZipFile(os.path.join(temp_dir, 'fovs_batch_1.zip'), 'r') as zip_batch1:
+            assert zip_batch1.namelist() == ['fov1.tiff', 'fov2.tiff']
+
+        # test previously zipped batches are not re-zipped
+        time.sleep(3)
+        zip_path = zip_input_files(temp_dir, fov_group=["fov1", "fov2"], batch_num=1)
+        modify_time = Path(zip_path).stat().st_mtime
+
+        # check zip file was not overwritten
+        assert np.isclose(modify_time, create_time)
+
+
+def test_extract_deepcell_response():
+    with tempfile.TemporaryDirectory() as temp_dir:
+        mocked_zip_input(temp_dir, ["fov1", "fov2", "fov3"], 1)
+        mocked_run_deepcell(os.path.join(temp_dir, "fovs_batch_1.zip"), temp_dir,
+                            host='https://deepcell.org', job_type='mesmer', scale=1.0,
+                            timeout=3600)
+
+        # test successful extraction
+        extract_deepcell_response(temp_dir, ["fov1", "fov2", "fov3"], 1, wc_suffix="_whole_cell",
+                                  nuc_suffix="_nuclear")
+
+        assert os.path.exists(os.path.join(temp_dir, 'fov1_whole_cell.tiff'))
+        assert os.path.exists(os.path.join(temp_dir, 'fov1_nuclear.tiff'))
+        assert os.path.exists(os.path.join(temp_dir, 'fov2_whole_cell.tiff'))
+        assert os.path.exists(os.path.join(temp_dir, 'fov2_nuclear.tiff'))
+        assert os.path.exists(os.path.join(temp_dir, 'fov3_whole_cell.tiff'))
+        assert os.path.exists(os.path.join(temp_dir, 'fov3_nuclear.tiff'))
+
+    with tempfile.TemporaryDirectory() as temp_dir:
+        mocked_zip_input(temp_dir, ["fov1", "fov2", "fov3"], 1)
+        mocked_bad_run_deepcell(os.path.join(temp_dir, "fovs_batch_1.zip"), temp_dir,
+                                host='https://deepcell.org', job_type='mesmer', scale=1.0,
+                                timeout=3600)
+
+        # DeepCell nuclear output .tif file does not exist
+        with pytest.warns(UserWarning):
+            extract_deepcell_response(temp_dir, ["fov1", "fov2", "fov3"], 1,
+                                      wc_suffix="_whole_cell", nuc_suffix="_nuclear")
 
 
 def test_create_deepcell_output(mocker: MockerFixture):
@@ -69,28 +141,23 @@ def test_create_deepcell_output(mocker: MockerFixture):
                                        scale='test')
 
             # make sure DeepCell (.zip) output exists
-            assert os.path.exists(os.path.join(output_dir, 'example_output.zip'))
+            assert os.path.exists(os.path.join(output_dir, 'deepcell_response_fovs_batch_1.zip'))
 
             # DeepCell output .zip file should be extracted
             assert os.path.exists(os.path.join(output_dir, 'fov1_whole_cell.tiff'))
             assert os.path.exists(os.path.join(output_dir, 'fov1_nuclear.tiff'))
             assert os.path.exists(os.path.join(output_dir, 'fov2_whole_cell.tiff'))
             assert os.path.exists(os.path.join(output_dir, 'fov2_nuclear.tiff'))
+            # check fov3 not processed
+            assert not os.path.exists(os.path.join(output_dir, 'fov3_whole_cell.tiff'))
 
             # test for 2d shape
             whole_cell_arr = io.imread(os.path.join(output_dir, 'fov1_whole_cell.tiff'))
             nuclear_arr = io.imread(os.path.join(output_dir, 'fov1_nuclear.tiff'))
             assert len(whole_cell_arr.shape) == len(nuclear_arr.shape) == 2
 
-        with tempfile.TemporaryDirectory() as output_dir:
-
-            # test parallel
-            create_deepcell_output(deepcell_input_dir=input_dir, deepcell_output_dir=output_dir,
-                                   fovs=['fov1', 'fov2'], zip_size=1, parallel=True)
-
-            # make sure DeepCell (.zip's) output exists
-            assert os.path.exists(os.path.join(output_dir, 'example_output.zip'))
-            assert os.path.exists(os.path.join(output_dir, 'example_output_2.zip'))
+            for batch_zip in io_utils.list_files(input_dir, substrs=".zip"):
+                os.remove(os.path.join(input_dir, batch_zip))
 
         with tempfile.TemporaryDirectory() as output_dir:
 
@@ -99,52 +166,30 @@ def test_create_deepcell_output(mocker: MockerFixture):
                                    fovs=['fov1', 'fov2.tiff', 'fov3.tiff'])
 
             # make sure DeepCell (.zip) output exists
-            assert os.path.exists(os.path.join(output_dir, 'example_output.zip'))
-
-            # DeepCell output .zip file should be extracted
+            assert os.path.exists(os.path.join(output_dir, 'deepcell_response_fovs_batch_1.zip'))
             assert os.path.exists(os.path.join(output_dir, 'fov1_whole_cell.tiff'))
-            assert os.path.exists(os.path.join(output_dir, 'fov1_nuclear.tiff'))
             assert os.path.exists(os.path.join(output_dir, 'fov2_whole_cell.tiff'))
-            assert os.path.exists(os.path.join(output_dir, 'fov2_nuclear.tiff'))
             assert os.path.exists(os.path.join(output_dir, 'fov3_whole_cell.tiff'))
-            assert os.path.exists(os.path.join(output_dir, 'fov3_nuclear.tiff'))
+
+            for batch_zip in io_utils.list_files(input_dir, substrs=".zip"):
+                os.remove(os.path.join(input_dir, batch_zip))
 
         with tempfile.TemporaryDirectory() as output_dir:
-
             # if fovs is None, all .tiff files in input dir should be taken
             create_deepcell_output(deepcell_input_dir=input_dir, deepcell_output_dir=output_dir)
 
             # make sure DeepCell (.zip) output exists
-            assert os.path.exists(os.path.join(output_dir, 'example_output.zip'))
+            assert os.path.exists(os.path.join(output_dir, 'deepcell_response_fovs_batch_1.zip'))
+            with ZipFile(os.path.join(output_dir, 'deepcell_response_fovs_batch_1.zip'), 'r') \
+                    as zip_batch1:
+                assert sorted(zip_batch1.namelist()) == \
+                       ['fov1_feature_0.tif', 'fov1_feature_1.tif', 'fov2_feature_0.tif',
+                        'fov2_feature_1.tif', 'fov3_feature_0.tif', 'fov3_feature_1.tif']
 
-            assert os.path.exists(os.path.join(output_dir, 'fov1_whole_cell.tiff'))
-            assert os.path.exists(os.path.join(output_dir, 'fov1_nuclear.tiff'))
-            assert os.path.exists(os.path.join(output_dir, 'fov2_whole_cell.tiff'))
-            assert os.path.exists(os.path.join(output_dir, 'fov2_nuclear.tiff'))
-            assert os.path.exists(os.path.join(output_dir, 'fov3_whole_cell.tiff'))
-            assert os.path.exists(os.path.join(output_dir, 'fov3_nuclear.tiff'))
+            for batch_zip in io_utils.list_files(input_dir, substrs=".zip"):
+                os.remove(os.path.join(input_dir, batch_zip))
 
-            pathlib.Path(os.path.join(input_dir, 'fovs.zip')).touch()
-
-            # Warning should be displayed if fovs.zip file exists (will be overwritten)
-            with pytest.warns(UserWarning):
-                create_deepcell_output(deepcell_input_dir=input_dir,
-                                       deepcell_output_dir=output_dir, fovs=['fov1'])
-
-            # DeepCell whole_cell output .tif file does not exist for some fov
-            with pytest.warns(UserWarning):
-                create_deepcell_output(deepcell_input_dir=input_dir,
-                                       deepcell_output_dir=output_dir,
-                                       wc_suffix='_other_suffix',
-                                       fovs=['fov1'])
-
-            # DeepCell nuclear output .tif file does not exist for some fov
-            with pytest.warns(UserWarning):
-                create_deepcell_output(deepcell_input_dir=input_dir,
-                                       deepcell_output_dir=output_dir,
-                                       nuc_suffix='_other_suffix',
-                                       fovs=['fov1'])
-
+        with tempfile.TemporaryDirectory() as output_dir:
             # add additional fov for auto-batch testing
             pathlib.Path(os.path.join(input_dir, 'fov4.tiff')).touch()
 
@@ -160,8 +205,14 @@ def test_create_deepcell_output(mocker: MockerFixture):
                 assert zip_batch1.namelist() == ['fov1.tiff', 'fov2.tiff', 'fov3.tiff']
             with ZipFile(os.path.join(input_dir, 'fovs_batch_2.zip'), 'r') as zip_batch2:
                 assert zip_batch2.namelist() == ['fov4.tiff']
+            # check output for extra fov batch
+            assert os.path.exists(os.path.join(output_dir, "deepcell_response_fovs_batch_2.zip"))
 
-            # ValueError should be raised if .tiff file does not exists for some fov in fovs
+            for batch_zip in io_utils.list_files(input_dir, substrs=".zip"):
+                os.remove(os.path.join(input_dir, batch_zip))
+
+        with tempfile.TemporaryDirectory() as output_dir:
+            # ValueError should be raised if .tiff file does not exist for some fov in fovs
             with pytest.raises(ValueError):
                 create_deepcell_output(deepcell_input_dir=input_dir,
                                        deepcell_output_dir=output_dir, fovs=['fov1', 'fov5'])
