@@ -213,14 +213,26 @@ def plot_cluster(
 
     fig: Figure = plt.figure(figsize=figsize, dpi=dpi)
     fig.set_layout_engine(layout="tight")
-    gs = gridspec.GridSpec(nrows=1, ncols=2, figure=fig, width_ratios=[60, 1])
+
+    if cbar_visible:
+        gs = gridspec.GridSpec(nrows=1, ncols=2, figure=fig, width_ratios=[60, 1])
+        # Colorbar Axis
+        cax: Axes = fig.add_subplot(gs[0, 1])
+        # Manually set the colorbar
+        cbar = fig.colorbar(cm.ScalarMappable(norm=norm, cmap=cmap), cax=cax,
+                            orientation="vertical", use_gridspec=True, pad=0.1)
+        cbar.ax.set_yticks(
+            ticks=np.arange(len(cbar_labels)),
+            labels=cbar_labels
+        )
+        cbar.minorticks_off()
+    else:
+        gs = gridspec.GridSpec(nrows=1, ncols=1, figure=fig)
+
     fig.suptitle(f"{fov}")
 
     # Image axis
     ax: Axes = fig.add_subplot(gs[0, 0])
-    # Colorbar Axis
-    cax: Axes = fig.add_subplot(gs[0, 1])
-
     ax.axis("off")
     ax.grid(visible=False)
 
@@ -232,19 +244,7 @@ def plot_cluster(
         aspect="equal",
         interpolation=None,
     )
-    
-    if cbar_visible:
-        # Manually set the colorbar
-        cbar = fig.colorbar(cm.ScalarMappable(norm=norm, cmap=cmap), cax=cax,
-                            orientation="vertical", use_gridspec=True, pad=0.1)
-        cbar.ax.set_yticks(
-            ticks=np.arange(len(cbar_labels)),
-            labels=cbar_labels
-        )
-        cbar.minorticks_off()
-    else:
-        cax.axis("off")
-    
+
     return fig
 
 
@@ -313,16 +313,17 @@ def plot_neighborhood_cluster_result(img_xr: xr.DataArray,
             fig.savefig(fname=os.path.join(save_dir, f"{fov.fovs.values}.png"), dpi=300)
 
 
-def plot_pixel_cell_cluster_overlay(img_xr: xr.DataArray,
-                                    fovs: list[str],
-                                    cluster_id_to_name_path: Union[str, pathlib.Path],
-                                    metacluster_colors: Dict,
-                                    cluster_type: Union[Literal["pixel"], Literal["cell"]]="pixel",
-                                    cbar_visible: bool = True,
-                                    save_dir=None,
-                                    fov_col: str ="fovs",
-                                    dpi=300,
-                                    figsize=(10, 10)):
+def plot_pixel_cell_cluster_overlay(
+        img_xr: xr.DataArray,
+        fovs: list[str],
+        cluster_id_to_name_path: Union[str, pathlib.Path],
+        metacluster_colors: Dict,
+        cluster_type: Union[Literal["pixel"], Literal["cell"]] = "pixel",
+        cbar_visible: bool = True,
+        save_dir=None,
+        fov_col: str = "fovs",
+        dpi=300,
+        figsize=(10, 10)):
     """Overlays the pixel and cell clusters on an image
 
     Args:

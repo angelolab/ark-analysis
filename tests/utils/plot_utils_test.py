@@ -61,13 +61,11 @@ def metacluster_colors(n_metaclusters: int) -> Generator[Dict, None, None]:
     yield sample_mapping
 
 
-def test_plot_cluster(rng: np.random.Generator):
-    cluster_image: np.ndarray = rng.integers(0, 6, size=(10, 10))
-
-    cbar_labels = ["Empty"]
-    cbar_labels.extend([f"Cluster {i}" for i in range(6)])
+@pytest.mark.parametrize("cbar_labels", [None, ["Empty", "Cluster 1", "Cluster 2", "Cluster 3"]])
+def test_plot_cluster(rng: np.random.Generator, cbar_labels: list[str]):
+    cluster_image: np.ndarray = rng.integers(0, 3, size=(10, 10))
     cmap = cm.get_cmap("tab20")
-    norm = colors.BoundaryNorm(np.arange(8), cmap.N)
+    norm = colors.BoundaryNorm(np.arange(5), cmap.N)
 
     fig = plot_utils.plot_cluster(image=cluster_image,
                                   fov="test_fov",
