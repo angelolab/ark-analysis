@@ -10,6 +10,7 @@ import xarray as xr
 
 def create_object_masks(
     fov_path: Union[str, pathlib.Path],
+    mask_name: str,
     object_shape_type: str = "blob",
     sigma: int = 1,
     thresh: Optional[np.float32] = None,
@@ -26,6 +27,7 @@ def create_object_masks(
 
     Args:
         input_image (np.ndarray): The numpy array (image) to perform segmentation on.
+        mask_name (str): The name of the masks you are creating.
         object_shape_type (str, optional): Specify whether the object is either "blob" or
         "projection" shaped. Defaults to "blob".
         sigma (int): The standard deviation for Gaussian kernel, used for bluring the
