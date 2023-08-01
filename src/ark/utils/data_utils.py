@@ -327,9 +327,7 @@ def generate_and_save_cell_cluster_masks(
     )
 
     # create the pixel cluster masks across each fov
-    with tqdm(
-        total=len(fovs), desc="Cell Cluster Mask Generation", unit="FOVs"
-    ) as pbar:
+    with tqdm(total=len(fovs), desc="Cell Cluster Mask Generation", unit="FOVs") as pbar:
         for fov in fovs:
             pbar.set_postfix(FOV=fov)
 
@@ -463,7 +461,8 @@ def generate_and_save_pixel_cluster_masks(fovs: List[str],
     """
 
     # create the pixel cluster masks across each fov
-    with tqdm(total=len(fovs), desc="Pixel Cluster Mask Generation") as pixel_mask_progress:
+    with tqdm(total=len(fovs), desc="Pixel Cluster Mask Generation", unit="FOVs") \
+            as pixel_mask_progress:
         for fov in fovs:
             pixel_mask_progress.set_postfix(FOV=fov)
 
@@ -536,9 +535,8 @@ def generate_and_save_neighborhood_cluster_masks(
     )
 
     # create the neighborhood cluster masks across each fov
-    with tqdm(
-        total=len(fovs), desc="Neighborhood Cluster Mask Generation"
-    ) as neigh_mask_progress:
+    with tqdm(total=len(fovs), desc="Neighborhood Cluster Mask Generation", unit="FOVs") \
+            as neigh_mask_progress:
         # generate the mask for each FOV
         for fov in fovs:
             neigh_mask_progress.set_postfix(FOV=fov)

@@ -76,7 +76,7 @@ def create_neighborhood_matrix(all_data, dist_mat_dir, included_fovs=None, distl
 
     cell_neighbor_freqs = cell_neighbor_counts.copy(deep=True)
 
-    with tqdm(total=len(included_fovs), desc="Neighbors Matrix Generation") \
+    with tqdm(total=len(included_fovs), desc="Neighbors Matrix Generation", unit="FOVs") \
             as neighbor_mat_progress:
         for fov in included_fovs:
             neighbor_mat_progress.set_postfix(FOV=fov)

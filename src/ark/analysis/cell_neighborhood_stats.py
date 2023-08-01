@@ -49,7 +49,8 @@ def compute_neighborhood_diversity(neighborhood_mat, cell_type_col):
 
     diversity_data = []
     fov_list = np.unique(neighborhood_mat[settings.FOV_ID])
-    with tqdm(total=len(fov_list), desc="Calculate Neighborhood Diversity") as diversity_progress:
+    with tqdm(total=len(fov_list), desc="Calculate Neighborhood Diversity", unit="FOVs") \
+            as diversity_progress:
         for fov in fov_list:
             diversity_progress.set_postfix(FOV=fov)
 
@@ -217,7 +218,8 @@ def generate_cell_distance_analysis(
     fov_list = np.unique(cell_table[fov_col])
 
     cell_dists = []
-    with tqdm(total=len(fov_list), desc="Calculate Average Distances") as distance_progress:
+    with tqdm(total=len(fov_list), desc="Calculate Average Distances", unit="FOVs") \
+            as distance_progress:
         for fov in fov_list:
             distance_progress.set_postfix(FOV=fov)
 
