@@ -60,6 +60,7 @@ def metacluster_colors(n_metaclusters: int) -> Generator[Dict, None, None]:
 
     yield sample_mapping
 
+
 @pytest.mark.parametrize("cbar_visible", [True, False])
 @pytest.mark.parametrize("cbar_labels", [None, ["Empty", "Cluster 1", "Cluster 2", "Cluster 3"]])
 def test_plot_cluster(rng: np.random.Generator, cbar_visible: bool,  cbar_labels: list[str]):
