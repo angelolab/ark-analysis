@@ -228,15 +228,15 @@ def create_pixel_matrix(fovs, channels, base_dir, tiff_dir, seg_dir,
             The name of the directory containing the subsetted pixel data.
             Should be placed in `pixel_output_dir`.
         norm_vals_name_pre_rownorm (str):
-            The name of the file to store the pre pixel-thresholded norm values
+            The name of the file to store the pre-pixel-normalized norm values
         norm_vals_name_post_rownorm (str):
-            The name of the file to store the post pixel-thresholded norm values
+            The name of the file to store the post-pixel-normalized norm values
         pixel_thresh_name (str):
             The name of the file to store the pixel threshold value
         channel_percentile_pre_rownorm (float):
-            Percentile used to normalize channels before pixel thresholding
+            Percentile used to normalize channels before pixel normalization
         channel_percentile_post_rownorm (float):
-            Percentile used to normalize channels after pixel thresholding
+            Percentile used to normalize channels after pixel normalization
         is_mibitiff (bool):
             Whether to load the images from MIBITiff
         blur_factor (int):
