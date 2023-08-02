@@ -92,8 +92,9 @@ def test_train_cell_som():
             cluster_som_weights_names=cell_weights.columns.values
         )
 
-        # assert the shape
+        # assert the shape and normalization
         assert cell_weights.shape == (100, 15)
+        assert np.all(cell_weights < 1)
 
         # remove cell weights and weighted channel average file for next test
         os.remove(cell_pysom.weights_path)
@@ -124,8 +125,36 @@ def test_train_cell_som():
             cluster_som_weights_names=cell_weights.columns.values
         )
 
-        # assert the shape
+        # assert the shape and normalization
         assert cell_weights.shape == (100, 2)
+        assert np.all(cell_weights < 1)
+
+        # remove cell weights and weighted channel average file for next test
+        os.remove(cell_pysom.weights_path)
+
+        # TEST 3: check data was not normalized
+        _, cluster_counts_norm = cell_cluster_utils.create_c2pc_data(
+            fovs, pixel_data_path, cell_table_path, 'pixel_som_cluster'
+        )
+
+        # train the cell SOM
+        cell_pysom = cell_som_clustering.train_cell_som(
+            fovs=fovs,
+            base_dir=temp_dir,
+            cell_table_path=cell_table_path,
+            cell_som_cluster_cols=['pixel_som_cluster_%d' % i for i in np.arange(15)],
+            cell_som_input_data=cluster_counts_norm, normalize=False
+        )
+
+        # assert cell weights has been created
+        assert os.path.exists(cell_pysom.weights_path)
+
+        # read in the cell weights
+        cell_weights = feather.read_dataframe(cell_pysom.weights_path)
+
+        # assert the shape and lack of normalization
+        assert cell_weights.shape == (100, 15)
+        assert not np.all(cell_weights < 1)
 
 
 # NOTE: overwrite functionality tested in cluster_helpers_test.py
