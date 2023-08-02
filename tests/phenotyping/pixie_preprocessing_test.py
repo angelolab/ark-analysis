@@ -65,7 +65,8 @@ def test_create_fov_pixel_data():
 
         # TEST 1: run fov preprocessing for one fov with seg_labels and no blank pixels
         sample_pixel_mat, sample_pixel_mat_subset = pixie_preprocessing.create_fov_pixel_data(
-            fov=fov, channels=chans, img_data=sample_img_data, seg_labels=seg_labels
+            fov=fov, channels=chans, img_data=sample_img_data, seg_labels=seg_labels,
+            pixel_thresh_val=1
         )
 
         # assert the channel names are the same
@@ -86,7 +87,8 @@ def test_create_fov_pixel_data():
 
         # TEST 2: run fov preprocessing for one fov without seg_labels and no blank pixels
         sample_pixel_mat, sample_pixel_mat_subset = pixie_preprocessing.create_fov_pixel_data(
-            fov=fov, channels=chans, img_data=sample_img_data, seg_labels=None
+            fov=fov, channels=chans, img_data=sample_img_data, seg_labels=None,
+            pixel_thresh_val=1
         )
 
         # assert the channel names are the same
@@ -102,6 +104,28 @@ def test_create_fov_pixel_data():
         assert sample_pixel_mat.shape[0] == (sample_img_data.shape[0] * sample_img_data.shape[1])
 
         # assert the size of the subsetted DataFrame is 0.1 of the preprocessed DataFrame
+        # NOTE: need to account for rounding if multiplying by 0.1 leads to non-int
+        assert round(sample_pixel_mat.shape[0] * 0.1) == sample_pixel_mat_subset.shape[0]
+
+        # TEST 3: run fov preprocessing with a pixel_thresh_val to ensure rows get removed
+        sample_pixel_mat, sample_pixel_mat_subset = pixie_preprocessing.create_fov_pixel_data(
+            fov=fov, channels=chans, img_data=sample_img_data / 1000, seg_labels=seg_labels,
+            pixel_thresh_val=0.5
+        )
+
+        # assert the channel names are the same
+        misc_utils.verify_same_elements(flowsom_chans=sample_pixel_mat.columns.values[:-4],
+                                        provided_chans=chans)
+        misc_utils.verify_same_elements(flowsom_chans=sample_pixel_mat_subset.columns.values[:-4],
+                                        provided_chans=chans)
+
+        # assert all rows sum to 1 (within tolerance because of floating-point errors)
+        assert np.all(np.allclose(sample_pixel_mat.loc[:, chans].sum(axis=1).values, 1))
+
+        # assert we successfully filtered out pixels below pixel_thresh_val
+        assert sample_pixel_mat.shape[0] < (sample_img_data.shape[0] * sample_img_data.shape[1])
+
+        # assert the size of the subsetted DataFrame is less than 0.1 of the preprocessed DataFrame
         # NOTE: need to account for rounding if multiplying by 0.1 leads to non-int
         assert round(sample_pixel_mat.shape[0] * 0.1) == sample_pixel_mat_subset.shape[0]
 
@@ -140,12 +164,17 @@ def test_preprocess_fov(mocker):
             file_name = fov + "_whole_cell.tiff"
             image_utils.save_image(os.path.join(seg_dir, file_name), rand_img)
 
+        channel_norm_df = pd.DataFrame(
+            np.expand_dims(np.repeat(10, repeats=len(chans)), axis=0),
+            columns=chans
+        )
+
         # run the preprocessing for fov0
         # NOTE: don't test the return value, leave that for test_create_pixel_matrix
         pixie_preprocessing.preprocess_fov(
             temp_dir, tiff_dir, 'pixel_mat_data', 'pixel_mat_subsetted',
             seg_dir, '_whole_cell.tiff', 'TIFs', False, ['chan0', 'chan1', 'chan2'],
-            2, 0.1, 42, 'fov0'
+            2, 0.1, 1, 42, channel_norm_df, 'fov0'
         )
 
         fov_data_path = os.path.join(
@@ -184,7 +213,7 @@ def test_preprocess_fov(mocker):
 
 
 def mocked_create_fov_pixel_data(fov, channels, img_data, seg_labels, blur_factor,
-                                 subset_proportion):
+                                 subset_proportion, pixel_thresh_val):
     # create fake data to be compatible with downstream functions
     data = np.random.rand(len(channels) * 5).reshape(5, len(channels))
     df = pd.DataFrame(data, columns=channels)
@@ -205,7 +234,7 @@ def mocked_create_fov_pixel_data(fov, channels, img_data, seg_labels, blur_facto
 
 def mocked_preprocess_fov(base_dir, tiff_dir, data_dir, subset_dir, seg_dir, seg_suffix,
                           img_sub_folder, is_mibitiff, channels, blur_factor,
-                          subset_proportion, seed, fov):
+                          subset_proportion, pixel_thresh_val, seed, channel_norm_df, fov):
     # load img_xr from MIBITiff or directory with the fov
     if is_mibitiff:
         img_xr = load_utils.load_imgs_from_mibitiff(
@@ -230,12 +259,20 @@ def mocked_preprocess_fov(base_dir, tiff_dir, data_dir, subset_dir, seg_dir, seg
     # subset for the channel data
     img_data = img_xr.loc[fov, :, :, channels].values.astype(np.float32)
 
+    # create vector for normalizing image data
+    norm_vect = channel_norm_df['norm_val'].values
+    norm_vect = np.array(norm_vect).reshape([1, 1, len(norm_vect)])
+
+    # normalize image data
+    img_data = img_data / norm_vect
+
     # set seed for subsetting
     np.random.seed(seed)
 
     # create the full and subsetted fov matrices
     pixel_mat, pixel_mat_subset = mocked_create_fov_pixel_data(
         fov=fov, channels=channels, img_data=img_data, seg_labels=seg_labels,
+        pixel_thresh_val=pixel_thresh_val,
         blur_factor=blur_factor,
         subset_proportion=subset_proportion
     )
@@ -359,6 +396,33 @@ def test_create_pixel_matrix_base(fovs, chans, sub_dir, seg_dir_include,
                 seg_dir=seg_dir
             )
 
+        # make the channel_norm_pre_rownorm.feather file if the test requires it
+        # NOTE: pixel_mat_data already created in the previous validation tests
+        if channel_norm_include:
+            # helps test if channel_norm.feather contains a different set of channels
+            norm_chans = [chans[0]] if norm_diff_chan else chans
+            sample_channel_norm_df = pd.DataFrame(
+                np.expand_dims(np.random.rand(len(norm_chans)), axis=0),
+                columns=norm_chans
+            )
+
+            feather.write_dataframe(
+                sample_channel_norm_df,
+                os.path.join(
+                    temp_dir, sample_pixel_output_dir, 'channel_norm_pre_rownorm.feather'
+                ),
+                compression='uncompressed'
+            )
+
+        # make the pixel_thresh.feather file if the test requires it
+        if pixel_thresh_include:
+            sample_pixel_thresh_df = pd.DataFrame({'pixel_thresh_val': np.random.rand(1)})
+            feather.write_dataframe(
+                sample_pixel_thresh_df,
+                os.path.join(temp_dir, sample_pixel_output_dir, 'pixel_thresh.feather'),
+                compression='uncompressed'
+            )
+
         # create the pixel matrices
         pixie_preprocessing.create_pixel_matrix(
             fovs=fovs,
@@ -370,14 +434,32 @@ def test_create_pixel_matrix_base(fovs, chans, sub_dir, seg_dir_include,
             multiprocess=multiprocess
         )
 
+        # assert we overwrote the original channel_norm and pixel_thresh files
+        # if new set of channels provided
+        if norm_diff_chan:
+            output_capture = capsys.readouterr().out
+            assert 'New channels provided: overwriting whole cohort' in output_capture
+
         # check that we actually created a data directory
         assert os.path.exists(os.path.join(temp_dir, 'pixel_mat_data'))
 
         # check that we actually created a subsetted directory
         assert os.path.exists(os.path.join(temp_dir, 'pixel_mat_subsetted'))
 
+        # if there wasn't originally a channel_norm.feather or if overwritten, assert one created
+        if not channel_norm_include or norm_diff_chan:
+            assert os.path.exists(
+                os.path.join(temp_dir, sample_pixel_output_dir, 'channel_norm_pre_rownorm.feather')
+            )
+
+        # if there wasn't originally a pixel_thresh.feather or if overwritten, assert one created
+        if not pixel_thresh_include or norm_diff_chan:
+            assert os.path.exists(
+                os.path.join(temp_dir, sample_pixel_output_dir, 'pixel_thresh.feather')
+            )
+
         # check that we created a norm vals file
-        assert os.path.exists(os.path.join(temp_dir, 'channel_norm_post_rowsum.feather'))
+        assert os.path.exists(os.path.join(temp_dir, 'channel_norm_post_rownorm.feather'))
 
         for fov in fovs:
             fov_data_path = os.path.join(
@@ -412,6 +494,56 @@ def test_create_pixel_matrix_base(fovs, chans, sub_dir, seg_dir_include,
             # assert the subsetted DataFrame size is 0.1 of the preprocessed DataFrame
             # NOTE: need to account for rounding if multiplying by 0.1 leads to non-int
             assert round(flowsom_data_fov.shape[0] * 0.1) == flowsom_sub_fov.shape[0]
+
+        # check that correct values are passed to helper function
+        mocker.patch(
+            'ark.phenotyping.pixie_preprocessing.preprocess_fov',
+            mocked_preprocess_fov
+        )
+
+        if sub_dir is None:
+            sub_dir = ''
+
+        # create fake data where all channels in each fov are the same
+        new_tiff_dir = os.path.join(temp_dir, 'new_tiff_dir')
+        os.makedirs(new_tiff_dir)
+        for fov in fovs:
+            img = (np.random.rand(100) * 100).reshape((10, 10))
+            fov_dir = os.path.join(new_tiff_dir, fov, sub_dir)
+            os.makedirs(fov_dir)
+            for chan in chans:
+                image_utils.save_image(os.path.join(fov_dir, chan + '.tiff'), img)
+
+        # recreate the output directory
+        rmtree(sample_pixel_output_dir)
+        os.mkdir(sample_pixel_output_dir)
+
+        # create normalization file
+        data_dir = os.path.join(temp_dir, 'pixel_mat_data')
+
+        # generate the data
+        mults = [(1 / 2) ** i for i in range(len(chans))]
+
+        sample_channel_norm_df = pd.DataFrame(
+            np.expand_dims(mults, axis=0),
+            columns=chans
+        )
+
+        feather.write_dataframe(
+            sample_channel_norm_df,
+            os.path.join(temp_dir, sample_pixel_output_dir, 'channel_norm_pre_rownorm.feather'),
+            compression='uncompressed'
+        )
+
+        pixie_preprocessing.create_pixel_matrix(
+            fovs=fovs,
+            channels=chans,
+            base_dir=temp_dir,
+            tiff_dir=new_tiff_dir,
+            img_sub_folder=sub_dir,
+            seg_dir=seg_dir,
+            multiprocess=multiprocess
+        )
 
 
 # TODO: clean up the following tests
@@ -460,7 +592,7 @@ def test_create_pixel_matrix_missing_fov(multiprocess, capsys):
         )
         sample_quant_data.index.name = 'channel'
         sample_quant_data.to_csv(
-            os.path.join(temp_dir, 'pixel_mat_data', 'channel_norm_post_rowsum_perfov.csv'))
+            os.path.join(temp_dir, 'pixel_mat_data', 'channel_norm_post_rownorm_perfov.csv'))
 
         pixie_preprocessing.create_pixel_matrix(
             fovs=PIXEL_MATRIX_FOVS,
@@ -492,7 +624,7 @@ def test_create_pixel_matrix_missing_fov(multiprocess, capsys):
         # NOTE: in this case, the value in quant_dat will also not have been written
         os.remove(os.path.join(temp_dir, 'pixel_mat_subsetted', 'fov1.feather'))
         sample_quant_data.to_csv(
-            os.path.join(temp_dir, 'pixel_mat_data', 'channel_norm_post_rowsum_perfov.csv'))
+            os.path.join(temp_dir, 'pixel_mat_data', 'channel_norm_post_rownorm_perfov.csv'))
 
         pixie_preprocessing.create_pixel_matrix(
             fovs=PIXEL_MATRIX_FOVS,
@@ -522,7 +654,7 @@ def test_create_pixel_matrix_missing_fov(multiprocess, capsys):
         # NOTE: in this case, the value in quantile_dat will also not have been written
         os.remove(os.path.join(temp_dir, 'pixel_mat_data', 'fov1.feather'))
         sample_quant_data.to_csv(
-            os.path.join(temp_dir, 'pixel_mat_data', 'channel_norm_post_rowsum_perfov.csv'))
+            os.path.join(temp_dir, 'pixel_mat_data', 'channel_norm_post_rownorm_perfov.csv'))
 
         pixie_preprocessing.create_pixel_matrix(
             fovs=PIXEL_MATRIX_FOVS,
