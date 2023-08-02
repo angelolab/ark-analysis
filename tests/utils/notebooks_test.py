@@ -596,6 +596,9 @@ class Test_3b_Generic_Cell_Clustering:
     def test_cell_cluster_files(self):
         self.tb.execute_cell("cell_cluster_files")
 
+    def test_normalization(self):
+        self.tb.execute_cell("normalize_param")
+
     def test_train_cell_som(self):
         self.tb.execute_cell("train_cell_som")
 
