@@ -173,6 +173,30 @@ class MetaclusterColormap:
         return relabeled_fov
 
 
+def create_cmap(colors_array: np.ndarray) -> tuple[colors.ListedColormap, colors.BoundaryNorm]:
+    """Creates a colormap and a boundary norm from the provided colors.
+
+    Colors can be of any format that matplotlib accepts.
+    See here for color formats: https://matplotlib.org/stable/tutorials/colors/colors.html
+
+
+    Args:
+        colors_array (np.ndarray): The colors to use for the colormap.
+
+    Returns:
+        colors.ListedColormap: The colormap.
+    """
+    if not isinstance(colors_array, np.ndarray):
+        raise ValueError(
+            f"colors_array must be a numpy array, got {type(colors_array)}")
+
+    cmap = colors.ListedColormap(colors=colors_array)
+    bounds = [i-0.5 for i in np.linspace(0, len(colors_array), len(colors_array) + 1)]
+
+    norm = colors.BoundaryNorm(bounds, cmap.N)
+    return cmap, norm
+
+
 def plot_cluster(
         image: np.ndarray,
         fov: str,
@@ -183,7 +207,7 @@ def plot_cluster(
         dpi: int = 300,
         figsize: tuple[int, int] = (10, 10)) -> Figure:
     """
-    Plots the cluster image with the provided colormap.
+    Plots the cluster image with the provided colormap and norm.
 
     Args:
         image (np.ndarray):
@@ -288,9 +312,8 @@ def plot_neighborhood_cluster_result(img_xr: xr.DataArray,
     # define the colormap, add black for empty slide
     mycols = cm.get_cmap(cmap_name, k).colors
     mycols = np.vstack(([0, 0, 0, 1], mycols))
-    cmap = colors.ListedColormap(mycols)
-    bounds = [i-0.5 for i in np.linspace(0, k+1, k+2)]
-    norm = colors.BoundaryNorm(bounds, cmap.N)
+
+    cmap, norm = create_cmap(mycols)
 
     cbar_labels = ["Empty"]
     cbar_labels.extend([f"Cluster {x}" for x in range(1, k+1)])
@@ -323,7 +346,8 @@ def plot_pixel_cell_cluster_overlay(
         save_dir=None,
         fov_col: str = "fovs",
         dpi=300,
-        figsize=(10, 10)):
+        figsize=(10, 10)
+):
     """Overlays the pixel and cell clusters on an image
 
     Args:

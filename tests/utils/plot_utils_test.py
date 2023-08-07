@@ -61,6 +61,17 @@ def metacluster_colors(n_metaclusters: int) -> Generator[Dict, None, None]:
     yield sample_mapping
 
 
+def test_create_cmap(rng: np.random.Generator):
+    with pytest.raises(ValueError):
+        plot_utils.create_cmap(colors_array=["DNE"])
+
+    colors_array = rng.random(size=(3, 4))
+
+    cmap, norm = plot_utils.create_cmap(colors_array=colors_array)
+    print(cmap.N)
+    assert cmap.N == 3
+
+
 @pytest.mark.parametrize("cbar_visible", [True, False])
 @pytest.mark.parametrize("cbar_labels", [None, ["Empty", "Cluster 1", "Cluster 2", "Cluster 3"]])
 def test_plot_cluster(rng: np.random.Generator, cbar_visible: bool,  cbar_labels: list[str]):
