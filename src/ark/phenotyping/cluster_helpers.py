@@ -282,7 +282,7 @@ class CellSOMCluster(PixieSOMCluster):
     def __init__(self, cell_data: pd.DataFrame, weights_path: pathlib.Path,
                  fovs: List[str], columns: List[str], num_passes: int = 1,
                  xdim: int = 10, ydim: int = 10, lr_start: float = 0.05, lr_end: float = 0.01,
-                 seed=42):
+                 seed=42, normalize=True):
         """Creates a cell SOM cluster object derived from the abstract PixieSOMCluster
 
         Args:
@@ -306,6 +306,9 @@ class CellSOMCluster(PixieSOMCluster):
                 The learning rate to decay to.
             seed (int):
                 The random seed to use.
+            normalize (bool):
+                Whether to perform 99.9% percentile normalization, default to True.
+
         """
         super().__init__(
             weights_path, columns, num_passes, xdim, ydim, lr_start, lr_end, seed
@@ -323,7 +326,8 @@ class CellSOMCluster(PixieSOMCluster):
         ].reset_index(drop=True)
 
         # since cell_data is the only dataset, we can just normalize it immediately
-        self.normalize_data()
+        if normalize:
+            self.normalize_data()
 
     def normalize_data(self):
         """Normalizes `cell_data` by the 99.9% value of each pixel cluster count column
