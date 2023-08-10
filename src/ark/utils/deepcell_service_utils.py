@@ -296,13 +296,17 @@ def run_deepcell_direct(input_dir, output_dir, host='https://deepcell.org',
             }
         ).json()
         if redis_response['value'][0] == 'done':
+            # make sure progress bar shows 100%
+            pbar_next = int(redis_response['value'][1])
+            progress_bar.update(max(pbar_next - pbar_last, 0))
             break
 
         # update progress bar here
         if redis_response['value'][0] == 'waiting':
             pbar_next = int(redis_response['value'][1])
-            progress_bar.update(max(pbar_next - pbar_last, 0))
-            pbar_last = pbar_next
+            if pbar_next > pbar_last:
+                progress_bar.update(max(pbar_next - pbar_last, 0))
+                pbar_last = pbar_next
 
         if redis_response['value'][0] not in ['done', 'waiting', 'new']:
             print(redis_response['value'])
