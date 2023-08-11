@@ -3,14 +3,13 @@ import pathlib
 from typing import Union
 from matplotlib.axes import Axes
 from skimage.io import imread
-from skimage import feature
+from skimage import feature, color
 from skimage.util import img_as_ubyte
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.figure import Figure
 from matplotlib import gridspec
 from alpineer import io_utils
-
 
 def display_channel_image(base_image_path: Union[str, pathlib.Path]) -> None:
     """
@@ -49,15 +48,15 @@ def overlay_mask_outlines(base_image_path, mask_image_path) -> None:
         base_image_path (_type_): _description_
         mask_image_path (_type_): _description_
     """
+    io_utils.validate_paths(paths=[base_image_path, mask_image_path])
     if isinstance(base_image_path, str):
         base_image_path = pathlib.Path(base_image_path)
     if isinstance(mask_image_path, str):
         mask_image_path = pathlib.Path(mask_image_path)
-    io_utils.validate_paths([base_image_path, mask_image_path])
 
     # Load the base image and mask image
     # Autoscale the base image
-    base_image: np.ndarray = img_as_ubyte(image=imread(base_image_path, as_gray=True))
+    base_image: np.ndarray = imread(base_image_path, as_gray=True)
     mask_image: np.ndarray = imread(mask_image_path, as_gray=True)
 
     # Auto-scale the base image
@@ -70,15 +69,18 @@ def overlay_mask_outlines(base_image_path, mask_image_path) -> None:
 
     # Set the outline color to red
     outline_color = (255, 0, 0)
+    
+    # Convert the base image to RGB
+    rgb_base_image_scaled = color.gray2rgb(base_image_scaled)
 
     # Overlay the outlines on the copy of the base image
-    base_image_scaled[edges != 0] = outline_color
+    rgb_base_image_scaled[edges != 0] = outline_color
 
     # Display the original base image and the overlay image
     fig: Figure = plt.figure(dpi=300, figsize=(6, 6))
     fig.set_layout_engine(layout="constrained")
     gs = gridspec.GridSpec(1, 1, figure=fig)
-    fig.suptitle(f"{base_image_path.name}")
+    fig.suptitle(f"{base_image_path.stem}")
 
     ax: Axes = fig.add_subplot(gs[0, 0])
     ax.imshow(base_image_scaled)

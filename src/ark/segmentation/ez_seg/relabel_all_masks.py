@@ -9,7 +9,7 @@ def renumber_masks(root_dir):
     global_label_counter = 0
 
     # Loop through all subdirectories
-    for subdir, dirs, files in os.walk(root_dir):
+    for subdir, _, files in os.walk(root_dir):
         # Loop through all files in the current subdirectory
         for file in files:
             if file.endswith('.tiff'):

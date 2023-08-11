@@ -4,13 +4,16 @@ import numpy as np
 from skimage import measure, filters, morphology
 from skimage.util import map_array
 import pandas as pd
-from alpineer import misc_utils, load_utils
+from alpineer import misc_utils, load_utils, image_utils
 import xarray as xr
 
 
 def create_object_masks(
-    fov_path: Union[str, pathlib.Path],
+    image_dir: Union[str, pathlib.Path],
+    fov: str,
     mask_name: str,
+    channel_to_segment: str,
+    object_dir: Union[str, pathlib.Path],
     object_shape_type: str = "blob",
     sigma: int = 1,
     thresh: Optional[np.float32] = None,
@@ -46,31 +49,37 @@ def create_object_masks(
         xr.DataArray: The object masks for all channels in a FOV.
     """
 
-    fov_xr: xr.DataArray = (
-        load_utils.load_imgs_from_dir(data_dir=fov_path)
-        .drop_vars("compartments")
-        .squeeze()
+    fov_xr: xr.DataArray = load_utils.load_imgs_from_tree(
+        data_dir=image_dir, fovs=fov
+    ).squeeze()
+
+
+    channel: xr.DataArray = fov_xr.sel({"channels": channel_to_segment})
+
+    object_masks: xr.DataArray = xr.zeros_like(other=channel)
+
+    
+    object_masks = _create_object_mask(
+        input_image=channel,
+        object_shape_type=object_shape_type,
+        sigma=sigma,
+        thresh=thresh,
+        hole_size=hole_size,
+        fov_dim=fov_dim,
+        min_object_area=min_object_area,
+        max_object_area=max_object_area,
+    )
+    
+    # If the object mask - fov directory does not exist, create it
+    object_fov_dir = (pathlib.Path(object_dir) / fov)
+    object_fov_dir.mkdir(parents=True, exist_ok=True)
+    
+    image_utils.save_image(
+        fname=object_fov_dir /  (f"{mask_name}.tiff"), data=object_masks
     )
 
-    object_masks: xr.DataArray = xr.zeros_like(other=fov_xr)
-
-    for channel in fov_xr.fovs:
-        object_masks.loc[dict(fovs=channel)] = _create_object_mask(
-            input_image=fov_xr.sel(fovs=channel),
-            object_shape_type=object_shape_type,
-            sigma=sigma,
-            thresh=thresh,
-            hole_size=hole_size,
-            fov_dim=fov_dim,
-            min_object_area=min_object_area,
-            max_object_area=max_object_area,
-        )
-
-    return object_masks
-
-
 def _create_object_mask(
-    input_image: np.ndarray,
+    input_image: xr.DataArray,
     object_shape_type: str = "blob",
     sigma: int = 1,
     thresh: Optional[np.float32] = None,
@@ -86,7 +95,7 @@ def _create_object_mask(
     that same thresholding input and filters out objects which are either too small or too large.
 
     Args:
-        input_image (np.ndarray): The numpy array (image) to perform segmentation on.
+        input_image (xr.DataArray): The numpy array (image) to perform segmentation on.
         object_shape_type (str, optional): Specify whether the object is either "blob" or
         "projection" shaped. Defaults to "blob".
         sigma (int): The standard deviation for Gaussian kernel, used for bluring the
@@ -178,8 +187,7 @@ def _create_object_mask(
         filtered_objects["label"].to_numpy(),
     )
 
-    # TODO: update the integer conversion?
-    return objects_mask_filtered_by_size.astype(int)
+    return objects_mask_filtered_by_size.astype(np.int32)
 
 
 def get_block_size(block_type: str, fov_dim: int, img_shape: int) -> int:
