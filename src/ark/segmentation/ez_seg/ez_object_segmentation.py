@@ -53,7 +53,6 @@ def create_object_masks(
         data_dir=image_dir, fovs=fov
     ).squeeze()
 
-
     channel: xr.DataArray = fov_xr.sel({"channels": channel_to_segment})
 
     object_masks: xr.DataArray = xr.zeros_like(other=channel)
@@ -77,6 +76,7 @@ def create_object_masks(
     image_utils.save_image(
         fname=object_fov_dir /  (f"{mask_name}.tiff"), data=object_masks
     )
+
 
 def _create_object_mask(
     input_image: xr.DataArray,
