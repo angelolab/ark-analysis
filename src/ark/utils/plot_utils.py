@@ -773,6 +773,8 @@ def save_colored_masks(
 
     with tqdm(total=len(fovs), desc="Saving colored masks", unit="FOVs") as pbar:
         for fov in fovs:
+            pbar.set_postfix(FOV=fov, refresh=False)
+
             mask: xr.DataArray = load_utils.load_imgs_from_dir(
                 data_dir=mask_dir,
                 files=[f"{fov}_{cluster_type}_mask.tiff"],
@@ -792,5 +794,4 @@ def save_colored_masks(
                 fname=save_dir / f"{fov}_{cluster_type}_mask_colored.tiff",
                 data=colored_mask,)
 
-            pbar.set_postfix(FOV=fov, refresh=False)
             pbar.update(1)

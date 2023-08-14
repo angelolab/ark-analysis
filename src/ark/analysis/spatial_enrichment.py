@@ -70,8 +70,11 @@ def generate_channel_spatial_enrichment_stats(label_dir, dist_mat_dir, marker_th
     values = []
     stats_datasets = []
 
-    with tqdm(total=len(all_label_fovs), desc="Channel Spatial Enrichment") as chan_progress:
+    with tqdm(total=len(all_label_fovs), desc="Channel Spatial Enrichment", unit="FOVs") \
+            as chan_progress:
         for fov_name, label_file in zip(all_label_fovs, all_label_names):
+            chan_progress.set_postfix(FOV=fov_name)
+
             label_maps = load_utils.load_imgs_from_dir(label_dir, files=[label_file],
                                                        xr_channel_names=[xr_channel_name],
                                                        trim_suffix=suffix)
@@ -292,8 +295,11 @@ def generate_cluster_spatial_enrichment_stats(label_dir, dist_mat_dir, all_data,
     values = []
     stats_datasets = []
 
-    with tqdm(total=len(all_label_fovs), desc="Cluster Spatial Enrichment") as clust_progress:
+    with tqdm(total=len(all_label_fovs), desc="Cluster Spatial Enrichment", unit="FOVs") \
+            as clust_progress:
         for fov_name, label_file in zip(all_label_fovs, all_label_names):
+            clust_progress.set_postfix(FOV=fov_name)
+
             label_maps = load_utils.load_imgs_from_dir(label_dir, files=[label_file],
                                                        xr_channel_names=[xr_channel_name],
                                                        trim_suffix=suffix)
