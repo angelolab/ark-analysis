@@ -98,7 +98,8 @@ def visualize_dimensionality_reduction(cell_data, columns, category, color_map="
 
         plot_dim_reduced_data(embedding[:, 0], embedding[:, 1], fig_id=1,
                               hue=cell_data[category], cell_data=cell_data, title=graph_title,
-                              dpi=dpi, save_dir=save_dir, save_file="UMAPVisualization.png")
+                              dpi=dpi, save_dir=save_dir, save_file="UMAPVisualization.png",
+                              palette=color_map)
 
     elif algorithm == "PCA":
         pca = PCA()
@@ -106,7 +107,8 @@ def visualize_dimensionality_reduction(cell_data, columns, category, color_map="
 
         plot_dim_reduced_data(pca_result[:, 0], pca_result[:, 1], fig_id=2,
                               hue=cell_data[category], cell_data=cell_data, title=graph_title,
-                              dpi=dpi, save_dir=save_dir, save_file="PCAVisualization.png")
+                              dpi=dpi, save_dir=save_dir, save_file="PCAVisualization.png",
+                              palette=color_map)
 
     elif algorithm == "tSNE":
         tsne = TSNE()
@@ -114,4 +116,5 @@ def visualize_dimensionality_reduction(cell_data, columns, category, color_map="
 
         plot_dim_reduced_data(tsne_results[:, 0], tsne_results[:, 1], fig_id=3,
                               hue=cell_data[category], cell_data=cell_data, title=graph_title,
-                              dpi=dpi, save_dir=save_dir, save_file="tSNEVisualization.png")
+                              dpi=dpi, save_dir=save_dir, save_file="tSNEVisualization.png",
+                              palette=color_map)
