@@ -8,7 +8,7 @@ from ark.phenotyping import cell_cluster_utils, cluster_helpers
 def train_cell_som(fovs, base_dir, cell_table_path, cell_som_cluster_cols,
                    cell_som_input_data, som_weights_name='cell_som_weights.feather',
                    xdim=10, ydim=10, lr_start=0.05, lr_end=0.01, num_passes=1, seed=42,
-                   overwrite=False):
+                   overwrite=False, normalize=True):
     """Run the SOM training on the expression columns specified in `cell_som_cluster_cols`.
 
     Saves the SOM weights to `base_dir/som_weights_name`.
@@ -40,6 +40,8 @@ def train_cell_som(fovs, base_dir, cell_table_path, cell_som_cluster_cols,
             The random seed to use for training the SOM
         overwrite (bool):
             If set, force retrains the SOM and overwrites the weights
+        normalize (bool):
+            Whether to perform 99.9% percentile normalization, default to True.
 
     Returns:
         cluster_helpers.CellSOMCluster:
@@ -62,7 +64,7 @@ def train_cell_som(fovs, base_dir, cell_table_path, cell_som_cluster_cols,
     cell_pysom = cluster_helpers.CellSOMCluster(
         cell_som_input_data, som_weights_path, fovs, cell_som_cluster_cols,
         num_passes=num_passes, xdim=xdim, ydim=ydim, lr_start=lr_start, lr_end=lr_end,
-        seed=seed
+        seed=seed, normalize=normalize
     )
 
     # train the SOM weights

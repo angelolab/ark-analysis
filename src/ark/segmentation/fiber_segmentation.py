@@ -16,6 +16,7 @@ from skimage.filters import frangi, sobel, threshold_multiotsu
 from skimage.measure import regionprops_table
 from skimage.morphology import remove_small_objects
 from skimage.segmentation import watershed
+from tqdm.auto import tqdm
 
 from ark import settings
 from ark.utils.plot_utils import set_minimum_color_for_colormap
@@ -176,14 +177,21 @@ def run_fiber_segmentation(data_dir, fiber_channel, out_dir, img_sub_folder=None
 
     fiber_object_table = []
 
-    for fov in fovs:
-        print(f'Processing FOV: {fov}')
-        subset_xr = load_utils.load_imgs_from_tree(
-            data_dir, img_sub_folder, fovs=fov, channels=[fiber_channel]
-        )
-        subtable = segment_fibers(subset_xr, fiber_channel, out_dir, fov, save_csv=False,
-                                  **kwargs)
-        fiber_object_table.append(subtable)
+    with tqdm(total=len(fovs), desc="Fiber Segmentation", unit="FOVs") \
+            as fibseg_progress:
+        for fov in fovs:
+            fibseg_progress.set_postfix(FOV=fov)
+
+            subset_xr = load_utils.load_imgs_from_tree(
+                data_dir, img_sub_folder, fovs=fov, channels=[fiber_channel]
+            )
+            # run fiber segmentation on the FOV
+            subtable = segment_fibers(subset_xr, fiber_channel, out_dir, fov, save_csv=False,
+                                      **kwargs)
+            fiber_object_table.append(subtable)
+
+            # update progress bar
+            fibseg_progress.update(1)
 
     fiber_object_table = pd.concat(fiber_object_table)
 
