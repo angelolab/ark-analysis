@@ -571,6 +571,7 @@ def create_mantis_dir(fovs: List[str], mantis_project_path: Union[str, pathlib.P
     if not os.path.exists(mantis_project_path):
         os.makedirs(mantis_project_path)
 
+    # account for non-sub folder channel file structures
     img_sub_folder = "" if not img_sub_folder else img_sub_folder
 
     # create key from cluster number to cluster name
