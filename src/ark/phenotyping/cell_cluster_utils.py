@@ -166,7 +166,7 @@ def create_c2pc_data(fovs, pixel_data_path, cell_table_path,
 
     # drop rows from the cell table that don't have any pixel clusters expressed
     count_cols = [c for c in cell_table.columns if '%s_' % pixel_cluster_col in c]
-    cell_table = cell_table.drop([count_cols])
+    cell_table = cell_table[cell_table[count_cols].sum(axis=1) != 0]
 
     # also produce a cell table with counts normalized by cell_size
     cell_table_norm = cell_table.copy()
