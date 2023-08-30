@@ -99,7 +99,7 @@ def visualize_dimensionality_reduction(cell_data, columns, category, color_map="
         plot_dim_reduced_data(embedding[:, 0], embedding[:, 1], fig_id=1,
                               hue=cell_data[category], cell_data=cell_data, title=graph_title,
                               dpi=dpi, save_dir=save_dir, save_file="UMAPVisualization.png",
-                              pallette=color_map)
+                              palette=color_map)
 
     elif algorithm == "PCA":
         pca = PCA()
