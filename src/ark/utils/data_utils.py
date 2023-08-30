@@ -289,6 +289,8 @@ def generate_cluster_mask(
             mapping from the segmentation label to the cluster label for a given FOV.
         seg_suffix (str):
             The suffix that the segmentation images use. Defaults to `'_whole_cell.tiff'`.
+        erode (bool):
+            Whether to erode the edges of the segmentation mask. Defaults to `False`.
 
     Returns:
         numpy.ndarray:

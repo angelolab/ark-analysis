@@ -179,8 +179,20 @@ class MetaclusterColormap:
         return relabeled_fov
 
 
-def create_cmap(cmap: np.ndarray | list[str] | str,
+def create_cmap(cmap: Union[np.ndarray, list[str], str],
                 n_clusters: int) -> tuple[colors.ListedColormap, colors.BoundaryNorm]:
+    """
+    Creates a colormap and a boundary norm from the provided colors.
+
+    Args:
+        cmap (Union[np.ndarray, list[str], str]): The colormap, or set of colors to use.
+        n_clusters (int): The numbe rof clusters for the colormap.
+
+    Returns:
+        tuple[colors.ListedColormap, colors.BoundaryNorm]: The generated colormap and boundary norm.
+    """
+    
+        
     """Creates a colormap and a boundary norm from the provided colors.
 
     Colors can be of any format that matplotlib accepts.
@@ -188,11 +200,13 @@ def create_cmap(cmap: np.ndarray | list[str] | str,
 
 
     Args:
-        colors_array (np.ndarray): The colors to use for the colormap.
+        colors_array (): The colors to use for the colormap.
 
     Returns:
         tuple[colors.ListedColormap, colors.BoundaryNorm]: The colormap and the boundary norm
     """
+
+    
     if isinstance(cmap, np.ndarray):
         if cmap.ndim != 2:
             raise ValueError(
