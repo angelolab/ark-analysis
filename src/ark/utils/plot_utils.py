@@ -509,7 +509,7 @@ def create_mantis_dir(fovs: List[str], mantis_project_path: Union[str, pathlib.P
                       cluster_type='pixel',
                       mask_suffix: str = "_mask",
                       seg_suffix_name: Optional[str] = "_whole_cell.tiff",
-                      img_sub_folder: str = ""):
+                      img_sub_folder: str = None):
     """Creates a mantis project directory so that it can be opened by the mantis viewer.
     Copies fovs, segmentation files, masks, and mapping csv's into a new directory structure.
     Here is how the contents of the mantis project folder will look like.
@@ -559,7 +559,7 @@ def create_mantis_dir(fovs: List[str], mantis_project_path: Union[str, pathlib.P
             Defaults to "_whole_cell.tiff".
         img_sub_folder (str, optional):
             The subfolder where the channels exist within the `img_data_path`.
-            Defaults to "normalized".
+            Defaults to None.
     """
 
     # verify the type of clustering provided is valid
@@ -570,6 +570,9 @@ def create_mantis_dir(fovs: List[str], mantis_project_path: Union[str, pathlib.P
 
     if not os.path.exists(mantis_project_path):
         os.makedirs(mantis_project_path)
+
+    # account for non-sub folder channel file structures
+    img_sub_folder = "" if not img_sub_folder else img_sub_folder
 
     # create key from cluster number to cluster name
     if isinstance(mapping, (pathlib.Path, str)):
