@@ -300,7 +300,7 @@ def plot_cluster(
         norm=norm,
         origin="upper",
         aspect="equal",
-        interpolation=None,
+        interpolation="none",
     )
 
     if cbar_visible:
