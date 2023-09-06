@@ -90,7 +90,7 @@ def train_pixel_som(fovs, channels, base_dir,
     return pixel_pysom
 
 
-def run_pixel_som_assignment(pixel_data_path, pixel_pysom_obj, fov):
+def run_pixel_som_assignment(pixel_data_path, pixel_pysom_obj, overwrite, fov):
     """Helper function to assign pixel SOM cluster labels
 
     Args:
@@ -98,6 +98,8 @@ def run_pixel_som_assignment(pixel_data_path, pixel_pysom_obj, fov):
             The path to the pixel data directory
         pixel_pysom_obj (ark.phenotyping.cluster_helpers.PixieConsensusCluster):
             The pixel SOM cluster object
+        overwrite (bool):
+            Whether to overwrite the pixel SOM clusters or not
         fov (str):
             The name of the FOV to process
 
@@ -115,6 +117,10 @@ def run_pixel_som_assignment(pixel_data_path, pixel_pysom_obj, fov):
     # this indicates this fov file is corrupted
     except (ArrowInvalid, OSError, IOError):
         return fov, 1
+
+    # if the overwrite flag was set in cluster_pixels, drop the pixel_som_cluster column
+    if overwrite:
+        fov_data = fov_data.drop(columns="pixel_som_cluster")
 
     # assign the SOM labels to fov_data
     fov_data = pixel_pysom_obj.assign_som_clusters(fov_data)
@@ -236,7 +242,7 @@ def cluster_pixels(fovs, channels, base_dir, pixel_pysom, data_dir='pixel_mat_da
 
     # define the partial function to iterate over
     fov_data_func = partial(
-        run_pixel_som_assignment, data_path, pixel_pysom
+        run_pixel_som_assignment, data_path, pixel_pysom, overwrite
     )
 
     # use the som weights to assign SOM cluster values to data in data_dir
