@@ -509,7 +509,8 @@ def create_mantis_dir(fovs: List[str], mantis_project_path: Union[str, pathlib.P
                       cluster_type='pixel',
                       mask_suffix: str = "_mask",
                       seg_suffix_name: Optional[str] = "_whole_cell.tiff",
-                      img_sub_folder: str = None):
+                      img_sub_folder: str = None,
+                      new_mask_suffix: str = None):
     """Creates a mantis project directory so that it can be opened by the mantis viewer.
     Copies fovs, segmentation files, masks, and mapping csv's into a new directory structure.
     Here is how the contents of the mantis project folder will look like.
@@ -560,6 +561,8 @@ def create_mantis_dir(fovs: List[str], mantis_project_path: Union[str, pathlib.P
         img_sub_folder (str, optional):
             The subfolder where the channels exist within the `img_data_path`.
             Defaults to None.
+        new_mask_suffix (str, optional):
+            The new suffix added to the copied mask tiffs.
     """
 
     # verify the type of clustering provided is valid
@@ -614,6 +617,10 @@ def create_mantis_dir(fovs: List[str], mantis_project_path: Union[str, pathlib.P
     # Filter out the masks that do not have an associated FOV.
     mask_names = filter(lambda mn: any(contains(mn, f) for f in fovs), mask_names_sorted)
 
+    # if no new suffix specified, copy over with original mask name
+    if not new_mask_suffix:
+        new_mask_suffix = mask_suffix
+
     # create a folder with image data, pixel masks, and segmentation mask
     for fov, mn in zip(fovs, mask_names):
         # set up paths
@@ -632,7 +639,7 @@ def create_mantis_dir(fovs: List[str], mantis_project_path: Union[str, pathlib.P
         # copy mask into new folder
         mask_name: str = mn + mask_suffix + ".tiff"
         shutil.copy(os.path.join(mask_output_dir, mask_name),
-                    os.path.join(output_dir, 'population{}.tiff'.format(mask_suffix)))
+                    os.path.join(output_dir, 'population{}.tiff'.format(new_mask_suffix)))
 
         # copy the segmentation files into the output directory
         # if `seg_dir` or `seg_name` is none, then skip copying
@@ -643,7 +650,7 @@ def create_mantis_dir(fovs: List[str], mantis_project_path: Union[str, pathlib.P
                             os.path.join(output_dir, 'cell_segmentation.tiff'))
 
         # copy mapping into directory
-        map_df.to_csv(os.path.join(output_dir, 'population{}.csv'.format(mask_suffix)),
+        map_df.to_csv(os.path.join(output_dir, 'population{}.csv'.format(new_mask_suffix)),
                       index=False)
 
 
