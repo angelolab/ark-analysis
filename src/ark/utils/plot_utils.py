@@ -637,9 +637,10 @@ def create_mantis_dir(fovs: List[str], mantis_project_path: Union[str, pathlib.P
         # copy the segmentation files into the output directory
         # if `seg_dir` or `seg_name` is none, then skip copying
         if save_seg_tiff:
-            seg_name: str = fov + seg_suffix_name
-            shutil.copy(os.path.join(seg_dir, seg_name),
-                        os.path.join(output_dir, 'cell_segmentation.tiff'))
+            if not os.path.exists(os.path.join(output_dir, 'cell_segmentation.tiff')):
+                seg_name: str = fov + seg_suffix_name
+                shutil.copy(os.path.join(seg_dir, seg_name),
+                            os.path.join(output_dir, 'cell_segmentation.tiff'))
 
         # copy mapping into directory
         map_df.to_csv(os.path.join(output_dir, 'population{}.csv'.format(mask_suffix)),
