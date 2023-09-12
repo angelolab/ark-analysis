@@ -14,7 +14,7 @@ import pandas as pd
 import pytest
 import skimage.io as io
 import xarray as xr
-from alpineer import image_utils, test_utils
+from alpineer import image_utils, test_utils, io_utils
 from skimage.draw import disk
 from matplotlib import colormaps
 
@@ -512,9 +512,14 @@ def mantis_data(
 
 @pytest.mark.parametrize("_mapping", ["df", "mapping_path"])
 @pytest.mark.parametrize("_seg_none", [True, False])
+@pytest.mark.parametrize("new_suffix", [True, False])
 def test_create_mantis_dir(
+<<<<<<< HEAD
     mantis_data: _mantis, _seg_none: bool, _mapping: str, cluster_type: str
 ):
+=======
+        mantis_data: _mantis, _seg_none: bool, _mapping: str, cluster_type: str, new_suffix: bool):
+>>>>>>> 5ee9a5d (Single mantis directory (#1061))
     md = mantis_data
 
     # Image segmentation full path, and None
@@ -530,6 +535,10 @@ def test_create_mantis_dir(
     else:
         _m = md.mapping_path
 
+    mask_suff = md.mask_suffix
+    if new_suffix:
+        mask_suff = "_new_mask"
+
     # Test mapping csv, and df
     for mapping in [md.df, md.mapping_path]:
         plot_utils.create_mantis_dir(
@@ -543,6 +552,10 @@ def test_create_mantis_dir(
             cluster_type=cluster_type,
             seg_suffix_name=seg_suffix_name,
             img_sub_folder=md.img_sub_folder,
+<<<<<<< HEAD
+=======
+            new_mask_suffix=mask_suff
+>>>>>>> 5ee9a5d (Single mantis directory (#1061))
         )
 
         # Testing file existence and correctness
@@ -551,12 +564,17 @@ def test_create_mantis_dir(
             output_path = os.path.join(md.mantis_project_path, fov)
 
             # 1. Mask tiff tests
+<<<<<<< HEAD
             mask_path = os.path.join(
                 output_path, "population{}.tiff".format(md.mask_suffix)
             )
             original_mask_path: str = os.path.join(
                 md.mask_output_dir, "%s_mask.tiff" % fov
             )
+=======
+            mask_path = os.path.join(output_path, f"population{mask_suff}.tiff")
+            original_mask_path: str = os.path.join(md.mask_output_dir, '%s_mask.tiff' % fov)
+>>>>>>> 5ee9a5d (Single mantis directory (#1061))
 
             # 1.a. Assert that the mask path exists
             assert os.path.exists(mask_path)
@@ -588,8 +606,12 @@ def test_create_mantis_dir(
             else:
                 original_mapping_df = pd.read_csv(md.mapping_path)
             new_mapping_df = pd.read_csv(
+<<<<<<< HEAD
                 os.path.join(output_path, "population{}.csv".format(md.mask_suffix))
             )
+=======
+                os.path.join(output_path, f"population{mask_suff}.csv"))
+>>>>>>> 5ee9a5d (Single mantis directory (#1061))
 
             # 3.a. Assert that metacluster col equals the region_id col
             metacluster_col = original_mapping_df[[f"{cluster_type}_meta_cluster"]]

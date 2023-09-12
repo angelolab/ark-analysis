@@ -150,7 +150,7 @@ def create_mantis_project(
         )
         # save the cell mask for each FOV -- (saves with ".tiff" extension)
         data_utils.save_fov_mask(
-            fov, mask_dir, mask_data, sub_dir=None, name_suffix="_cell_mask"
+            fov, mask_dir, mask_data, sub_dir=None, name_suffix="_post_clustering_cell_mask"
         )
 
     # rename the columns of small_table
@@ -168,7 +168,7 @@ def create_mantis_project(
         mantis_project_path=mantis_dir,
         img_data_path=image_dir,
         mask_output_dir=mask_dir,
-        mask_suffix="_cell_mask",
+        mask_suffix="_post_clustering_cell_mask",
         mapping=mantis_df,
         seg_dir=seg_dir,
         cluster_type=cluster_type,
