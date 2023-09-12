@@ -62,7 +62,7 @@ def test_run_pixel_som_assignment():
         )
 
         fov_status = pixel_som_clustering.run_pixel_som_assignment(
-            os.path.join(temp_dir, 'pixel_mat_data'), sample_pixel_cc, 'fov0'
+            os.path.join(temp_dir, 'pixel_mat_data'), sample_pixel_cc, False, 'fov0'
         )
 
         # assert the fov returned is fov0 and the status is 0
@@ -82,7 +82,7 @@ def test_run_pixel_som_assignment():
 
         # attempt to run remapping for fov1
         fov_status = pixel_som_clustering.run_pixel_som_assignment(
-            os.path.join(temp_dir, 'pixel_mat_data'), sample_pixel_cc, 'fov1'
+            os.path.join(temp_dir, 'pixel_mat_data'), sample_pixel_cc, False, 'fov1'
         )
 
         # assert the fov returned is fov1 and the status is 1
