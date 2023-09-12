@@ -185,6 +185,22 @@ def test_label_cells_by_cluster(label_map_generator):
     assert relabeled_image.shape == label_map.shape
 
 
+def test_map_segmentation_labels(
+        rng: np.random.Generator,
+        label_map_generator: Tuple[xr.DataArray, data_utils.ClusterMaskData]):
+
+    data = pd.DataFrame(data={"labels": np.arange(start=1, stop=11), "values": np.concatenate(
+        [[0], rng.random(size=8), [np.nan]])})
+
+    label_map, _ = label_map_generator
+
+    relabeled_image = data_utils.map_segmentation_labels(
+        labels=data["labels"], values=data["values"], label_map=label_map)
+
+    assert relabeled_image.max() <= data["values"].max()
+    assert relabeled_image.min() == 0
+
+
 def test_relabel_segmentation(label_map_generator):
     label_map, cmd = label_map_generator
 

@@ -4,7 +4,8 @@ import os
 import pathlib
 import re
 from typing import List, Union
-
+from numpy.typing import ArrayLike, DTypeLike
+from numpy import ma
 import feather
 import natsort as ns
 import numpy as np
@@ -238,9 +239,59 @@ def label_cells_by_cluster(
     relabeled_image: np.ndarray = relabel_segmentation(
         mapping=mapping,
         unassigned_id=cmd.unassigned_id,
-        labeled_image=labeled_image,)
+        labeled_image=labeled_image,
+        _dtype=np.int32)
 
     return relabeled_image.astype(np.int16)
+
+
+def map_segmentation_labels(
+    labels: Union[pd.Series, np.ndarray],
+    values: Union[pd.Series, np.ndarray],
+    label_map: ArrayLike,
+    unassigned_id: int | float = 0,
+) -> np.ndarray:
+    """
+    Maps an image consisting of segmentation labels to an image consisting of a particular type of
+    statistic, metric, or value of interest.
+
+    Args:
+        labels (Union[pd.Series, np.ndarray]): The segmentation labels.
+        values (Union[pd.Series, np.ndarray]): The values to map to the segmentation labels.
+        label_map (ArrayLike): The segmentation labels as an image to map to.
+        unassigned_id (int | float, optional): A default value to assign there is exists no 1-to-1
+        mapping from a label in the label_map to a label in the `labels` argument. Defaults to 0.
+
+    Returns:
+        np.ndarray: Returns the mapped image.
+    """
+    # condense extraneous axes if label_map is a DataArray
+    if isinstance(label_map, xr.DataArray):
+        labeled_image = label_map.squeeze().values.astype(np.int32)
+    else:
+        labeled_image: np.ndarray = label_map.squeeze().astype(np.int32)
+
+    if isinstance(labels, pd.Series):
+        labels = labels.to_numpy(dtype=np.int32)
+    if isinstance(values, pd.Series):
+        # handle NaNs, replace with 0
+        values = ma.fix_invalid(values.to_numpy(dtype=np.float64), fill_value=0).data
+
+    mapping: nb.typed.typeddict = nb.typed.Dict.empty(
+        key_type=nb.types.int32, value_type=nb.types.float64
+    )
+
+    for label, value in zip(labels, values):
+        mapping[label] = value
+
+    relabeled_image: np.ndarray = relabel_segmentation(
+        mapping=mapping,
+        unassigned_id=unassigned_id,
+        labeled_image=labeled_image,
+        _dtype=np.float64,
+    )
+
+    return relabeled_image
 
 
 @nb.njit(parallel=True)
@@ -248,9 +299,10 @@ def relabel_segmentation(
     mapping: nb.typed.typeddict,
     unassigned_id: np.int32,
     labeled_image: np.ndarray,
+    _dtype: DTypeLike = np.float64,
 ) -> np.ndarray:
     """
-    Relabels a labled segmentation image according to the provided cluster labels.
+    Relabels a labled segmentation image according to the provided values.
 
     Args:
         mapping (nb.typed.typeddict):
@@ -259,11 +311,13 @@ def relabel_segmentation(
             The label given to a pixel with no associated cluster.
         labeled_image (np.ndarray):
             The labeled segmentation image.
+        _dtype (DTypeLike, optional):
+            The data type of the relabeled image. Defaults to `np.float64`.
 
     Returns:
         np.ndarray: The relabeled segmentation image.
     """
-    relabeled_image: np.ndarray = np.empty(shape=labeled_image.shape, dtype=np.int16)
+    relabeled_image: np.ndarray = np.empty(shape=labeled_image.shape, dtype=_dtype)
     for i in nb.prange(labeled_image.shape[0]):
         for j in nb.prange(labeled_image.shape[1]):
             relabeled_image[i, j] = mapping.get(labeled_image[i, j], unassigned_id)

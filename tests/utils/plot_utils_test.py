@@ -782,10 +782,10 @@ def test_save_colored_mask(tmp_path: pathlib.Path, rng: np.random.Generator):
     save_dir.mkdir(parents=True, exist_ok=True)
 
     plot_utils.save_colored_mask(
-        fov=fov_name, save_dir=save_dir, mask_data=mask_data, cmap=cmap, norm=norm
+        fov=fov_name, save_dir=save_dir, suffix=".tiff", data=mask_data, cmap=cmap, norm=norm
     )
 
-    assert (save_dir / f"{fov_name}_colored_mask.tiff").exists()
+    assert (save_dir / f"{fov_name}.tiff").exists()
 
 
 def test_save_colored_masks(
@@ -880,6 +880,8 @@ def cohort_cluster_data(tmp_path: pathlib.Path):
     # Saving data
     save_dir = tmp_path / "save_dir"
     save_dir.mkdir(parents=True, exist_ok=True)
+
+    # Loading specific masks
     seg_suffix = "_whole_cell.tiff"
 
     yield CohortClusterData(
@@ -897,7 +899,7 @@ def cohort_cluster_data(tmp_path: pathlib.Path):
 
 
 @pytest.mark.parametrize("_cmap", ["cmap_df", "cmap_name"])
-def test_cohort_cluster_plot(cohort_cluster_data: CohortClusterData, _cmap: str):
+def test_cohort_cluster_plot(cohort_cluster_data: CohortClusterData, _cmap: str) -> None:
     plot_utils.cohort_cluster_plot(
         fovs=cohort_cluster_data.fov_names,
         save_dir=cohort_cluster_data.save_dir,
@@ -920,13 +922,13 @@ def test_cohort_cluster_plot(cohort_cluster_data: CohortClusterData, _cmap: str)
     assert (
         cohort_cluster_data.save_dir
         / "cluster_masks_colored"
-        / f"{cohort_cluster_data.fov_names[0]}_colored_mask.tiff"
+        / f"{cohort_cluster_data.fov_names[0]}.tiff"
     ).exists()
 
     assert (
         cohort_cluster_data.save_dir
         / "cluster_plots"
-        / f"{cohort_cluster_data.fov_names[0]}_cluster_plot.png"
+        / f"{cohort_cluster_data.fov_names[0]}.png"
     ).exists()
 
 
@@ -935,11 +937,15 @@ def plot_continuous_variable(rng: np.random.Generator, _cbar_visible: bool):
     image: np.ndarray = rng.random(size=(256, 256))
     name = "test_image"
 
+    norm = colors.Normalize(vmin=np.min(image), vmax=np.max(image))
+
     cmap = "viridis"
 
+    # just make sure the function runs
     fig = plot_utils.plot_continuous_variable(
         image=image,
         name=name,
+        norm=norm,
         cmap=cmap,
         cbar_visible=_cbar_visible,
         dpi=300,
@@ -947,66 +953,27 @@ def plot_continuous_variable(rng: np.random.Generator, _cbar_visible: bool):
     )
 
 
-@dataclass
-class CohortContinuousData:
-    fov_names: list[str]
-    image_dir: pathlib.Path
-    save_dir: pathlib.Path
-    cmap_name: str
-
-
-@pytest.fixture(scope="function")
-def cohort_continuous_images(tmp_path: pathlib.Path):
-    # Fov names
-    fov_names = [f"fov{i}" for i in range(2)]
-
-    # Continuous values
-    cont_vals = _generate_segmentation_labels(
-        img_dims=(256, 256), num_cells=5, num_imgs=2
-    )
-
-    # Save segmentation labels in the seg dir
-    image_dir = tmp_path / "image_dir"
-    image_dir.mkdir(parents=True, exist_ok=True)
-    for cont_array, fov_name in zip(cont_vals, fov_names):
-        image_utils.save_image(image_dir / f"{fov_name}.tiff", cont_array)
-
-    # Assign colors automatically via a colormap
-    cmap_name = "viridis"
-
-    # Saving data
-    save_dir = tmp_path / "save_dir"
-    save_dir.mkdir(parents=True, exist_ok=True)
-
-    yield CohortContinuousData(
-        fov_names=fov_names,
-        image_dir=image_dir,
-        save_dir=save_dir,
-        cmap_name=cmap_name,
-    )
-
-
-def test_plot_cohort_continuous_variable(
-    cohort_continuous_images: CohortContinuousData,
+def test_color_segmentation_by_stat(
+    cohort_cluster_data: CohortClusterData,
 ):
-    plot_utils.plot_cohort_continuous_variable(
-        images=cohort_continuous_images.fov_names,
-        image_dir=cohort_continuous_images.image_dir,
-        save_dir=cohort_continuous_images.save_dir,
-        cmap=cohort_continuous_images.cmap_name,
-        display_fig=False,
-        dpi=300,
-        figsize=(5, 5),
+
+    plot_utils.color_segmentation_by_stat(
+        data_table=cohort_cluster_data.cell_data,
+        seg_dir=cohort_cluster_data.seg_dir,
+        save_dir=cohort_cluster_data.save_dir,
+        fov_col=cohort_cluster_data.fov_col,
+        label_col=cohort_cluster_data.label_col,
+        stat_name=cohort_cluster_data.cluster_col,
     )
 
     assert (
-        cohort_continuous_images.save_dir
+        cohort_cluster_data.save_dir
         / "continuous_plots"
-        / f"{cohort_continuous_images.fov_names[0]}.png"
+        / f"{cohort_cluster_data.fov_names[0]}.png"
     ).exists()
 
     assert (
-        cohort_continuous_images.save_dir
+        cohort_cluster_data.save_dir
         / "colored"
-        / f"{cohort_continuous_images.fov_names[0]}.tiff"
+        / f"{cohort_cluster_data.fov_names[0]}.tiff"
     ).exists()

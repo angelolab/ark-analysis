@@ -59,6 +59,12 @@ dynamic = ["version"]
 urls = { repository = "https://github.com/angelolab/ark-analysis" }
 
 [project.optional-dependencies]
+colors = [
+    "palettable",
+    "cmasher",
+    "cmocean",
+    "colorcet"
+]
 test = [
     "attrs",
     "coveralls[toml]",
