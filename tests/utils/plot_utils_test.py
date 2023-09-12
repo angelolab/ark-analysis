@@ -14,7 +14,7 @@ import pandas as pd
 import pytest
 import skimage.io as io
 import xarray as xr
-from alpineer import image_utils, test_utils
+from alpineer import image_utils, test_utils, io_utils
 from skimage.draw import disk
 
 from ark.utils import plot_utils
@@ -449,8 +449,9 @@ def mantis_data(
 
 @pytest.mark.parametrize("_mapping", ["df", "mapping_path"])
 @pytest.mark.parametrize("_seg_none", [True, False])
+@pytest.mark.parametrize("new_suffix", [True, False])
 def test_create_mantis_dir(
-        mantis_data: _mantis, _seg_none: bool, _mapping: str, cluster_type: str):
+        mantis_data: _mantis, _seg_none: bool, _mapping: str, cluster_type: str, new_suffix: bool):
     md = mantis_data
 
     # Image segmentation full path, and None
@@ -466,6 +467,10 @@ def test_create_mantis_dir(
     else:
         _m = md.mapping_path
 
+    mask_suff = md.mask_suffix
+    if new_suffix:
+        mask_suff = "_new_mask"
+
     # Test mapping csv, and df
     for mapping in [md.df, md.mapping_path]:
         plot_utils.create_mantis_dir(
@@ -478,7 +483,8 @@ def test_create_mantis_dir(
             seg_dir=image_segmentation_full_path,
             cluster_type=cluster_type,
             seg_suffix_name=seg_suffix_name,
-            img_sub_folder=md.img_sub_folder
+            img_sub_folder=md.img_sub_folder,
+            new_mask_suffix=mask_suff
         )
 
         # Testing file existence and correctness
@@ -487,7 +493,7 @@ def test_create_mantis_dir(
             output_path = os.path.join(md.mantis_project_path, fov)
 
             # 1. Mask tiff tests
-            mask_path = os.path.join(output_path, "population{}.tiff".format(md.mask_suffix))
+            mask_path = os.path.join(output_path, f"population{mask_suff}.tiff")
             original_mask_path: str = os.path.join(md.mask_output_dir, '%s_mask.tiff' % fov)
 
             # 1.a. Assert that the mask path exists
@@ -519,7 +525,7 @@ def test_create_mantis_dir(
             else:
                 original_mapping_df = pd.read_csv(md.mapping_path)
             new_mapping_df = pd.read_csv(
-                os.path.join(output_path, "population{}.csv".format(md.mask_suffix)))
+                os.path.join(output_path, f"population{mask_suff}.csv"))
 
             # 3.a. Assert that metacluster col equals the region_id col
             metacluster_col = original_mapping_df[[f"{cluster_type}_meta_cluster"]]
