@@ -2,14 +2,11 @@ name: CI
 
 on:
   push:
-    branches: [main]
   pull_request:
-    branches: [main]
     types: [labeled, opened, synchronize, reopened]
   workflow_dispatch:
   merge_group:
     types: [checks_requested]
-    branches: [main]
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
