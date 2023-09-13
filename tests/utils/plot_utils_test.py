@@ -513,8 +513,8 @@ def mantis_data(
 @pytest.mark.parametrize("_mapping", ["df", "mapping_path"])
 @pytest.mark.parametrize("_seg_none", [True, False])
 @pytest.mark.parametrize("new_suffix", [True, False])
-def test_create_mantis_dir(mantis_data: _mantis, _seg_none: bool, _mapping: str,
-                           cluster_type: str, new_suffix: bool):
+def test_create_mantis_dir(
+        mantis_data: _mantis, _seg_none: bool, _mapping: str, cluster_type: str, new_suffix: bool):
     md = mantis_data
 
     # Image segmentation full path, and None
