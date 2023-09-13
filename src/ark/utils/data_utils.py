@@ -249,7 +249,7 @@ def map_segmentation_labels(
     labels: Union[pd.Series, np.ndarray],
     values: Union[pd.Series, np.ndarray],
     label_map: ArrayLike,
-    unassigned_id: int | float = 0,
+    unassigned_id: float = 0,
 ) -> np.ndarray:
     """
     Maps an image consisting of segmentation labels to an image consisting of a particular type of
