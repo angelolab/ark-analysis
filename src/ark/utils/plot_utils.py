@@ -903,8 +903,8 @@ def save_colored_masks(
 
 def cohort_cluster_plot(
     fovs: List[str],
-    seg_dir: pathlib.Path | str,
-    save_dir: pathlib.Path | str,
+    seg_dir: Union[pathlib.Path, str],
+    save_dir: Union[pathlib.Path, str],
     cell_data: pd.DataFrame,
     fov_col: str = settings.FOV_ID,
     label_col: str = settings.CELL_LABEL,
@@ -961,6 +961,8 @@ def cohort_cluster_plot(
         save_dir = pathlib.Path(save_dir)
         if not save_dir.exists():
             save_dir.mkdir(parents=True, exist_ok=True)
+    if isinstance(fovs, str):
+        fovs = [fovs]
 
     # Create the subdirectories for the 3 cluster mask files
     for sub_dir in ["cluster_masks", "cluster_masks_colored", "cluster_plots"]:
@@ -1039,7 +1041,7 @@ def cohort_cluster_plot(
             )
 
             if display_fig:
-                fig.show()
+                fig.show(warn=False)
             else:
                 plt.close(fig)
 
@@ -1054,7 +1056,7 @@ def plot_continuous_variable(
     cbar_visible: bool = True,
     dpi: int = 300,
     figsize: tuple[int, int] = (10, 10),
-) -> tuple[Figure, np.ndarray]:
+) -> Figure:
     """
 
     Plots an image measuring some type of continuous variable with a user provided colormap.
@@ -1103,9 +1105,10 @@ def plot_continuous_variable(
 
 
 def color_segmentation_by_stat(
+    fovs: List[str],
     data_table: pd.DataFrame,
-    seg_dir: pathlib.Path | str,
-    save_dir: pathlib.Path | str,
+    seg_dir: Union[pathlib.Path, str],
+    save_dir: Union[pathlib.Path, str],
     fov_col: str = settings.FOV_ID,
     label_col: str = settings.CELL_LABEL,
     stat_name: str = settings.CELL_TYPE,
@@ -1121,6 +1124,8 @@ def color_segmentation_by_stat(
     Colors segmentation masks by a given continuous statistic.
 
     Args:
+        fovs: (List[str]):
+            A list of FOVs to plot.
         data_table (pd.DataFrame):
             A DataFrame containing FOV and segmentation label identifiers
             as well as a collection of statistics for each label in a segmentation
@@ -1187,6 +1192,9 @@ def color_segmentation_by_stat(
     if not (save_dir / "colored").exists():
         (save_dir / "colored").mkdir(parents=True, exist_ok=True)
 
+    # filter the data table to only include the FOVs we want to plot
+    data_table = data_table[data_table[fov_col].isin(fovs)]
+    
     data_table_subset_groups: DataFrameGroupBy = (
         data_table[[fov_col, label_col, stat_name]]
         .sort_values(by=[fov_col, label_col], key=natsort.natsort_keygen())
@@ -1203,7 +1211,9 @@ def color_segmentation_by_stat(
         cmap = f"{cmap}_r"
 
     # Prepend black to the colormap
-    color_map = set_minimum_color_for_colormap(cmap=colormaps[cmap], default=(0, 0, 0, 1))
+    color_map = set_minimum_color_for_colormap(
+        cmap=colormaps[cmap], default=(0, 0, 0, 1)
+    )
 
     with tqdm(
         total=len(data_table_subset_groups),
@@ -1233,9 +1243,7 @@ def color_segmentation_by_stat(
                 cmap=color_map,
                 cbar_visible=cbar_visible,
             )
-            fig.savefig(
-                fname=os.path.join(save_dir, "continuous_plots", f"{fov}.png")
-            )
+            fig.savefig(fname=os.path.join(save_dir, "continuous_plots", f"{fov}.png"))
 
             save_colored_mask(
                 fov=fov,
@@ -1246,7 +1254,7 @@ def color_segmentation_by_stat(
                 norm=norm,
             )
             if display_fig:
-                fig.show()
+                fig.show(warn=False)
             else:
                 plt.close(fig)
 

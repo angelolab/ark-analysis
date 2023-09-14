@@ -958,6 +958,7 @@ def test_color_segmentation_by_stat(
 ):
 
     plot_utils.color_segmentation_by_stat(
+        fovs=[cohort_cluster_data.fov_names[0]],
         data_table=cohort_cluster_data.cell_data,
         seg_dir=cohort_cluster_data.seg_dir,
         save_dir=cohort_cluster_data.save_dir,
