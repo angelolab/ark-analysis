@@ -39,6 +39,7 @@ dependencies = [
     "xarray>=2022",
     "xmltodict>=0.13.0,<1",
     "zstandard>=0.19.0,<1",
+    "ark-analysis[colors]",
 ]
 name = "ark-analysis"
 authors = [{ name = "Angelo Lab", email = "theangelolab@gmail.com" }]
@@ -63,7 +64,8 @@ colors = [
     "palettable",
     "cmasher",
     "cmocean",
-    "colorcet"
+    "colorcet",
+    "scienceplots"
 ]
 test = [
     "attrs",

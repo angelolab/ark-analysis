@@ -953,6 +953,11 @@ def cohort_cluster_plot(
             for the entire cohort.
     """
     # Set the default style
+    if style == "seaborn-paper":
+        import seaborn
+    if style == "science":
+        import scienceplots 
+
     plt.style.use(style)
 
     if isinstance(seg_dir, str):
