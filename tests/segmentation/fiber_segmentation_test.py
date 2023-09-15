@@ -217,6 +217,7 @@ def test_generate_tile_stats(min_fiber_num):
                            "avg_area", "avg_eccentricity", "avg_euler_number"],
             output_columns=tile_stats.columns)
 
+
 @pytest.mark.parametrize("min_fiber_num", [1, 5])
 def test_generate_summary_stats(mocker: MockerFixture, min_fiber_num):
     fov_length = 16
@@ -259,6 +260,6 @@ def test_generate_summary_stats(mocker: MockerFixture, min_fiber_num):
                            "avg_area", "avg_eccentricity", "avg_euler_number",
                            "avg_alignment_score"], output_columns=fov_stats.columns)
         assert fov_stats.avg_major_axis_length[0] ==\
-               np.mean(fiber_object_table.major_axis_length[0:6])
+            np.mean(fiber_object_table.major_axis_length[0:6])
         assert fov_stats.avg_major_axis_length[1] == \
-               np.mean(fiber_object_table.major_axis_length[6:12])
+            np.mean(fiber_object_table.major_axis_length[6:12])
