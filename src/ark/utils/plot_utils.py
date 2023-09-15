@@ -399,6 +399,7 @@ def plot_pixel_cell_cluster(
         cbar_visible: bool = True,
         save_dir=None,
         fov_col: str = "fovs",
+        erode: bool = True,
         dpi=300,
         figsize=(10, 10)
 ):
@@ -422,6 +423,8 @@ def plot_pixel_cell_cluster(
             If provided, the image will be saved to this location.
         fov_col (str):
             The column with the fov names in `img_xr`. Defaults to "fovs".
+        erode (bool):
+            Whether or not to erode the segmentation mask.
         dpi (int):
             The resolution of the image to use for saving. Defaults to 300.
         figsize (tuple):
@@ -446,12 +449,15 @@ def plot_pixel_cell_cluster(
                               metacluster_colors=metacluster_colors)
 
     for fov in img_xr.sel({fov_col: fovs}):
-        fov: xr.DataArray
-        fov_img = mcc.assign_metacluster_cmap(fov_img=fov.squeeze())
+        fov_name = fov.fovs.values
+        if erode:
+            fov = erode_mask(seg_mask=fov, connectivity=2, mode="thick", background=0)
+        
+        fov_img = mcc.assign_metacluster_cmap(fov_img=fov)
 
         fig: Figure = plot_cluster(
-            image=fov_img.squeeze(),
-            fov=fov.fovs.values,
+            image=fov_img,
+            fov=fov_name,
             cmap=mcc.cmap,
             norm=mcc.norm,
             cbar_visible=cbar_visible,
@@ -462,7 +468,7 @@ def plot_pixel_cell_cluster(
 
         # save if specified
         if save_dir:
-            fig.savefig(fname=os.path.join(save_dir, f"{fov.fovs.values}.png"), dpi=300)
+            fig.savefig(fname=os.path.join(save_dir, f"{fov_name}.png"), dpi=300)
 
 
 def tif_overlay_preprocess(segmentation_labels, plotting_tif):
