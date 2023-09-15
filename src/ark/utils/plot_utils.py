@@ -917,7 +917,7 @@ def cohort_cluster_plot(
     cluster_col: str = settings.CELL_TYPE,
     seg_suffix: str = "_whole_cell.tiff",
     cmap: Union[str, pd.DataFrame] = "viridis",
-    style: str = "seaborn-paper",
+    style: str = "seaborn-v0_8-paper",
     erode: bool = False,
     display_fig: bool = False,
 ) -> None:
@@ -942,9 +942,11 @@ def cohort_cluster_plot(
         cmap (str, pd.DataFrame, optional): The colormap to generate clusters from,
             or a DataFrame, where the user can specify their own colors per cluster.
             The color column must be labeled "color". Defaults to "viridis".
-        style (str, optional): Set the matplotlib style image style. Defaults to "seaborn-paper".
+        style (str, optional): Set the matplotlib style image style. Defaults to 
+            "seaborn-v0_8-paper".
             View the available styles here: 
             https://matplotlib.org/stable/gallery/style_sheets/style_sheets_reference.html
+            Or run matplotlib.pyplot.style.available in a notebook to view all the styles.
         erode (bool, optional): Option to "thicken" the cell boundary via the segmentation label
             for visualization purposes. Defaults to False.
         display_fig (bool, optional): Option to display the cluster mask plots as they are
@@ -952,11 +954,8 @@ def cohort_cluster_plot(
             so it's best to try to visualize just a few FOVs, before generating the cluster masks
             for the entire cohort.
     """
-    # Set the default style
-    if style == "seaborn-paper":
-        import seaborn
-    if style == "science":
-        import scienceplots 
+    # if style == "science":
+    #     import scienceplots 
 
     plt.style.use(style)
 
@@ -1127,7 +1126,7 @@ def color_segmentation_by_stat(
     reverse: bool = False,
     seg_suffix: str = "_whole_cell.tiff",
     cbar_visible: bool = True,
-    style: str = "seaborn-paper",
+    style: str = "seaborn-v0_8-paper",
     erode: bool = False,
     display_fig: bool = False,
 ):
@@ -1171,13 +1170,14 @@ def color_segmentation_by_stat(
             A flag to display the colorbar. Defaults to True.
         erode (bool, optional): Option to "thicken" the cell boundary via the segmentation label
             for visualization purposes. Defaults to False.
-        style (str, optional): Set the matplotlib style image style. Defaults to "seaborn-paper".
-            View the available styles here:
+        style (str, optional): Set the matplotlib style image style. Defaults to 
+            "seaborn-v0_8-paper".
+            View the available styles here: 
             https://matplotlib.org/stable/gallery/style_sheets/style_sheets_reference.html
+            Or run matplotlib.pyplot.style.available in a notebook to view all the styles.
         display_fig: (bool, optional):
             Option to display the cluster mask plots as they are generated. Defaults to False.
     """
-    # Set the default style
     plt.style.use(style)
 
     if not isinstance(seg_dir, pathlib.Path):
