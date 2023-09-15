@@ -216,3 +216,49 @@ def test_generate_tile_stats(min_fiber_num):
             summary_stats=["avg_major_axis_length", "avg_minor_axis_length", "avg_orientation",
                            "avg_area", "avg_eccentricity", "avg_euler_number"],
             output_columns=tile_stats.columns)
+
+@pytest.mark.parametrize("min_fiber_num", [1, 5])
+def test_generate_summary_stats(mocker: MockerFixture, min_fiber_num):
+    fov_length = 16
+    mocker.patch('skimage.io.imread', return_value=np.zeros((fov_length, fov_length)))
+
+    fiber_object_table = pd.DataFrame({
+        'fov': ['fov1', 'fov1', 'fov1', 'fov1', 'fov1', 'fov1',
+                'fov2', 'fov2', 'fov2', 'fov2', 'fov2', 'fov2'],
+        'label': [1, 2, 3, 4, 5, 6, 1, 2, 3, 4, 5, 6],
+        'centroid-0': random.sample(range(0, 15), 12),
+        'centroid-1': random.sample(range(0, 15), 12),
+        'major_axis_length': random.sample(range(1, 20), 12),
+        'minor_axis_length': random.sample(range(1, 20), 12),
+        'orientation': [random.uniform(-1.57, 1.57) for _ in range(12)],
+        'area': [1]*12,
+        'eccentricity': [random.uniform(0, 1) for _ in range(12)],
+        'euler_number': [random.choice([0, 1]) for _ in range(12)],
+        'alignment_score': random.sample(range(10, 40), 12),
+    })
+
+    with tempfile.TemporaryDirectory() as temp_dir:
+        # bad tile size should raise an error
+        with pytest.raises(ValueError, match="Tile length must be a factor"):
+            _, _ = fiber_segmentation.generate_summary_stats(None, temp_dir, tile_length=5)
+
+        # test success
+        tile_length = 8
+        fov_stats, tile_stats = fiber_segmentation.generate_summary_stats(
+            fiber_object_table, temp_dir, tile_length=tile_length, save_tiles=True)
+
+        assert os.path.exists(os.path.join(temp_dir, 'fiber_stats_table.csv'))
+        tile_dir = os.path.join(temp_dir, f'tile_stats_{tile_length}')
+        assert os.path.exists(os.path.join(temp_dir, tile_dir,
+                                           f'fiber_stats_table-tile_{tile_length}.csv'))
+
+        # check fov-level values
+        # only confirm fiber property avg stats, densities are tested above
+        misc_utils.verify_in_list(
+            summary_stats=["avg_major_axis_length", "avg_minor_axis_length", "avg_orientation",
+                           "avg_area", "avg_eccentricity", "avg_euler_number",
+                           "avg_alignment_score"], output_columns=fov_stats.columns)
+        assert fov_stats.avg_major_axis_length[0] ==\
+               np.mean(fiber_object_table.major_axis_length[0:6])
+        assert fov_stats.avg_major_axis_length[1] == \
+               np.mean(fiber_object_table.major_axis_length[6:12])
