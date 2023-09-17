@@ -9,18 +9,33 @@ from matplotlib.axes import Axes
 
 import matplotlib.cm as cm
 import matplotlib.colors as colors
+from matplotlib import colormaps, patches
 from matplotlib.figure import Figure
 import matplotlib.pyplot as plt
 import natsort
 import numpy as np
 import pandas as pd
+from pandas.core.groupby.generic import DataFrameGroupBy
+import skimage
 import xarray as xr
 from alpineer import image_utils, io_utils, load_utils, misc_utils
 from alpineer.settings import EXTENSION_TYPES
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 from skimage.exposure import rescale_intensity
+from skimage import io
+
+
+from skimage.util import img_as_ubyte
+from tqdm.auto import tqdm
+from ark import settings
 from skimage.segmentation import find_boundaries
-from tqdm import tqdm
+from ark.utils.data_utils import (
+    ClusterMaskData,
+    erode_mask,
+    generate_cluster_mask,
+    save_fov_mask,
+    map_segmentation_labels,
+)
 
 
 @dataclass
@@ -36,7 +51,7 @@ class MetaclusterColormap:
     # Fields initialized after `__post_init__`
     unassigned_color: Tuple[float, ...] = field(init=False)
     unassigned_id: int = field(init=False)
-    no_cluster_color: Tuple[float, ...] = field(init=False)
+    background_color: Tuple[float, ...] = field(init=False)
     metacluster_id_to_name: pd.DataFrame = field(init=False)
     mc_colors: np.ndarray = field(init=False)
     metacluster_to_index: Dict = field(init=False)
@@ -51,8 +66,8 @@ class MetaclusterColormap:
         # A pixel with no associated metacluster (gray, #5A5A5A)
         self.unassigned_color: Tuple[float, ...] = (0.9, 0.9, 0.9, 1.0)
 
-        # A pixel assigned to no cluster (black, #000000)
-        self.no_cluster_color: Tuple[float, ...] = (0.0, 0.0, 0.0, 1.0)
+        # A pixel assigned to the background (black, #000000)
+        self.background_color: Tuple[float, ...] = (0.0, 0.0, 0.0, 1.0)
 
         self._metacluster_cmap_generator()
 
@@ -118,7 +133,7 @@ class MetaclusterColormap:
         self.metacluster_colors.update({unassigned_id: self.unassigned_color})
 
         # add the no cluster color to the metacluster_colors dict
-        self.metacluster_colors.update({0: self.no_cluster_color})
+        self.metacluster_colors.update({0: self.background_color})
 
         # assert the metacluster index in colors matches with the ids in metacluster_id_to_name
         misc_utils.verify_same_elements(
@@ -169,11 +184,23 @@ class MetaclusterColormap:
         relabeled_fov = np.copy(fov_img)
         for mc, mc_color_idx in self.metacluster_to_index.items():
             relabeled_fov[fov_img == mc] = mc_color_idx
-
         return relabeled_fov
 
 
-def create_cmap(colors_array: np.ndarray) -> tuple[colors.ListedColormap, colors.BoundaryNorm]:
+def create_cmap(cmap: Union[np.ndarray, list[str], str],
+                n_clusters: int) -> tuple[colors.ListedColormap, colors.BoundaryNorm]:
+    """
+    Creates a discrete colormap and a boundary norm from the provided colors.
+
+    Args:
+        cmap (Union[np.ndarray, list[str], str]): The colormap, or set of colors to use.
+        n_clusters (int): The numbe rof clusters for the colormap.
+
+    Returns:
+        tuple[colors.ListedColormap, colors.BoundaryNorm]:
+            The generated colormap and boundary norm.
+    """
+
     """Creates a colormap and a boundary norm from the provided colors.
 
     Colors can be of any format that matplotlib accepts.
@@ -181,20 +208,49 @@ def create_cmap(colors_array: np.ndarray) -> tuple[colors.ListedColormap, colors
 
 
     Args:
-        colors_array (np.ndarray): The colors to use for the colormap.
+        colors_array (): The colors to use for the colormap.
 
     Returns:
-        colors.ListedColormap: The colormap.
+        tuple[colors.ListedColormap, colors.BoundaryNorm]: The colormap and the boundary norm
     """
-    if not isinstance(colors_array, np.ndarray):
-        raise ValueError(
-            f"colors_array must be a numpy array, got {type(colors_array)}")
 
-    cmap = colors.ListedColormap(colors=colors_array)
-    bounds = [i-0.5 for i in np.linspace(0, len(colors_array), len(colors_array) + 1)]
+    if isinstance(cmap, np.ndarray):
+        if cmap.ndim != 2:
+            raise ValueError(
+                f"colors_array must be a 2D array, got {cmap.ndim}D array")
+        if cmap.shape[0] != n_clusters:
+            raise ValueError(
+                f"colors_array must have {n_clusters} colors, got {cmap.shape[0]} colors")
+        color_map = colors.ListedColormap(colors=_cmap_add_background_unassigned(cmap))
+    if isinstance(cmap, list):
+        if len(cmap) != n_clusters:
+            raise ValueError(
+                f"colors_array must have {n_clusters} colors, got {len(cmap)} colors")
+    if isinstance(cmap, str):
+        try:
+            # colorcet colormaps are also supported
+            # cmocean colormaps are also supported
+            color_map = colormaps[cmap]
+        except KeyError:
+            raise KeyError(f"Colormap {cmap} not found.")
+        colors_rgba: np.ndarray = color_map(np.linspace(0, 1, n_clusters))
+        color_map: colors.ListedColormap = colors.ListedColormap(
+            colors=_cmap_add_background_unassigned(colors_rgba))
 
-    norm = colors.BoundaryNorm(bounds, cmap.N)
-    return cmap, norm
+    bounds = [i-0.5 for i in np.linspace(0, color_map.N, color_map.N + 1)]
+
+    norm = colors.BoundaryNorm(bounds, color_map.N)
+    return color_map, norm
+
+
+def _cmap_add_background_unassigned(cluster_colors: np.ndarray):
+    # A pixel with no associated metacluster (gray, #5A5A5A)
+    unassigned_color: np.ndarray = np.array([0.9, 0.9, 0.9, 1.0])
+
+    # A pixel assigned to the background (black, #000000)
+    background_color: np.ndarray = np.array([0.0, 0.0, 0.0, 1.0])
+
+    return np.vstack([background_color, cluster_colors, unassigned_color])
 
 
 def plot_cluster(
@@ -205,7 +261,7 @@ def plot_cluster(
         cbar_visible: bool = True,
         cbar_labels: list[str] = None,
         dpi: int = 300,
-        figsize: tuple[int, int] = (10, 10)) -> Figure:
+        figsize: tuple[int, int] = None) -> Figure:
     """
     Plots the cluster image with the provided colormap and norm.
 
@@ -237,22 +293,7 @@ def plot_cluster(
 
     fig: Figure = plt.figure(figsize=figsize, dpi=dpi)
     fig.set_layout_engine(layout="tight")
-
-    if cbar_visible:
-        gs = gridspec.GridSpec(nrows=1, ncols=2, figure=fig, width_ratios=[60, 1])
-        # Colorbar Axis
-        cax: Axes = fig.add_subplot(gs[0, 1])
-        # Manually set the colorbar
-        cbar = fig.colorbar(cm.ScalarMappable(norm=norm, cmap=cmap), cax=cax,
-                            orientation="vertical", use_gridspec=True, pad=0.1)
-        cbar.ax.set_yticks(
-            ticks=np.arange(len(cbar_labels)),
-            labels=cbar_labels
-        )
-        cbar.minorticks_off()
-    else:
-        gs = gridspec.GridSpec(nrows=1, ncols=1, figure=fig)
-
+    gs = gridspec.GridSpec(nrows=1, ncols=1, figure=fig)
     fig.suptitle(f"{fov}")
 
     # Image axis
@@ -266,8 +307,22 @@ def plot_cluster(
         norm=norm,
         origin="upper",
         aspect="equal",
-        interpolation=None,
+        interpolation="none",
     )
+
+    if cbar_visible:
+        # # Manually set the colorbar
+        divider = make_axes_locatable(fig.gca())
+        cax = divider.append_axes(position="right", size="5%", pad="3%")
+
+        cbar = fig.colorbar(cm.ScalarMappable(norm=norm, cmap=cmap),
+                            cax=cax, orientation="vertical", use_gridspec=True, pad=0.1,
+                            shrink=0.9, drawedges=True)
+        cbar.ax.set_yticks(
+            ticks=np.arange(len(cbar_labels)),
+            labels=cbar_labels
+        )
+        cbar.minorticks_off()
 
     return fig
 
@@ -307,13 +362,12 @@ def plot_neighborhood_cluster_result(img_xr: xr.DataArray,
     """
 
     # verify the fovs are valid
-    misc_utils.verify_in_list(fov_names=fovs, unique_fovs=img_xr.fovs.values)
+    misc_utils.verify_in_list(fovs=fovs, unique_fovs=img_xr.fovs.values)
 
-    # define the colormap, add black for empty slide
-    mycols = cm.get_cmap(cmap_name, k).colors
-    mycols = np.vstack(([0, 0, 0, 1], mycols))
+    # define the colormap
+    my_colors = cm.get_cmap(cmap_name, k).colors
 
-    cmap, norm = create_cmap(mycols)
+    cmap, norm = create_cmap(my_colors, n_clusters=k)
 
     cbar_labels = ["Empty"]
     cbar_labels.extend([f"Cluster {x}" for x in range(1, k+1)])
@@ -336,7 +390,7 @@ def plot_neighborhood_cluster_result(img_xr: xr.DataArray,
             fig.savefig(fname=os.path.join(save_dir, f"{fov.fovs.values}.png"), dpi=300)
 
 
-def plot_pixel_cell_cluster_overlay(
+def plot_pixel_cell_cluster(
         img_xr: xr.DataArray,
         fovs: list[str],
         cluster_id_to_name_path: Union[str, pathlib.Path],
@@ -345,6 +399,7 @@ def plot_pixel_cell_cluster_overlay(
         cbar_visible: bool = True,
         save_dir=None,
         fov_col: str = "fovs",
+        erode: bool = True,
         dpi=300,
         figsize=(10, 10)
 ):
@@ -368,6 +423,8 @@ def plot_pixel_cell_cluster_overlay(
             If provided, the image will be saved to this location.
         fov_col (str):
             The column with the fov names in `img_xr`. Defaults to "fovs".
+        erode (bool):
+            Whether or not to erode the segmentation mask.
         dpi (int):
             The resolution of the image to use for saving. Defaults to 300.
         figsize (tuple):
@@ -381,7 +438,7 @@ def plot_pixel_cell_cluster_overlay(
     )
 
     # verify the fovs are valid
-    misc_utils.verify_in_list(fov_names=fovs, unique_fovs=img_xr.fovs.values)
+    misc_utils.verify_in_list(fovs=fovs, unique_fovs=img_xr.fovs.values)
 
     # verify cluster_id_to_name_path exists
     io_utils.validate_paths(cluster_id_to_name_path)
@@ -392,12 +449,15 @@ def plot_pixel_cell_cluster_overlay(
                               metacluster_colors=metacluster_colors)
 
     for fov in img_xr.sel({fov_col: fovs}):
-        fov: xr.DataArray
-        fov_img = mcc.assign_metacluster_cmap(fov_img=fov.squeeze())
+        fov_name = fov.fovs.values
+        if erode:
+            fov = erode_mask(seg_mask=fov, connectivity=2, mode="thick", background=0)
+        
+        fov_img = mcc.assign_metacluster_cmap(fov_img=fov)
 
         fig: Figure = plot_cluster(
-            image=fov_img.squeeze(),
-            fov=fov.fovs.values,
+            image=fov_img,
+            fov=fov_name,
             cmap=mcc.cmap,
             norm=mcc.norm,
             cbar_visible=cbar_visible,
@@ -408,7 +468,7 @@ def plot_pixel_cell_cluster_overlay(
 
         # save if specified
         if save_dir:
-            fig.savefig(fname=os.path.join(save_dir, f"{fov.fovs.values}.png"), dpi=300)
+            fig.savefig(fname=os.path.join(save_dir, f"{fov_name}.png"), dpi=300)
 
 
 def tif_overlay_preprocess(segmentation_labels, plotting_tif):
@@ -700,7 +760,7 @@ def create_mantis_dir(fovs: List[str], mantis_project_path: Union[str, pathlib.P
                                                             delimiter=mask_suffix)
     mask_names_sorted = natsort.natsorted(mask_names_delimited)
 
-    # use `fovs`, a subset of the FOVs in `total_fov_names` which
+    # use `fovs`, a subset of the FOVs in `total_fovs` which
     # is a list of FOVs in `img_data_path`
     fovs = natsort.natsorted(fovs)
     misc_utils.verify_in_list(fovs=fovs, img_data_fovs=mask_names_delimited)
@@ -739,6 +799,45 @@ def create_mantis_dir(fovs: List[str], mantis_project_path: Union[str, pathlib.P
         # copy mapping into directory
         map_df.to_csv(os.path.join(output_dir, 'population{}.csv'.format(new_mask_suffix)),
                       index=False)
+
+
+def save_colored_mask(
+    fov: str,
+    save_dir: str,
+    suffix: str,
+    data: np.ndarray,
+    cmap: colors.ListedColormap,
+    norm: colors.BoundaryNorm,
+) -> None:
+    """Saves the colored mask to the provided save directory.
+
+    Args:
+        fov (str):
+            The name of the FOV.
+        save_dir (str):
+            The directory where the colored mask will be saved.
+        suffix (str):
+            The suffix to append to the FOV name.
+        data (np.ndarray):
+            The mask to save.
+        cmap (colors.ListedColormap):
+            The colormap to use for the mask.
+        norm (colors.BoundaryNorm):
+            The normalization to use for the mask.
+    """
+
+    # Create the save directory if it does not exist
+    if not os.path.exists(save_dir):
+        os.makedirs(save_dir)
+
+    # Create the colored mask
+    colored_mask = img_as_ubyte(cmap(norm(data)))
+
+    # Save the image
+    image_utils.save_image(
+        fname=os.path.join(save_dir, f"{fov}{suffix}"),
+        data=colored_mask,
+    )
 
 
 def save_colored_masks(
@@ -804,5 +903,370 @@ def save_colored_masks(
             image_utils.save_image(
                 fname=save_dir / f"{fov}_{cluster_type}_mask_colored.tiff",
                 data=colored_mask,)
+
+            pbar.update(1)
+
+
+def cohort_cluster_plot(
+    fovs: List[str],
+    seg_dir: Union[pathlib.Path, str],
+    save_dir: Union[pathlib.Path, str],
+    cell_data: pd.DataFrame,
+    fov_col: str = settings.FOV_ID,
+    label_col: str = settings.CELL_LABEL,
+    cluster_col: str = settings.CELL_TYPE,
+    seg_suffix: str = "_whole_cell.tiff",
+    cmap: Union[str, pd.DataFrame] = "viridis",
+    style: str = "seaborn-v0_8-paper",
+    erode: bool = False,
+    display_fig: bool = False,
+) -> None:
+    """
+    Saves the cluster masks for each FOV in the cohort as the following:
+    - Cluster mask numbered 1-N, where N is the number of clusters (tiff)
+    - Cluster mask colored by cluster with or without a colorbar (png)
+    - Cluster mask colored by cluster (tiff).
+
+    Args:
+        fovs (List[str]): A list of FOVs to generate cluster masks for.
+        seg_dir (Union[pathlib.Path, str]): The directory containing the segmentation masks.
+        save_dir (Union[pathlib.Path, str]): The directory to save the cluster masks to.
+        cell_data (pd.DataFrame): The cell data table containing the cluster labels.
+        fov_col (str, optional): The column containing the FOV name. Defaults to settings.FOV_ID.
+        label_col (str, optional): The column containing the segmentaiton label.
+            Defaults to settings.CELL_LABEL.
+        cluster_col (str, optional): The column containing the cluster a segmentation label
+            belongs to. Defaults to settings.CELL_TYPE.
+        seg_suffix (str, optional): The kind of segmentation file to read.
+            Defaults to "_whole_cell.tiff".
+        cmap (str, pd.DataFrame, optional): The colormap to generate clusters from,
+            or a DataFrame, where the user can specify their own colors per cluster.
+            The color column must be labeled "color". Defaults to "viridis".
+        style (str, optional): Set the matplotlib style image style. Defaults to 
+            "seaborn-v0_8-paper".
+            View the available styles here: 
+            https://matplotlib.org/stable/gallery/style_sheets/style_sheets_reference.html
+            Or run matplotlib.pyplot.style.available in a notebook to view all the styles.
+        erode (bool, optional): Option to "thicken" the cell boundary via the segmentation label
+            for visualization purposes. Defaults to False.
+        display_fig (bool, optional): Option to display the cluster mask plots as they are
+            generated. Defaults to False. Displaying each figure can use a lot of memory,
+            so it's best to try to visualize just a few FOVs, before generating the cluster masks
+            for the entire cohort.
+    """
+    # if style == "science":
+    #     import scienceplots 
+
+    plt.style.use(style)
+
+    if isinstance(seg_dir, str):
+        seg_dir = pathlib.Path(seg_dir)
+
+    try:
+        io_utils.validate_paths(seg_dir)
+    except ValueError:
+        raise ValueError(f"Could not find the segmentation directory at {seg_dir.as_posix()}")
+
+    if isinstance(save_dir, str):
+        save_dir = pathlib.Path(save_dir)
+        if not save_dir.exists():
+            save_dir.mkdir(parents=True, exist_ok=True)
+    if isinstance(fovs, str):
+        fovs = [fovs]
+
+    # Create the subdirectories for the 3 cluster mask files
+    for sub_dir in ["cluster_masks", "cluster_masks_colored", "cluster_plots"]:
+        (save_dir / sub_dir).mkdir(parents=True, exist_ok=True)
+
+    cmd = ClusterMaskData(
+        data=cell_data,
+        fov_col=fov_col,
+        label_col=label_col,
+        cluster_col=cluster_col,
+    )
+    if isinstance(cmap, pd.DataFrame):
+        unique_clusters: pd.DataFrame = cmd.mapping[[cmd.cluster_column,
+                                                     cmd.cluster_id_column]].drop_duplicates()
+        merged_cmap: pd.DataFrame = cmap.merge(right=unique_clusters, on=cmd.cluster_column)
+        cmap_colors = merged_cmap["color"].values
+        colors_like: list[bool] = list(map(colors.is_color_like, cmap_colors))
+
+        if not all(colors_like):
+            bad_color_values: np.ndarray = cmap_colors[~np.array(colors_like)]
+            raise ValueError(
+                (f"Not all colors in the provided cmap are valid colors."
+                 "The following colors are invalid: {bad_color_values}"))
+
+        np_colors = colors.to_rgba_array(cmap_colors)
+
+        color_map, norm = create_cmap(np_colors, n_clusters=cmd.n_clusters)
+
+    if isinstance(cmap, str):
+        color_map, norm = create_cmap(cmap, n_clusters=cmd.n_clusters)
+
+    # create the pixel cluster masks across each fov
+    with tqdm(total=len(fovs), desc="Cluster Mask Generation", unit="FOVs") as pbar:
+        for fov in fovs:
+            pbar.set_postfix(FOV=fov)
+
+            # generate the cell mask for the FOV
+            cluster_mask: np.ndarray = generate_cluster_mask(
+                fov=fov,
+                seg_dir=seg_dir,
+                cmd=cmd,
+                seg_suffix=seg_suffix,
+                erode=erode,
+            )
+
+            # save the cluster mask generated
+            save_fov_mask(
+                fov,
+                data_dir=save_dir / "cluster_masks",
+                mask_data=cluster_mask,
+                sub_dir=None,
+            )
+
+            save_colored_mask(
+                fov=fov,
+                save_dir=save_dir / "cluster_masks_colored",
+                suffix=".tiff",
+                data=cluster_mask,
+                cmap=color_map,
+                norm=norm,
+            )
+
+            cluster_labels = ["Background"] + cmd.cluster_names + ["Unassigned"]
+
+            fig = plot_cluster(
+                image=cluster_mask,
+                fov=fov,
+                cmap=color_map,
+                norm=norm,
+                cbar_visible=True,
+                cbar_labels=cluster_labels,
+            )
+
+            fig.savefig(
+                fname=os.path.join(save_dir, "cluster_plots", f"{fov}.png"),
+            )
+
+            if display_fig:
+                fig.show(warn=False)
+            else:
+                plt.close(fig)
+
+            pbar.update(1)
+
+
+def plot_continuous_variable(
+    image: np.ndarray,
+    name: str,
+    cmap: Union[colors.Colormap, str],
+    norm: colors.Normalize = None,
+    cbar_visible: bool = True,
+    dpi: int = 300,
+    figsize: tuple[int, int] = (10, 10),
+) -> Figure:
+    """
+
+    Plots an image measuring some type of continuous variable with a user provided colormap.
+
+    Args:
+        image (np.ndarray): An array representing an image to plot.
+        name (str): The name of the image.
+        cmap (colors.Colormap, str, optional): A colormap to plot the array with.
+            Defaults to "viridis".
+        cbar_visible (bool, optional): A flag for setting the colorbar on or not.
+            Defaults to True.
+        norm (colors.Normalize, optional): A normalization to apply to the colormap.
+        dpi (int, optional): The resolution of the image. Defaults to 300.
+        figsize (tuple[int, int], optional): The size of the image. Defaults to (10, 10).
+
+    Returns:
+        Figure : The Figure object of the image.
+    """
+    fig: Figure = plt.figure(figsize=figsize, dpi=dpi)
+    fig.set_layout_engine(layout="tight")
+    gs = gridspec.GridSpec(nrows=1, ncols=1, figure=fig)
+    fig.suptitle(f"{name}")
+
+    # Image axis
+    ax: Axes = fig.add_subplot(gs[0, 0])
+    ax.axis("off")
+    ax.grid(visible=False)
+
+    im = ax.imshow(
+        X=image,
+        cmap=cmap,
+        norm=norm,
+        origin="upper",
+        aspect="equal",
+    )
+
+    if cbar_visible:
+        # Manually set the colorbar
+        divider = make_axes_locatable(fig.gca())
+        cax = divider.append_axes(position="right", size="5%", pad="3%")
+
+        fig.colorbar(mappable=im, cax=cax, orientation="vertical",
+                     use_gridspec=True, pad=0.1, shrink=0.9, drawedges=False)
+
+    return fig
+
+
+def color_segmentation_by_stat(
+    fovs: List[str],
+    data_table: pd.DataFrame,
+    seg_dir: Union[pathlib.Path, str],
+    save_dir: Union[pathlib.Path, str],
+    fov_col: str = settings.FOV_ID,
+    label_col: str = settings.CELL_LABEL,
+    stat_name: str = settings.CELL_TYPE,
+    cmap: str = "viridis",
+    reverse: bool = False,
+    seg_suffix: str = "_whole_cell.tiff",
+    cbar_visible: bool = True,
+    style: str = "seaborn-v0_8-paper",
+    erode: bool = False,
+    display_fig: bool = False,
+):
+    """
+    Colors segmentation masks by a given continuous statistic.
+
+    Args:
+        fovs: (List[str]):
+            A list of FOVs to plot.
+        data_table (pd.DataFrame):
+            A DataFrame containing FOV and segmentation label identifiers
+            as well as a collection of statistics for each label in a segmentation
+            mask such as:
+
+                - `fov_id` (identifier)
+                - `label` (identifier)
+                - `area` (statistic)
+                - `fiber` (statistic)
+                - etc...
+
+        seg_dir (Union[pathlib.Path, str]):
+            Path to the directory containing segmentation masks.
+        save_dir (Union[pathlib.Path, str]):
+            Path to the directory where the colored segmentation masks will be saved.
+        fov_col: (str, optional):
+            The name of the column in `data_table` containing the FOV identifiers.
+            Defaults to "fov".
+        label_col (str, optional):
+            The name of the column in `data_table` containing the segmentation label identifiers.
+            Defaults to "label".
+        stat_name (str):
+            The name of the statistic to color the segmentation masks by. This should be a column
+            in `data_table`.
+        seg_suffix (str, optional):
+            The suffix of the segmentation file and it's file extension. Defaults to
+            "_whole_cell.tiff".
+        cmap (str, optional): The colormap for plotting. Defaults to "viridis".
+        reverse (bool, optional):
+            A flag to reverse the colormap provided. Defaults to False.
+        cbar_visible (bool, optional):
+            A flag to display the colorbar. Defaults to True.
+        erode (bool, optional): Option to "thicken" the cell boundary via the segmentation label
+            for visualization purposes. Defaults to False.
+        style (str, optional): Set the matplotlib style image style. Defaults to 
+            "seaborn-v0_8-paper".
+            View the available styles here: 
+            https://matplotlib.org/stable/gallery/style_sheets/style_sheets_reference.html
+            Or run matplotlib.pyplot.style.available in a notebook to view all the styles.
+        display_fig: (bool, optional):
+            Option to display the cluster mask plots as they are generated. Defaults to False.
+    """
+    plt.style.use(style)
+
+    if not isinstance(seg_dir, pathlib.Path):
+        seg_dir = pathlib.Path(seg_dir)
+
+    if not isinstance(save_dir, pathlib.Path):
+        save_dir = pathlib.Path(save_dir)
+
+    io_utils.validate_paths([seg_dir])
+
+    try:
+        io_utils.validate_paths([save_dir])
+    except FileNotFoundError:
+        save_dir.mkdir(parents=True, exist_ok=True)
+
+    misc_utils.verify_in_list(
+        statistic_name=[fov_col, label_col, stat_name],
+        data_table_columns=data_table.columns,
+    )
+
+    if not (save_dir / "continuous_plots").exists():
+        (save_dir / "continuous_plots").mkdir(parents=True, exist_ok=True)
+    if not (save_dir / "colored").exists():
+        (save_dir / "colored").mkdir(parents=True, exist_ok=True)
+
+    # filter the data table to only include the FOVs we want to plot
+    data_table = data_table[data_table[fov_col].isin(fovs)]
+    
+    data_table_subset_groups: DataFrameGroupBy = (
+        data_table[[fov_col, label_col, stat_name]]
+        .sort_values(by=[fov_col, label_col], key=natsort.natsort_keygen())
+        .groupby(by=fov_col)
+    )
+
+    # Colormap normalization across the cohort + reverse if necessary
+    vmin: np.float64 = data_table[stat_name].min()
+    vmax: np.float64 = data_table[stat_name].max()
+    norm = colors.Normalize(vmin=vmin, vmax=vmax)
+
+    if reverse:
+        # Adding the suffix "_r" will reverse the colormap
+        cmap = f"{cmap}_r"
+
+    # Prepend black to the colormap
+    color_map = set_minimum_color_for_colormap(
+        cmap=colormaps[cmap], default=(0, 0, 0, 1)
+    )
+
+    with tqdm(
+        total=len(data_table_subset_groups),
+        desc=f"Generating {stat_name} Plots",
+        unit="FOVs",
+    ) as pbar:
+        for fov, fov_group in data_table_subset_groups:
+            pbar.set_postfix(FOV=fov)
+
+            label_map: np.ndarray = io.imread(seg_dir / f"{fov}{seg_suffix}")
+
+            if erode:
+                label_map = erode_mask(
+                    label_map, connectivity=2, mode="thick", background=0
+                )
+
+            mapped_seg_image: np.ndarray = map_segmentation_labels(
+                labels=fov_group[label_col],
+                values=fov_group[stat_name],
+                label_map=label_map,
+            )
+
+            fig = plot_continuous_variable(
+                image=mapped_seg_image,
+                name=fov,
+                norm=norm,
+                cmap=color_map,
+                cbar_visible=cbar_visible,
+            )
+            fig.savefig(fname=os.path.join(save_dir, "continuous_plots", f"{fov}.png"))
+
+            save_colored_mask(
+                fov=fov,
+                save_dir=save_dir / "colored",
+                suffix=".tiff",
+                data=mapped_seg_image,
+                cmap=color_map,
+                norm=norm,
+            )
+            if display_fig:
+                fig.show(warn=False)
+            else:
+                plt.close(fig)
 
             pbar.update(1)

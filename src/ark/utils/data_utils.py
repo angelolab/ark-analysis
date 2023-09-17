@@ -4,7 +4,8 @@ import os
 import pathlib
 import re
 from typing import List, Union
-
+from numpy.typing import ArrayLike, DTypeLike
+from numpy import ma
 import feather
 import natsort as ns
 import numpy as np
@@ -15,7 +16,7 @@ from alpineer.settings import EXTENSION_TYPES
 from tqdm.notebook import tqdm_notebook as tqdm
 import xarray as xr
 from ark import settings
-from pandas.core.groupby import DataFrameGroupBy
+from skimage.segmentation import find_boundaries
 
 
 def save_fov_mask(fov, data_dir, mask_data, sub_dir=None, name_suffix=''):
@@ -56,7 +57,24 @@ def save_fov_mask(fov, data_dir, mask_data, sub_dir=None, name_suffix=''):
     image_utils.save_image(os.path.join(save_dir, fov_file), mask_data)
 
 
-class CellClusterMaskData:
+def erode_mask(seg_mask: np.ndarray, **kwargs) -> np.ndarray:
+    """
+    Erodes the edges labels of a segmentation mask.
+    Other keyword arguments get passed to `skimage.segmentation.find_boundaries`.
+
+    Args:
+        seg_mask (np.ndarray): The segmentation mask to erode.
+
+    Returns:
+        np.ndarray: The eroded segmentation mask
+    """
+    edges = find_boundaries(
+        label_img=seg_mask, **kwargs)
+    seg_mask = np.where(edges == 0, seg_mask, 0)
+    return seg_mask
+
+
+class ClusterMaskData:
     """
     A class containing the cell labels, cluster labels, and segmentation labels for the
     whole cohort. Also contains the mapping from the segmentation label to the cluster
@@ -67,8 +85,10 @@ class CellClusterMaskData:
     label_column: str
     cluster_column: str
     unique_fovs: List[str]
+    cluster_id_column: str
     unassigned_id: int
-    mapping: DataFrameGroupBy
+    n_clusters: int
+    mapping: pd.DataFrame
 
     def __init__(
         self, data: pd.DataFrame, fov_col: str, label_col: str, cluster_col: str
@@ -90,50 +110,61 @@ class CellClusterMaskData:
         self.fov_column: str = fov_col
         self.label_column: str = label_col
         self.cluster_column: str = cluster_col
+        self.cluster_id_column: str = "cluster_id"
 
         # Extract only the necessary columns: fov ID, segmentation label, cluster label
         mapping_data: pd.DataFrame = data[
             [self.fov_column, self.label_column, self.cluster_column]
         ].copy()
 
+        # Add a cluster_id_column to the column in case the cluster_column is
+        # non-numeric (i.e. string)
+        cluster_name_id = pd.DataFrame(
+            {self.cluster_column: mapping_data[self.cluster_column].unique()})
+
+        cluster_name_id[self.cluster_id_column] = (cluster_name_id.index + 1).astype(np.int32)
+
+        self.cluster_name_id = cluster_name_id
+
+        # merge the cluster_id_column to the mapping_data dataframe
+        mapping_data = mapping_data.merge(right=self.cluster_name_id, on=self.cluster_column)
+
         mapping_data = mapping_data.astype(
             {
                 self.fov_column: str,
                 self.label_column: np.int32,
-                self.cluster_column: np.int32,
+                self.cluster_id_column: np.int32,
             }
         )
-
         self.unique_fovs: List[str] = ns.natsorted(
             mapping_data[self.fov_column].unique().tolist()
         )
 
         self.unassigned_id: np.int32 = np.int32(
-            mapping_data[self.cluster_column].max() + 1
+            mapping_data[self.cluster_id_column].max() + 1
         )
+        self.n_clusters: int = mapping_data[self.cluster_id_column].max()
 
-        # For each FOV map the segmentation label 0 to the cluster label 0
+        # For each FOV map the segmentation label 0 (background) to the cluster label 0
         cluster0_mapping: pd.DataFrame = pd.DataFrame(
             data={
                 self.fov_column: self.unique_fovs,
                 self.label_column: np.repeat(0, repeats=len(self.unique_fovs)),
                 self.cluster_column: np.repeat(0, repeats=len(self.unique_fovs)),
-            }
-        ).astype(
-            {
-                self.fov_column: str,
-                self.label_column: np.int32,
-                self.cluster_column: np.int32,
+                self.cluster_id_column: np.repeat(0, repeats=len(self.unique_fovs)),
             }
         )
 
-        mapping_data = pd.concat(objs=[mapping_data, cluster0_mapping])
+        mapping_data = pd.concat(objs=[mapping_data, cluster0_mapping]).astype(
+            {
+                self.fov_column: str,
+                self.label_column: np.int32,
+                self.cluster_id_column: np.int32,
+            }
+        )
 
         # Sort by FOV first, then by segmentation label
-        # Then Group by FOV
-        self.mapping: DataFrameGroupBy = mapping_data.sort_values(
-            by=[self.fov_column, self.label_column]
-        ).groupby(by=self.fov_column)
+        self.mapping = mapping_data.sort_values(by=[self.fov_column, self.label_column])
 
     def fov_mapping(self, fov: str) -> pd.DataFrame:
         """Returns the mapping for a specific FOV.
@@ -145,15 +176,24 @@ class CellClusterMaskData:
                 The mapping for the FOV.
         """
         misc_utils.verify_in_list(requested_fov=[fov], all_fovs=self.unique_fovs)
-        group = self.mapping.get_group(fov).reset_index(drop=True, inplace=False)
+        fov_data: pd.DataFrame = self.mapping[self.mapping[self.fov_column] == fov]
 
-        return self.mapping.get_group(fov).reset_index(drop=True, inplace=False)
+        return fov_data.reset_index(drop=True)
+
+    @property
+    def cluster_names(self) -> List[str]:
+        """Returns the cluster names.
+        Returns:
+            List[str]:
+                The cluster names.
+        """
+        return self.cluster_name_id[self.cluster_column].tolist()
 
 
 def label_cells_by_cluster(
         fov: str,
-        ccmd: CellClusterMaskData,
-        label_map: xr.DataArray,
+        cmd: ClusterMaskData,
+        label_map: Union[np.ndarray, xr.DataArray],
 ) -> np.ndarray:
     """Translates cell-ID labeled images according to the clustering assignment
     found in cell_cluster_mask_data.
@@ -162,7 +202,7 @@ def label_cells_by_cluster(
     Args:
         fov (str):
             The FOV to relabel
-        ccmd (CellClusterMaskData):
+        cmd (ClusterMaskData):
             A dataclass containing the cell data, cell label column, cluster column and the
             mapping from the segmentation label to the cluster label for a given FOV.
         label_map (xarray.DataArray):
@@ -176,28 +216,82 @@ def label_cells_by_cluster(
     # verify that fov found in all_data
     misc_utils.verify_in_list(
         fov_name=[fov],
-        all_data_fovs=ccmd.unique_fovs)
+        all_data_fovs=cmd.unique_fovs
+    )
 
-    # condense extraneous axes
-    labeled_image: np.ndarray = label_map.squeeze().values.astype(np.int32)
+    # condense extraneous axes if label_map is a DataArray
+    if isinstance(label_map, xr.DataArray):
+        labeled_image = label_map.squeeze().values.astype(np.int32)
+    else:
+        labeled_image: np.ndarray = label_map.squeeze().astype(np.int32)
 
-    fov_clusters: pd.DataFrame = ccmd.fov_mapping(fov=fov)
+    fov_clusters: pd.DataFrame = cmd.fov_mapping(fov=fov)
 
     mapping: nb.typed.typeddict = nb.typed.Dict.empty(
         key_type=nb.types.int32,
         value_type=nb.types.int32,
     )
 
-    for label, cluster in fov_clusters[[ccmd.label_column, ccmd.cluster_column]].itertuples(
+    for label, cluster in fov_clusters[[cmd.label_column, cmd.cluster_id_column]].itertuples(
             index=False):
-        mapping[label] = cluster
+        mapping[np.int32(label)] = np.int32(cluster)
 
     relabeled_image: np.ndarray = relabel_segmentation(
         mapping=mapping,
-        unassigned_id=ccmd.unassigned_id,
-        labeled_image=labeled_image,)
+        unassigned_id=cmd.unassigned_id,
+        labeled_image=labeled_image,
+        _dtype=np.int32)
 
     return relabeled_image.astype(np.int16)
+
+
+def map_segmentation_labels(
+    labels: Union[pd.Series, np.ndarray],
+    values: Union[pd.Series, np.ndarray],
+    label_map: ArrayLike,
+    unassigned_id: float = 0,
+) -> np.ndarray:
+    """
+    Maps an image consisting of segmentation labels to an image consisting of a particular type of
+    statistic, metric, or value of interest.
+
+    Args:
+        labels (Union[pd.Series, np.ndarray]): The segmentation labels.
+        values (Union[pd.Series, np.ndarray]): The values to map to the segmentation labels.
+        label_map (ArrayLike): The segmentation labels as an image to map to.
+        unassigned_id (int | float, optional): A default value to assign there is exists no 1-to-1
+        mapping from a label in the label_map to a label in the `labels` argument. Defaults to 0.
+
+    Returns:
+        np.ndarray: Returns the mapped image.
+    """
+    # condense extraneous axes if label_map is a DataArray
+    if isinstance(label_map, xr.DataArray):
+        labeled_image = label_map.squeeze().values.astype(np.int32)
+    else:
+        labeled_image: np.ndarray = label_map.squeeze().astype(np.int32)
+
+    if isinstance(labels, pd.Series):
+        labels = labels.to_numpy(dtype=np.int32)
+    if isinstance(values, pd.Series):
+        # handle NaNs, replace with 0
+        values = ma.fix_invalid(values.to_numpy(dtype=np.float64), fill_value=0).data
+
+    mapping: nb.typed.typeddict = nb.typed.Dict.empty(
+        key_type=nb.types.int32, value_type=nb.types.float64
+    )
+
+    for label, value in zip(labels, values):
+        mapping[label] = value
+
+    relabeled_image: np.ndarray = relabel_segmentation(
+        mapping=mapping,
+        unassigned_id=unassigned_id,
+        labeled_image=labeled_image,
+        _dtype=np.float64,
+    )
+
+    return relabeled_image
 
 
 @nb.njit(parallel=True)
@@ -205,9 +299,10 @@ def relabel_segmentation(
     mapping: nb.typed.typeddict,
     unassigned_id: np.int32,
     labeled_image: np.ndarray,
+    _dtype: DTypeLike = np.float64,
 ) -> np.ndarray:
     """
-    Relabels a labled segmentation image according to the provided cluster labels.
+    Relabels a labled segmentation image according to the provided values.
 
     Args:
         mapping (nb.typed.typeddict):
@@ -216,22 +311,26 @@ def relabel_segmentation(
             The label given to a pixel with no associated cluster.
         labeled_image (np.ndarray):
             The labeled segmentation image.
+        _dtype (DTypeLike, optional):
+            The data type of the relabeled image. Defaults to `np.float64`.
 
     Returns:
         np.ndarray: The relabeled segmentation image.
     """
-    relabeled_image: np.ndarray = np.empty(shape=labeled_image.shape, dtype=np.int16)
+    relabeled_image: np.ndarray = np.empty(shape=labeled_image.shape, dtype=_dtype)
     for i in nb.prange(labeled_image.shape[0]):
         for j in nb.prange(labeled_image.shape[1]):
             relabeled_image[i, j] = mapping.get(labeled_image[i, j], unassigned_id)
     return relabeled_image
 
 
-def generate_cell_cluster_mask(
+def generate_cluster_mask(
         fov: str,
         seg_dir: Union[str, pathlib.Path],
-        ccmd: CellClusterMaskData,
-        seg_suffix: str = "_whole_cell.tiff") -> np.ndarray:
+        cmd: ClusterMaskData,
+        seg_suffix: str = "_whole_cell.tiff",
+        erode: bool = False,
+        **kwargs) -> np.ndarray:
     """For a fov, create a mask labeling each cell with their SOM or meta cluster label
 
     Args:
@@ -239,11 +338,13 @@ def generate_cell_cluster_mask(
             The fov to relabel
         seg_dir (str):
             The path to the segmentation data
-        ccmd (CellClusterMaskData):
+        cmd (ClusterMaskData):
             A dataclass containing the cell data, cell label column, cluster column and the
             mapping from the segmentation label to the cluster label for a given FOV.
         seg_suffix (str):
             The suffix that the segmentation images use. Defaults to `'_whole_cell.tiff'`.
+        erode (bool):
+            Whether to erode the edges of the segmentation mask. Defaults to `False`.
 
     Returns:
         numpy.ndarray:
@@ -252,12 +353,6 @@ def generate_cell_cluster_mask(
 
     # path checking
     io_utils.validate_paths([seg_dir])
-
-    # verify the cluster_col provided is valid
-    misc_utils.verify_in_list(
-        provided_cluster_col=[ccmd.cluster_column],
-        valid_cluster_cols=['cell_som_cluster', 'cell_meta_cluster']
-    )
 
     # define the file for whole cell
     whole_cell_files = [fov + seg_suffix]
@@ -268,10 +363,13 @@ def generate_cell_cluster_mask(
         xr_channel_names=['whole_cell'], trim_suffix=seg_suffix.split('.')[0]
     ).loc[fov, ...]
 
+    if erode:
+        label_map = erode_mask(label_map, connectivity=2, mode="thick", background=0)
+
     # use label_cells_by_cluster to create cell masks
     img_data: np.ndarray = label_cells_by_cluster(
         fov=fov,
-        ccmd=ccmd,
+        cmd=cmd,
         label_map=label_map
     )
 
@@ -319,7 +417,7 @@ def generate_and_save_cell_cluster_masks(
             Specify what to append at the end of every cell mask. Defaults to `""`.
     """
 
-    ccmd = CellClusterMaskData(
+    cmd = ClusterMaskData(
         data=cell_data,
         fov_col=fov_col,
         label_col=label_col,
@@ -332,8 +430,8 @@ def generate_and_save_cell_cluster_masks(
             pbar.set_postfix(FOV=fov)
 
             # generate the cell mask for the FOV
-            cell_mask: np.ndarray = generate_cell_cluster_mask(
-                fov=fov, seg_dir=seg_dir, ccmd=ccmd, seg_suffix=seg_suffix
+            cell_mask: np.ndarray = generate_cluster_mask(
+                fov=fov, seg_dir=seg_dir, cmd=cmd, seg_suffix=seg_suffix
             )
 
             # save the cell mask generated
@@ -527,7 +625,7 @@ def generate_and_save_neighborhood_cluster_masks(
             Specify what to append at the end of every pixel mask. Defaults to `''`.
     """
 
-    ccmd = CellClusterMaskData(
+    cmd = ClusterMaskData(
         data=neighborhood_data,
         fov_col=fov_col,
         label_col=label_col,
@@ -550,7 +648,7 @@ def generate_and_save_neighborhood_cluster_masks(
             ).loc[fov, ..., :]
 
             # generate the neighborhood mask for the FOV
-            neighborhood_mask: np.ndarray = label_cells_by_cluster(fov, ccmd, label_map)
+            neighborhood_mask: np.ndarray = label_cells_by_cluster(fov, cmd, label_map)
 
             # save the neighborhood mask generated
             save_fov_mask(
