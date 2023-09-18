@@ -344,7 +344,7 @@ def generate_cluster_mask(
         seg_suffix (str):
             The suffix that the segmentation images use. Defaults to `'_whole_cell.tiff'`.
         erode (bool):
-            Whether to erode the edges of the segmentation mask. Defaults to `False`.
+            Whether to erode the edges of the segmentation mask. Defaults to `True`.
 
     Returns:
         numpy.ndarray:
