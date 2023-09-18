@@ -6,4 +6,4 @@ dependencies:
   - pip
   - hdf5
   - pip:
-    - .[lab_ext]
+    - .[lab_ext, colors]

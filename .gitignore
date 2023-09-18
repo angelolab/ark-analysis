@@ -40,3 +40,4 @@ data/*
 .venv
 .venv/
 .virtual_documents
+.history/

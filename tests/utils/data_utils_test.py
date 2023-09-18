@@ -58,6 +58,15 @@ def test_save_fov_mask(sub_dir, name_suffix):
         assert fov_img.shape == (40, 40)
 
 
+def test_erode_mask():
+    seg_mask = np.zeros((10, 10))
+    seg_mask[4:8, 4:8] = 1
+
+    eroded_mask = data_utils.erode_mask(seg_mask)
+    # (4 pixels left after the erosion step)
+    assert eroded_mask[5:7, 5:7].sum() == 4
+
+
 @pytest.fixture(scope="module")
 def cell_table_cluster(rng: np.random.Generator) -> Generator[pd.DataFrame, None, None]:
     """_summary_
@@ -73,12 +82,12 @@ def cell_table_cluster(rng: np.random.Generator) -> Generator[pd.DataFrame, None
     ct["label"] = ct.groupby(by=settings.FOV_ID)["fov"].transform(
         lambda x: np.arange(start=1, stop=len(x) + 1, dtype=int)
     )
-    ct[settings.CELL_TYPE] = rng.choice(np.arange(1, 3), size=100)
+    ct[settings.CELL_TYPE] = rng.choice(["A", "B"], size=100)
     ct.reset_index(drop=True, inplace=True)
     yield ct
 
 
-class TestCellClusterMaskData:
+class TestClusterMaskData:
     @pytest.fixture(autouse=True)
     def _setup(self, cell_table_cluster: pd.DataFrame):
         self.cell_table: pd.DataFrame = cell_table_cluster
@@ -86,7 +95,7 @@ class TestCellClusterMaskData:
         self.cluster_column = settings.CELL_TYPE
         self.fov_col = settings.FOV_ID
 
-        self.ccmd = data_utils.CellClusterMaskData(
+        self.cmd = data_utils.ClusterMaskData(
             data=self.cell_table,
             fov_col=self.fov_col,
             label_col=self.label_column,
@@ -95,57 +104,46 @@ class TestCellClusterMaskData:
 
     def test___init__(self):
         # Test __init__
-        assert self.ccmd.label_column == self.label_column
-        assert self.ccmd.cluster_column == self.cluster_column
-        assert self.ccmd.fov_column == self.fov_col
+        assert self.cmd.label_column == self.label_column
+        assert self.cmd.cluster_column == self.cluster_column
+        assert self.cmd.fov_column == self.fov_col
 
         # Test __post_init__ generated fields
-        assert set(self.ccmd.unique_fovs) == set(["fov0", "fov1"])
-        assert self.ccmd.unassigned_id == 3
-        assert isinstance(self.ccmd.mapping, pd.core.groupby.generic.DataFrameGroupBy)
-        assert self.ccmd.mapping.ngroups == 2
+        assert set(self.cmd.unique_fovs) == set(["fov0", "fov1"])
+        assert self.cmd.unassigned_id == 3
+        assert isinstance(self.cmd.mapping, pd.DataFrame)
 
     @parametrize(
         "_fov", ["fov0", "fov1", pytest.param("fov2", marks=pytest.mark.xfail)]
     )
     def test_fov_mapping(self, _fov: str):
-        fov_mapping_df: pd.DataFrame = self.ccmd.fov_mapping(_fov)
+        fov_mapping_df: pd.DataFrame = self.cmd.fov_mapping(_fov)
 
-        true_df: pd.DataFrame = (
-            pd.concat(
-                [
-                    self.cell_table[self.cell_table[self.fov_col] == _fov][
-                        [self.fov_col, self.label_column, self.cluster_column]
-                    ],
-                    pd.DataFrame(
-                        {
-                            self.label_column: [0],
-                            self.cluster_column: [0],
-                            self.fov_col: [_fov],
-                        }
-                    ),
-                ]
-            )
-            .sort_values(by=self.label_column)
-            .reset_index(drop=True, inplace=False)
-            .astype({self.label_column: np.int32, self.cluster_column: np.int32})
-        )
+        # The unassigned ID is the max label + 1, no label should be greater than this
+        assert fov_mapping_df[self.cmd.cluster_id_column].max() <= self.cmd.unassigned_id
 
-        pd.testing.assert_frame_equal(fov_mapping_df, true_df)
+        # The background label is 0, no label should be less than this
+        # And each FOV should have some background pixels
+        assert fov_mapping_df["label"].min() == 0
+
+        assert set(fov_mapping_df["label"]) == set(self.cmd.mapping["label"])
+
+    def test_cluster_ids(self):
+        assert set(self.cmd.cluster_names) == {"A", "B"}
 
 
 @pytest.fixture(scope="function")
 def label_map_generator(
     cell_table_cluster: pd.DataFrame, rng: np.random.Generator
-) -> Generator[Tuple[xr.DataArray, data_utils.CellClusterMaskData], None, None]:
+) -> Tuple[xr.DataArray, data_utils.ClusterMaskData]:
     """_summary_
 
     Args:
-        cell_table_cluster (pd.DataFrame): _description_
-        rng (np.random.Generator): _description_
+        cell_table_cluster (pd.DataFrame): The cell table with cluster assignments.
+        rng (np.random.Generator): The random number generator.
 
     Yields:
-        Generator[Tuple[xr.DataArray, data_utils.CellClusterMaskData], None, None]: _description_
+        Tuple[xr.DataArray, data_utils.ClusterMaskData]: The label map and the ClusterMaskData.
     """
     fov_size = 40
 
@@ -167,66 +165,82 @@ def label_map_generator(
         dims=["rows", "cols"],
     )
 
-    ccmd = data_utils.CellClusterMaskData(
+    cmd = data_utils.ClusterMaskData(
         data=cell_table_cluster,
         fov_col=settings.FOV_ID,
         label_col="label",
         cluster_col=settings.CELL_TYPE,
     )
-    yield (label_map, ccmd)
+    yield (label_map, cmd)
 
 
 def test_label_cells_by_cluster(label_map_generator):
-    label_map, ccmd = label_map_generator
+    label_map, cmd = label_map_generator
 
     relabeled_image: np.ndarray = data_utils.label_cells_by_cluster(
-        fov="fov0", ccmd=ccmd, label_map=label_map)
+        fov="fov0", cmd=cmd, label_map=label_map)
 
-    assert relabeled_image.max() <= ccmd.unassigned_id
+    assert relabeled_image.max() <= cmd.unassigned_id
     assert relabeled_image.min() == 0
     assert relabeled_image.shape == label_map.shape
 
 
-def test_relabel_segmentation(label_map_generator):
-    label_map, ccmd = label_map_generator
+def test_map_segmentation_labels(
+        rng: np.random.Generator,
+        label_map_generator: Tuple[xr.DataArray, data_utils.ClusterMaskData]):
 
-    fov_clusters = ccmd.fov_mapping("fov0")
+    data = pd.DataFrame(data={"labels": np.arange(start=1, stop=11), "values": np.concatenate(
+        [[0], rng.random(size=8), [np.nan]])})
+
+    label_map, _ = label_map_generator
+
+    relabeled_image = data_utils.map_segmentation_labels(
+        labels=data["labels"], values=data["values"], label_map=label_map)
+
+    assert relabeled_image.max() <= data["values"].max()
+    assert relabeled_image.min() == 0
+
+
+def test_relabel_segmentation(label_map_generator):
+    label_map, cmd = label_map_generator
+
+    fov_clusters = cmd.fov_mapping("fov0")
 
     mapping: nb.typed.typeddict = nb.typed.Dict.empty(
-        key_type=nb.types.int64,
-        value_type=nb.types.int64,
+        key_type=nb.types.int32,
+        value_type=nb.types.int32,
     )
 
-    for label, cluster in fov_clusters[[ccmd.label_column, ccmd.cluster_column]].itertuples(
+    for label, cluster in fov_clusters[[cmd.label_column, cmd.cluster_id_column]].itertuples(
             index=False):
         mapping[label] = cluster
 
     # Test the pure python counterpart alongside the numba version
     relabeled_image_py: np.ndarray = data_utils.relabel_segmentation.py_func(
         mapping=mapping,
-        unassigned_id=ccmd.unassigned_id,
+        unassigned_id=cmd.unassigned_id,
         labeled_image=label_map.values,
     )
     relabeled_image_numba: np.ndarray = data_utils.relabel_segmentation(
         mapping=mapping,
-        unassigned_id=ccmd.unassigned_id,
+        unassigned_id=cmd.unassigned_id,
         labeled_image=label_map.values,
     )
     for relabeled_image in [relabeled_image_py, relabeled_image_numba]:
-        assert relabeled_image.max() <= ccmd.unassigned_id
+        assert relabeled_image.max() <= cmd.unassigned_id
         assert relabeled_image.min() == 0
         assert relabeled_image.shape == label_map.shape
 
 
-def test_generate_cell_cluster_mask(tmp_path: pathlib.Path, label_map_generator):
-    _, ccmd = label_map_generator
+def test_generate_cluster_mask(tmp_path: pathlib.Path, label_map_generator):
+    _, cmd = label_map_generator
     fov = 'fov0'
     som_cluster_cols = ['pixel_som_cluster_%d' % i for i in np.arange(5)]
     meta_cluster_cols = ['pixel_meta_cluster_%d' % i for i in np.arange(3)]
 
     with pytest.raises(ValueError):
-        data_utils.generate_cell_cluster_mask(
-            fov, tmp_path, ccmd, seg_suffix='bad_suffix'
+        data_utils.generate_cluster_mask(
+            fov, tmp_path, cmd, seg_suffix='bad_suffix'
         )
 
     # generate a sample segmentation mask
@@ -255,18 +269,18 @@ def test_generate_cell_cluster_mask(tmp_path: pathlib.Path, label_map_generator)
 
     # bad cluster column provided
     with pytest.raises(ValueError):
-        data_utils.generate_cell_cluster_mask(
-            fov="fov0", seg_dir=tmp_path, ccmd=ccmd, seg_suffix='bad_cluster'
+        data_utils.generate_cluster_mask(
+            fov="fov0", seg_dir=tmp_path, cmd=cmd, seg_suffix='bad_cluster'
         )
 
     # bad fov provided
     with pytest.raises(ValueError):
-        data_utils.generate_cell_cluster_mask(
-            fov="fov1", seg_dir=tmp_path, ccmd=ccmd, seg_suffix="_whole_cell.tiff"
+        data_utils.generate_cluster_mask(
+            fov="fov1", seg_dir=tmp_path, cmd=cmd, seg_suffix="_whole_cell.tiff"
         )
 
-    cell_masks = data_utils.generate_cell_cluster_mask(
-        fov, tmp_path, ccmd, seg_suffix="_whole_cell.tiff"
+    cell_masks = data_utils.generate_cluster_mask(
+        fov, tmp_path, cmd, seg_suffix="_whole_cell.tiff"
     )
 
     # assert the image size is the same as the mask (40, 40)
@@ -564,7 +578,7 @@ def test_generate_and_save_neighborhood_cluster_masks(sub_dir, name_suffix):
                 os.path.join(temp_dir, 'neighborhood_masks', sub_dir, fov_name)
             )
             assert neighborhood_mask.shape == (40, 40)
-            assert np.all(np.isin(neighborhood_mask, np.array([10 * i for i in np.arange(6)])))
+            assert np.all(np.isin(neighborhood_mask, np.arange(6)))
 
 
 def test_split_img_stack():
