@@ -329,7 +329,7 @@ def generate_cluster_mask(
         seg_dir: Union[str, pathlib.Path],
         cmd: ClusterMaskData,
         seg_suffix: str = "_whole_cell.tiff",
-        erode: bool = False,
+        erode: bool = True,
         **kwargs) -> np.ndarray:
     """For a fov, create a mask labeling each cell with their SOM or meta cluster label
 
