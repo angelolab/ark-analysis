@@ -920,6 +920,7 @@ def cohort_cluster_plot(
     style: str = "seaborn-v0_8-paper",
     erode: bool = False,
     display_fig: bool = False,
+    fig_file_type: str = "png",
     figsize: tuple = (10, 10),
     dpi: int = 300,
 ) -> None:
@@ -955,6 +956,7 @@ def cohort_cluster_plot(
             generated. Defaults to False. Displaying each figure can use a lot of memory,
             so it's best to try to visualize just a few FOVs, before generating the cluster masks
             for the entire cohort.
+        fig_file_type (str, optional): The file type to save figures as. Defaults to 'png'.
         figsize (tuple, optional):
             The size of the figure to display. Defaults to (10, 10).
         dpi (int, optional):
@@ -1055,7 +1057,7 @@ def cohort_cluster_plot(
             )
 
             fig.savefig(
-                fname=os.path.join(save_dir, "cluster_plots", f"{fov}.png"),
+                fname=os.path.join(save_dir, "cluster_plots", f"{fov}.{fig_file_type}"),
             )
 
             if display_fig:
@@ -1145,6 +1147,7 @@ def color_segmentation_by_stat(
     style: str = "seaborn-v0_8-paper",
     erode: bool = False,
     display_fig: bool = False,
+    fig_file_type: str = "png",
     figsize: tuple = (10, 10),
     dpi: int = 300,
 ):
@@ -1195,6 +1198,7 @@ def color_segmentation_by_stat(
             Or run matplotlib.pyplot.style.available in a notebook to view all the styles.
         display_fig: (bool, optional):
             Option to display the cluster mask plots as they are generated. Defaults to False.
+        fig_file_type (str, optional): The file type to save figures as. Defaults to 'png'.
         figsize (tuple, optional):
             The size of the figure to display. Defaults to (10, 10).
         dpi (int, optional):
