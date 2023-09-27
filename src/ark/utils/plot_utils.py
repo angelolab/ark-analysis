@@ -452,7 +452,7 @@ def plot_pixel_cell_cluster(
         fov_name = fov.fovs.values
         if erode:
             fov = erode_mask(seg_mask=fov, connectivity=2, mode="thick", background=0)
-        
+
         fov_img = mcc.assign_metacluster_cmap(fov_img=fov)
 
         fig: Figure = plot_cluster(
@@ -920,6 +920,8 @@ def cohort_cluster_plot(
     style: str = "seaborn-v0_8-paper",
     erode: bool = False,
     display_fig: bool = False,
+    figsize: tuple = (10, 10),
+    dpi: int = 300,
 ) -> None:
     """
     Saves the cluster masks for each FOV in the cohort as the following:
@@ -953,9 +955,11 @@ def cohort_cluster_plot(
             generated. Defaults to False. Displaying each figure can use a lot of memory,
             so it's best to try to visualize just a few FOVs, before generating the cluster masks
             for the entire cohort.
+        figsize (tuple, optional):
+            The size of the figure to display. Defaults to (10, 10).
+        dpi (int, optional):
+            The resolution of the image to use for saving. Defaults to 300.
     """
-    # if style == "science":
-    #     import scienceplots 
 
     plt.style.use(style)
 
@@ -987,15 +991,17 @@ def cohort_cluster_plot(
     if isinstance(cmap, pd.DataFrame):
         unique_clusters: pd.DataFrame = cmd.mapping[[cmd.cluster_column,
                                                      cmd.cluster_id_column]].drop_duplicates()
-        merged_cmap: pd.DataFrame = cmap.merge(right=unique_clusters, on=cmd.cluster_column)
-        cmap_colors = merged_cmap["color"].values
-        colors_like: list[bool] = list(map(colors.is_color_like, cmap_colors))
+        cmap_colors: pd.DataFrame = cmap.merge(
+            right=unique_clusters,
+            on=cmd.cluster_column
+        ).sort_values(by="cluster_id")["color"].values
+        colors_like: list[bool] = [colors.is_color_like(c) for c in cmap_colors]
 
         if not all(colors_like):
             bad_color_values: np.ndarray = cmap_colors[~np.array(colors_like)]
             raise ValueError(
-                (f"Not all colors in the provided cmap are valid colors."
-                 "The following colors are invalid: {bad_color_values}"))
+                ("Not all colors in the provided cmap are valid colors."
+                 f"The following colors are invalid: {bad_color_values}"))
 
         np_colors = colors.to_rgba_array(cmap_colors)
 
@@ -1044,6 +1050,8 @@ def cohort_cluster_plot(
                 norm=norm,
                 cbar_visible=True,
                 cbar_labels=cluster_labels,
+                figsize=figsize,
+                dpi=dpi,
             )
 
             fig.savefig(
@@ -1061,6 +1069,7 @@ def cohort_cluster_plot(
 def plot_continuous_variable(
     image: np.ndarray,
     name: str,
+    stat_name: str,
     cmap: Union[colors.Colormap, str],
     norm: colors.Normalize = None,
     cbar_visible: bool = True,
@@ -1072,15 +1081,21 @@ def plot_continuous_variable(
     Plots an image measuring some type of continuous variable with a user provided colormap.
 
     Args:
-        image (np.ndarray): An array representing an image to plot.
-        name (str): The name of the image.
+        image (np.ndarray):
+            An array representing an image to plot.
+        name (str):
+            The name of the image.
+        stat_name (str):
+            The name of the statistic to plot, this will be the colormap's label.
         cmap (colors.Colormap, str, optional): A colormap to plot the array with.
             Defaults to "viridis".
         cbar_visible (bool, optional): A flag for setting the colorbar on or not.
             Defaults to True.
         norm (colors.Normalize, optional): A normalization to apply to the colormap.
-        dpi (int, optional): The resolution of the image. Defaults to 300.
-        figsize (tuple[int, int], optional): The size of the image. Defaults to (10, 10).
+        dpi (int, optional):
+            The resolution of the image. Defaults to 300.
+        figsize (tuple[int, int], optional):
+            The size of the image. Defaults to (10, 10).
 
     Returns:
         Figure : The Figure object of the image.
@@ -1101,6 +1116,7 @@ def plot_continuous_variable(
         norm=norm,
         origin="upper",
         aspect="equal",
+        interpolation="none",
     )
 
     if cbar_visible:
@@ -1109,7 +1125,7 @@ def plot_continuous_variable(
         cax = divider.append_axes(position="right", size="5%", pad="3%")
 
         fig.colorbar(mappable=im, cax=cax, orientation="vertical",
-                     use_gridspec=True, pad=0.1, shrink=0.9, drawedges=False)
+                     use_gridspec=True, pad=0.1, shrink=0.9, drawedges=False, label=stat_name)
 
     return fig
 
@@ -1129,6 +1145,8 @@ def color_segmentation_by_stat(
     style: str = "seaborn-v0_8-paper",
     erode: bool = False,
     display_fig: bool = False,
+    figsize: tuple = (10, 10),
+    dpi: int = 300,
 ):
     """
     Colors segmentation masks by a given continuous statistic.
@@ -1177,6 +1195,10 @@ def color_segmentation_by_stat(
             Or run matplotlib.pyplot.style.available in a notebook to view all the styles.
         display_fig: (bool, optional):
             Option to display the cluster mask plots as they are generated. Defaults to False.
+        figsize (tuple, optional):
+            The size of the figure to display. Defaults to (10, 10).
+        dpi (int, optional):
+            The resolution of the image to use for saving. Defaults to 300.
     """
     plt.style.use(style)
 
@@ -1205,7 +1227,7 @@ def color_segmentation_by_stat(
 
     # filter the data table to only include the FOVs we want to plot
     data_table = data_table[data_table[fov_col].isin(fovs)]
-    
+
     data_table_subset_groups: DataFrameGroupBy = (
         data_table[[fov_col, label_col, stat_name]]
         .sort_values(by=[fov_col, label_col], key=natsort.natsort_keygen())
@@ -1250,9 +1272,12 @@ def color_segmentation_by_stat(
             fig = plot_continuous_variable(
                 image=mapped_seg_image,
                 name=fov,
+                stat_name=stat_name,
                 norm=norm,
                 cmap=color_map,
                 cbar_visible=cbar_visible,
+                figsize=figsize,
+                dpi=dpi,
             )
             fig.savefig(fname=os.path.join(save_dir, "continuous_plots", f"{fov}.png"))
 
