@@ -1283,7 +1283,7 @@ def color_segmentation_by_stat(
                 figsize=figsize,
                 dpi=dpi,
             )
-            fig.savefig(fname=os.path.join(save_dir, "continuous_plots", f"{fov}.png"))
+            fig.savefig(fname=os.path.join(save_dir, "continuous_plots", f"{fov}.{fig_file_type}"))
 
             save_colored_mask(
                 fov=fov,
