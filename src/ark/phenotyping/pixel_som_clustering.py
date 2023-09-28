@@ -126,7 +126,7 @@ def run_pixel_som_assignment(pixel_data_path, pixel_pysom_obj, overwrite, num_pa
 
     # assign the SOM labels to fov_data, overwrite flag indicates if data needs normalization
     fov_data = pixel_pysom_obj.assign_som_clusters(
-        fov_data, normalize_data=not overwrite, batch_size=num_parallel_pixels
+        fov_data, normalize_data=not overwrite, num_parallel_pixels=num_parallel_pixels
     )
 
     # resave the data with the SOM cluster labels assigned
@@ -249,7 +249,7 @@ def cluster_pixels(fovs, channels, base_dir, pixel_pysom, data_dir='pixel_mat_da
 
     # define the partial function to iterate over
     fov_data_func = partial(
-        run_pixel_som_assignment, data_path, pixel_pysom, num_parallel_pixels, overwrite
+        run_pixel_som_assignment, data_path, pixel_pysom, overwrite, num_parallel_pixels
     )
 
     # use the som weights to assign SOM cluster values to data in data_dir
