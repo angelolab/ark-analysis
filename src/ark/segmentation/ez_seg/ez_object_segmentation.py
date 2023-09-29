@@ -10,10 +10,10 @@ import xarray as xr
 
 def create_object_masks(
     image_dir: Union[str, pathlib.Path],
-    fov: str,
+    fov_list: list[str],
     mask_name: str,
     channel_to_segment: str,
-    object_dir: Union[str, pathlib.Path],
+    masks_dir: Union[str, pathlib.Path],
     object_shape_type: str = "blob",
     sigma: int = 1,
     thresh: Optional[np.float32] = None,
@@ -49,33 +49,36 @@ def create_object_masks(
         xr.DataArray: The object masks for all channels in a FOV.
     """
 
-    fov_xr: xr.DataArray = load_utils.load_imgs_from_tree(
-        data_dir=image_dir, fovs=fov
-    ).squeeze()
+    for fov in fov_list:
+        fov_xr: xr.DataArray = load_utils.load_imgs_from_tree(
+                data_dir=image_dir, fovs=fov
+            ).squeeze()
 
-    channel: xr.DataArray = fov_xr.sel({"channels": channel_to_segment})
+        # handles folders where only 1 channel is loaded, often for composites
+        try:
+            len(fov_xr.channels)
+            channel: xr.DataArray = fov_xr.sel({"channels": channel_to_segment}).astype(int)
+        except TypeError:
+            channel: xr.DataArray = fov_xr.astype(int)
 
-    object_masks: xr.DataArray = xr.zeros_like(other=channel)
+        object_masks: np.ndarray = _create_object_mask(
+            input_image=channel,
+            object_shape_type=object_shape_type,
+            sigma=sigma,
+            thresh=thresh,
+            hole_size=hole_size,
+            fov_dim=fov_dim,
+            min_object_area=min_object_area,
+            max_object_area=max_object_area,
+        )
 
-    
-    object_masks = _create_object_mask(
-        input_image=channel,
-        object_shape_type=object_shape_type,
-        sigma=sigma,
-        thresh=thresh,
-        hole_size=hole_size,
-        fov_dim=fov_dim,
-        min_object_area=min_object_area,
-        max_object_area=max_object_area,
-    )
-    
-    # If the object mask - fov directory does not exist, create it
-    object_fov_dir = (pathlib.Path(object_dir) / fov)
-    object_fov_dir.mkdir(parents=True, exist_ok=True)
-    
-    image_utils.save_image(
-        fname=object_fov_dir /  (f"{mask_name}.tiff"), data=object_masks
-    )
+        # If the object mask - fov directory does not exist, create it
+        masks_fov_dir = (pathlib.Path(masks_dir) / fov)
+        masks_fov_dir.mkdir(parents=True, exist_ok=True)
+
+        image_utils.save_image(
+            fname=masks_fov_dir /  (f"{mask_name}.tiff"), data=object_masks
+        )
 
 
 def _create_object_mask(
@@ -85,7 +88,7 @@ def _create_object_mask(
     thresh: Optional[np.float32] = None,
     hole_size: Optional[int] = None,
     fov_dim: int = 400,
-    min_object_area: int = 100,
+    min_object_area: int = 10,
     max_object_area: int = 100000,
 ) -> np.ndarray:
     """
@@ -158,6 +161,10 @@ def _create_object_mask(
             img2mask_rm_holes, sigmas=range(1, 5, 1), black_ridges=False
         )
 
+    # Binarize the image in prep for labeling.
+    img2mask_filtered_binary = img2mask_filtered > 0
+    img2mask_filtered[img2mask_filtered_binary] = 1
+
     # Extract `label` and `area` from regionprops
     labeled_object_masks = measure.label(img2mask_filtered, connectivity=2)
 
@@ -173,21 +180,15 @@ def _create_object_mask(
         )
     )
 
-    # Filter sizes: min_object_area < object_area < max_object_area
-    filtered_objects = object_masks_df[
-        object_masks_df["area"].between(
-            left=min_object_area, right=max_object_area, inclusive="left"
-        )
-    ]
+    # zero out objects not meeting size requirements
+    keep_labels_bool = (object_masks_df["area"] >= min_object_area) & (object_masks_df["area"] <= max_object_area)
+    all_labels = object_masks_df["label"]
+    labels_to_keep = all_labels * keep_labels_bool
 
     # Map filtered objects to the object mask
-    objects_mask_filtered_by_size = map_array(
-        labeled_object_masks,
-        object_masks_df["label"].to_numpy(),
-        filtered_objects["label"].to_numpy(),
-    )
+    objects_filtered_by_size = map_array(labeled_object_masks, all_labels.to_numpy(), labels_to_keep.to_numpy())
 
-    return objects_mask_filtered_by_size.astype(np.int32)
+    return objects_filtered_by_size.astype(np.int32)
 
 
 def get_block_size(block_type: str, fov_dim: int, img_shape: int) -> int:

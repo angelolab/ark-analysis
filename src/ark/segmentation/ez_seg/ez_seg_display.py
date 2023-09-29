@@ -36,8 +36,6 @@ def display_channel_image(base_image_path: Union[str, pathlib.Path]) -> None:
     ax.imshow(base_image_scaled)
     ax.axis("off")
 
-    fig.show()
-
 
 # for displaying segmentation masks overlaid upon a base channel or composite
 def overlay_mask_outlines(base_image_path, mask_image_path) -> None:
@@ -76,14 +74,15 @@ def overlay_mask_outlines(base_image_path, mask_image_path) -> None:
     # Overlay the outlines on the copy of the base image
     rgb_base_image_scaled[edges != 0] = outline_color
 
-    # Display the original base image and the overlay image
+    # Create a new figure
     fig: Figure = plt.figure(dpi=300, figsize=(6, 6))
     fig.set_layout_engine(layout="constrained")
     gs = gridspec.GridSpec(1, 1, figure=fig)
-    fig.suptitle(f"{base_image_path.stem}")
-
+    fig.suptitle(f"{base_image_path.name}")
     ax: Axes = fig.add_subplot(gs[0, 0])
-    ax.imshow(base_image_scaled)
+    ax.imshow(base_image)
+    # Display color mask with transparency
+    ax.imshow(rgb_base_image_scaled, alpha=0.3)
     ax.axis("off")
 
     fig.show()

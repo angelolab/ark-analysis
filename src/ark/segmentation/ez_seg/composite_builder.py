@@ -3,11 +3,12 @@ from typing import List, Union
 import numpy as np
 import xarray as xr
 from alpineer import misc_utils, image_utils, load_utils
+from matplotlib import pyplot as plt
 
 
 def composite_builder(
     data_dir: Union[str, pathlib.Path],
-    fov: str,
+    fov_list: list[str],
     images_to_add: list[str],
     images_to_subtract: list[str],
     image_type: str,
@@ -20,6 +21,7 @@ def composite_builder(
 
     Args:
         data (xr.DataArray): The data array containing the set of all images which get filtered out with images_to_add and images_to_subtract.
+        fov_list: A list of fov's to create composite channels through.
         images_to_add (List[str]): A list of channels or pixel cluster names to add together.
         images_to_subtract (List[str]): A list of channels or pixel cluster names to subtract from the composite.
         image_type (str): Either "signal" or "pixel_cluster" data.
@@ -30,46 +32,46 @@ def composite_builder(
     Returns:
         np.ndarray: Returns the composite array, either as a binary mask, or as a scaled intensity array.
     """
-    
-    fov_data = load_utils.load_imgs_from_tree(data_dir=data_dir, fovs=fov)
+    for fov in fov_list:
+        fov_data = load_utils.load_imgs_from_tree(data_dir=data_dir, fovs=fov)
 
 
-    image_shape = fov_data.shape[1:]
+        image_shape = fov_data.shape[1:3]
 
-    misc_utils.verify_in_list(
-        images_to_add=images_to_add, image_names=fov_data.channels.values
-    )
-    misc_utils.verify_in_list(
-        images_to_subtract=images_to_subtract, image_names=fov_data.channels.values
-    )
-    misc_utils.verify_in_list(
-        composite_method=composite_method, options=["binary", "total"]
-    )
-
-    if isinstance(composite_directory, str):
-        composite_directory = pathlib.Path(composite_directory)
-        composite_directory.mkdir(parents=True, exist_ok=True)
-
-    composite_array = np.zeros(shape=image_shape)
-    if images_to_add:
-        composite_array = add_to_composite(
-            fov_data, composite_array, images_to_add, image_type, composite_method
+        misc_utils.verify_in_list(
+            images_to_add=images_to_add, image_names=fov_data.channels.values
         )
-    if images_to_subtract:
-        composite_array = subtract_from_composite(
-            fov_data, composite_array, images_to_subtract, image_type, composite_method
+        misc_utils.verify_in_list(
+            images_to_subtract=images_to_subtract, image_names=fov_data.channels.values
+        )
+        misc_utils.verify_in_list(
+            composite_method=composite_method, options=["binary", "total"]
         )
 
-    if isinstance(composite_directory, str):
-        composite_directory = pathlib.Path(composite_directory)
-        composite_directory.mkdir(parents=True, exist_ok=True)
-    
-    composite_fov_dir = composite_directory / fov
-    composite_fov_dir.mkdir(parents=True, exist_ok=True)
+        if isinstance(composite_directory, str):
+            composite_directory = pathlib.Path(composite_directory)
+            composite_directory.mkdir(parents=True, exist_ok=True)
 
-    image_utils.save_image(
-        fname=composite_directory / fov / (f"{composite_name}.tiff"), data=composite_array
-    )
+        composite_array = np.zeros(shape=image_shape)
+        if images_to_add:
+            composite_array = add_to_composite(
+                fov_data, composite_array, images_to_add, image_type, composite_method
+            )
+        if images_to_subtract:
+            composite_array = subtract_from_composite(
+                fov_data, composite_array, images_to_subtract, image_type, composite_method
+            )
+
+        if isinstance(composite_directory, str):
+            composite_directory = pathlib.Path(composite_directory)
+            composite_directory.mkdir(parents=True, exist_ok=True)
+
+        composite_fov_dir = composite_directory / fov
+        composite_fov_dir.mkdir(parents=True, exist_ok=True)
+
+        image_utils.save_image(
+            fname=composite_directory / fov / (f"{composite_name}.tiff"), data=composite_array.astype(np.uint32)
+        )
 
 
 def add_to_composite(
@@ -94,7 +96,7 @@ def add_to_composite(
 
     """
 
-    filtered_channels: xr.DataArray = data.sel({"channels": images_to_add}).squeeze()
+    filtered_channels: xr.DataArray = data.sel({"channels": images_to_add}).squeeze().astype((np.int32))
 
     if image_type == "signal":
         composite_array: np.ndarray = filtered_channels.sum(dim="channels").values
@@ -129,7 +131,7 @@ def subtract_from_composite(
 
     filtered_channels: xr.DataArray = data.sel(
         {"channels": images_to_subtract}
-    ).squeeze()
+    ).squeeze().astype((np.int32))
     # for each channel to subtract
     for channel in filtered_channels.channels.values:
         channel_data = filtered_channels.sel(channels=channel)
@@ -138,12 +140,7 @@ def subtract_from_composite(
             composite_array[mask_2_zero] = 0
             composite_array[composite_array > 1] = 1
 
-        elif image_type == "signal" and composite_method == "total":
+        else:
             composite_array -= channel_data
-            min_value = composite_array.min()
-            if min_value < 0:
-                composite_array -= min_value
-        elif image_type == "pixel_cluster":
-            composite_array -= channel_data
-            composite_array.clip(min=0, max=None)
+            composite_array = composite_array.clip(min=0, max=None)
     return composite_array

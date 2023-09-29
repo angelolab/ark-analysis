@@ -80,30 +80,12 @@ def test_create_object_masks(
     _sigma = 1
     _hole_size = 10
     # Test valid inputs
-    output_object_masks: xr.DataArray = ez_object_segmentation.create_object_masks(
-        fov_path=ez_fov,
-        object_shape_type=_object_shape_type,
-        sigma=_sigma,
-        thresh=_thresh,
-        hole_size=_hole_size,
-        fov_dim=_fov_dim,
-        min_object_area=_min_object_area,
-        max_object_area=_max_object_area,
-    )
+    output_object_masks: xr.DataArray = ez_object_segmentation.create_object_masks(,
     assert output_object_masks.shape == (3, 1024, 1024)
 
     # Test invalid object_shape_type
     with pytest.raises(ValueError):
-        output_object_masks: np.ndarray = ez_object_segmentation.create_object_masks(
-            fov_path=ez_fov,
-            object_shape_type="incorrect_ost",
-            sigma=_sigma,
-            thresh=_thresh,
-            hole_size=_hole_size,
-            fov_dim=_fov_dim,
-            min_object_area=_min_object_area,
-            max_object_area=_max_object_area,
-        )
+        output_object_masks: np.ndarray = ez_object_segmentation.create_object_masks(,
 
 
 @pytest.mark.parametrize(
