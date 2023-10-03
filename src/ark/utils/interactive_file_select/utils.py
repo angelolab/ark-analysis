@@ -8,7 +8,16 @@ from .errors import InvalidPathError
 
 
 def get_subpaths(path: str) -> List[str]:
-    """Walk a path and return a list of subpaths."""
+    """Walk a path and return a list of subpaths.
+
+    Args:
+        path (str):
+            The path to start walking from
+
+    Returns:
+        List[str]:
+            The list of subpaths
+    """
     if os.path.isfile(path):
         path = os.path.dirname(path)
 
@@ -23,12 +32,32 @@ def get_subpaths(path: str) -> List[str]:
 
 
 def has_parent(path: str) -> bool:
-    """Check if a path has a parent folder."""
+    """Check if a path has a parent folder.
+
+    Args:
+        path (str):
+            The path to check if a parent exists
+
+    Returns:
+        bool:
+            Whether the `path` has a parent folder
+    """
     return os.path.basename(path) != ''
 
 
 def has_parent_path(path: str, parent_path: Optional[str]) -> bool:
-    """Verifies if path falls under parent_path."""
+    """Verifies if path falls under parent_path.
+
+    Args:
+        path (str):
+            The path to verify
+        parent_path (str):
+            The parent path verified against
+
+    Returns:
+        bool:
+            If the `path` falls under `parent_path`
+    """
     check = True
 
     if parent_path:
@@ -38,7 +67,18 @@ def has_parent_path(path: str, parent_path: Optional[str]) -> bool:
 
 
 def strip_parent_path(path: str, parent_path: Optional[str]) -> str:
-    """Remove a parent path from a path."""
+    """Remove a parent path from a path.
+
+    Args:
+        path (str):
+            The path to remove parent path from
+        parent_path (str):
+            The parent substr to remove from path
+
+    Returns:
+        str:
+            `path` with `parent_path` removed from it
+    """
     stripped_path = path
 
     if parent_path and path.startswith(parent_path):
@@ -48,7 +88,18 @@ def strip_parent_path(path: str, parent_path: Optional[str]) -> str:
 
 
 def match_item(item: str, filter_pattern: Sequence[str]) -> bool:
-    """Check if a string matches one or more fnmatch patterns."""
+    """Check if a string matches one or more fnmatch patterns.
+
+    Args:
+        item (str):
+            The string to check
+        filter_pattern (Sequence[str]):
+            The list of patterns to verify against
+
+    Returns:
+        bool:
+            Whether any in `filter_pattern` was found in `item`
+    """
     if isinstance(filter_pattern, str):
         filter_pattern = [filter_pattern]
 
@@ -70,7 +121,28 @@ def get_dir_contents(
         dir_icon_append: bool = False,
         filter_pattern: Optional[Sequence[str]] = None,
         top_path: Optional[str] = None) -> List[str]:
-    """Get directory contents."""
+    """Get directory contents.
+
+    Args:
+        path (str):
+            The path to look into
+        show_hidden (bool):
+            Whether to show hidden files
+        show_only_dirs (bool):
+            Whether to show only directories
+        dir_icon (Optional[str]):
+            The directory icon to use
+        dir_icon_append (bool):
+            If `dir_icon_set`, whether to append it before the directory names
+        filter_pattern (Optional[Sequence[str]]):
+            The list of matching patterns to consider
+        top_path (Optional[str]):
+            The parent path set
+
+    Returns:
+        List[str]:
+            A list of directories and files accessible in the current `path`
+    """
     files = list()
     dirs = list()
 
@@ -97,7 +169,20 @@ def get_dir_contents(
 
 
 def prepend_dir_icons(dir_list: Iterable[str], dir_icon: str, dir_icon_append: bool = False) -> List[str]:
-    """Prepend unicode folder icon to directory names."""
+    """Prepend unicode folder icon to directory names.
+
+    Args:
+        dir_list (Iterable[str]):
+            List of all directories in the current folder
+        dir_icon (Optional[str]):
+            The directory icon to use
+        dir_icon_append (bool):
+            If `dir_icon_set`, whether to append it before the directory names
+
+    Returns:
+        List[str]:
+            A list of all the directories prepended by their directory icons if specified
+    """
     if dir_icon_append:
         str_ = [dirname + f'{dir_icon}' for dirname in dir_list]
     else:
@@ -107,7 +192,12 @@ def prepend_dir_icons(dir_list: Iterable[str], dir_icon: str, dir_icon_append: b
 
 
 def get_drive_letters() -> List[str]:
-    """Get all drive letters minus the drive used in path."""
+    """Get all drive letters minus the drive used in path.
+
+    Returns:
+        List[str]:
+            All the drive letters other than drive used in path
+    """
     drives: List[str] = []
 
     if sys.platform == 'win32':
@@ -118,7 +208,16 @@ def get_drive_letters() -> List[str]:
 
 
 def is_valid_filename(filename: str) -> bool:
-    """Verifies if a filename does not contain illegal character sequences"""
+    """Verifies if a filename does not contain illegal character sequences
+
+    Args:
+        filename (str):
+            The file to check
+
+    Returns:
+        bool:
+            Whether the `filename` contains illegal char sequences or not
+    """
     valid = True
     valid = valid and os.pardir not in filename
     valid = valid and os.sep not in filename
@@ -130,7 +229,16 @@ def is_valid_filename(filename: str) -> bool:
 
 
 def normalize_path(path: str) -> str:
-    """Normalize a path string."""
+    """Normalize a path string.
+
+    Args:
+        path (str):
+            The path to normalize
+
+    Returns:
+        str:
+            The normalized path
+    """
     normalized_path = os.path.realpath(path)
 
     if not os.path.isdir(normalized_path):
