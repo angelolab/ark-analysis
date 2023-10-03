@@ -177,3 +177,4 @@ addopts = [
 ]
 console_output_style = "count"
 testpaths = ["tests"]
+collect_ignore = ["ark/utils/interactive_file_select/*.py"]
