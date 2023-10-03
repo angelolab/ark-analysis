@@ -77,7 +77,7 @@ def test_create_cmap(rng: np.random.Generator):
     "cbar_labels", [None, ["Empty", "Cluster 1", "Cluster 2", "Cluster 3"]]
 )
 def test_plot_cluster(
-    rng: np.random.Generator, cbar_visible: bool, cbar_labels: list[str]
+        rng: np.random.Generator, cbar_visible: bool, cbar_labels: list[str]
 ):
     cluster_image: np.ndarray = rng.integers(0, 3, size=(10, 10))
     cmap = cm.get_cmap("tab20")
@@ -898,8 +898,12 @@ def cohort_cluster_data(tmp_path: pathlib.Path):
     )
 
 
-@pytest.mark.parametrize("_cmap", ["cmap_df", "cmap_name"])
-def test_cohort_cluster_plot(cohort_cluster_data: CohortClusterData, _cmap: str) -> None:
+@pytest.mark.parametrize("_cmap ,_file_type",
+                         [("cmap_df", "png"), ("cmap_name", "pdf"), ("cmap_df", "svg")])
+def test_cohort_cluster_plot(
+        cohort_cluster_data: CohortClusterData,
+        _cmap: str,
+        _file_type: str) -> None:
     plot_utils.cohort_cluster_plot(
         fovs=cohort_cluster_data.fov_names,
         save_dir=cohort_cluster_data.save_dir,
@@ -911,6 +915,7 @@ def test_cohort_cluster_plot(cohort_cluster_data: CohortClusterData, _cmap: str)
         cmap=cohort_cluster_data.cmap_name
         if _cmap == "cmap_name"
         else cohort_cluster_data.cmap_df,
+        fig_file_type=_file_type
     )
 
     assert (
@@ -928,7 +933,7 @@ def test_cohort_cluster_plot(cohort_cluster_data: CohortClusterData, _cmap: str)
     assert (
         cohort_cluster_data.save_dir
         / "cluster_plots"
-        / f"{cohort_cluster_data.fov_names[0]}.png"
+        / f"{cohort_cluster_data.fov_names[0]}.{_file_type}"
     ).exists()
 
 
@@ -953,10 +958,11 @@ def plot_continuous_variable(rng: np.random.Generator, _cbar_visible: bool):
     )
 
 
+@pytest.mark.parametrize("_file_type", ["png", "pdf", "svg"])
 def test_color_segmentation_by_stat(
-    cohort_cluster_data: CohortClusterData,
+        cohort_cluster_data: CohortClusterData,
+        _file_type: str,
 ):
-
     plot_utils.color_segmentation_by_stat(
         fovs=[cohort_cluster_data.fov_names[0]],
         data_table=cohort_cluster_data.cell_data,
@@ -965,12 +971,13 @@ def test_color_segmentation_by_stat(
         fov_col=cohort_cluster_data.fov_col,
         label_col=cohort_cluster_data.label_col,
         stat_name=cohort_cluster_data.cluster_col,
+        fig_file_type=_file_type,
     )
 
     assert (
         cohort_cluster_data.save_dir
         / "continuous_plots"
-        / f"{cohort_cluster_data.fov_names[0]}.png"
+        / f"{cohort_cluster_data.fov_names[0]}.{_file_type}"
     ).exists()
 
     assert (
