@@ -40,6 +40,7 @@ dependencies = [
     "xarray>=2022",
     "xmltodict>=0.13.0,<1",
     "zstandard>=0.19.0,<1",
+    "ark-analysis[colors]",
 ]
 name = "ark-analysis"
 authors = [{ name = "Angelo Lab", email = "theangelolab@gmail.com" }]
@@ -60,6 +61,13 @@ dynamic = ["version"]
 urls = { repository = "https://github.com/angelolab/ark-analysis" }
 
 [project.optional-dependencies]
+colors = [
+    "palettable",
+    "cmasher",
+    "cmocean",
+    "colorcet",
+    "scienceplots"
+]
 test = [
     "attrs",
     "coveralls[toml]",

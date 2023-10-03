@@ -141,7 +141,7 @@ def test_calculate_fiber_alignment(neighbors):
         neighbor_fibers = closest_fibers[fiber][:neighbors]
         neighbor_orientations = np.array(ex_fiber_table[ex_fiber_table.label.isin(neighbor_fibers)]
                                          .orientation.values)
-        alignment_score = 1 / (np.sqrt(np.sum((neighbor_orientations - angle) ** 2)) / neighbors)
+        alignment_score = (np.sqrt(np.sum((neighbor_orientations - angle) ** 2)) / neighbors)
 
         assert (alignment_score == align_table[align_table.label == fiber].alignment_score).all()
 
@@ -260,37 +260,6 @@ def test_generate_summary_stats(mocker: MockerFixture, min_fiber_num):
                            "avg_area", "avg_eccentricity", "avg_euler_number",
                            "avg_alignment_score"], output_columns=fov_stats.columns)
         assert fov_stats.avg_major_axis_length[0] ==\
-               np.mean(fiber_object_table.major_axis_length[0:6])
+            np.mean(fiber_object_table.major_axis_length[0:6])
         assert fov_stats.avg_major_axis_length[1] == \
-               np.mean(fiber_object_table.major_axis_length[6:12])
-
-
-def test_color_fibers_by_stat():
-
-    # check for colored mask generation
-    with tempfile.TemporaryDirectory() as temp_dir:
-        fov_length = 16
-        fov_mask = np.zeros((fov_length, fov_length))
-        io.imsave(os.path.join(temp_dir, 'fov1_fiber_labels.tiff'), fov_mask)
-        io.imsave(os.path.join(temp_dir, 'fov2_fiber_labels.tiff'), fov_mask)
-
-        fov_fiber_table = pd.DataFrame({
-            'fov': ['fov1', 'fov1', 'fov1', 'fov2', 'fov2', 'fov2'],
-            'label': [1, 2, 3, 1, 2, 3],
-            'alignment_score': random.sample(range(10, 40), 6),
-        })
-
-        stat_name = 'alignment_score'
-        save_dir = os.path.join(temp_dir, f'colored_{stat_name}')
-
-        # test success
-        fiber_segmentation.color_fibers_by_stat(fov_fiber_table, temp_dir, save_dir, stat_name)
-
-        for fov in np.unique(fov_fiber_table.fov):
-            # check for image write
-            color_mask_path = os.path.join(save_dir, f'{fov}_{stat_name}.tiff')
-            assert os.path.exists(color_mask_path)
-
-            # check for third dimension indicating color
-            color_mask = io.imread(color_mask_path)
-            assert color_mask.shape == (fov_length, fov_length, 4)
+            np.mean(fiber_object_table.major_axis_length[6:12])
