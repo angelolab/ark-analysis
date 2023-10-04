@@ -7,6 +7,7 @@ from skimage import feature, color
 from skimage.util import img_as_ubyte
 import numpy as np
 import matplotlib.pyplot as plt
+import os
 from matplotlib.figure import Figure
 from matplotlib import gridspec
 from alpineer import io_utils
@@ -38,16 +39,30 @@ def display_channel_image(base_image_path: Union[str, pathlib.Path]) -> None:
 
 
 # for displaying segmentation masks overlaid upon a base channel or composite
-def overlay_mask_outlines(base_image_path, mask_image_path) -> None:
+def overlay_mask_outlines(fov_name, channel_to_view, channel_to_view_path, mask_name, mask_to_view_path) -> None:
     """
     Displays a segmentation mask overlaid on a base image (channel or composite)
 
     Args:
-        base_image_path (_type_): _description_
-        mask_image_path (_type_): _description_
+
+
+        fov_name (str): name of fov to be viewed
+        channel_to_view:
+        channel_to_view_path (str): path to channel to be viewed
+        mask_name:
+        base_image_path
+        mask_image_path (str): path to mask to be viewed
     """
+    # Get test segmentation image paths
+    base_image_path = os.path.join(
+        channel_to_view_path, fov_name, f"{channel_to_view}.tiff"
+    )
+    mask_image_path = os.path.join(
+        mask_to_view_path, '_'.join([f'{fov_name}', mask_name, 'overlay.tiff'])
+    )
+
     io_utils.validate_paths(paths=[base_image_path, mask_image_path])
-    if isinstance(base_image_path, str):
+    if isinstance(channel_to_view_path, str):
         base_image_path = pathlib.Path(base_image_path)
     if isinstance(mask_image_path, str):
         mask_image_path = pathlib.Path(mask_image_path)
@@ -78,7 +93,7 @@ def overlay_mask_outlines(base_image_path, mask_image_path) -> None:
     fig: Figure = plt.figure(dpi=300, figsize=(6, 6))
     fig.set_layout_engine(layout="constrained")
     gs = gridspec.GridSpec(1, 1, figure=fig)
-    fig.suptitle(f"{base_image_path.name}")
+    fig.suptitle(f"Mask: {mask_name}")
     ax: Axes = fig.add_subplot(gs[0, 0])
     ax.imshow(base_image)
     # Display color mask with transparency

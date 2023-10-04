@@ -72,12 +72,11 @@ def create_object_masks(
             max_object_area=max_object_area,
         )
 
-        # If the object mask - fov directory does not exist, create it
-        masks_fov_dir = (pathlib.Path(masks_dir) / fov)
-        masks_fov_dir.mkdir(parents=True, exist_ok=True)
-
+        # save the channel overlay
+        save_name = '_'.join([f'{fov}', mask_name, 'overlay.tiff'])
+        save_path = '/'.join([masks_dir, save_name])
         image_utils.save_image(
-            fname=masks_fov_dir /  (f"{mask_name}.tiff"), data=object_masks
+            fname=save_path, data=object_masks
         )
 
 
