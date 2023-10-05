@@ -158,7 +158,10 @@ exclude_lines = [
     "raise NotImplementedError",
     "(ArrowInvalid, OSError, IOError)",
 ]
-omit = ["ark/utils/interactive_file_select/*.py"]
+omit = [
+    "ark/utils/interactive_file_select/*",
+    "ark/utils/interactive_file_select"
+]
 
 # Pytest Options
 [tool.pytest.ini_options]
