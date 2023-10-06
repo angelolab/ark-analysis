@@ -122,7 +122,7 @@ def create_mantis_project(
     # generate unique numeric value for each population
     small_table["pop_vals"] = pd.factorize(small_table[pop_col].tolist())[0] + 1
 
-    ccmd_pop = data_utils.CellClusterMaskData(
+    cmd_pop = data_utils.ClusterMaskData(
         data=small_table,
         fov_col=fov_col,
         label_col=label_col,
@@ -145,12 +145,12 @@ def create_mantis_project(
         # use label_cells_by_cluster to create cell masks
         mask_data = data_utils.label_cells_by_cluster(
             fov=fov,
-            ccmd=ccmd_pop,
-            label_map=label_map,
+            cmd=cmd_pop,
+            label_map=label_map.values,
         )
         # save the cell mask for each FOV -- (saves with ".tiff" extension)
         data_utils.save_fov_mask(
-            fov, mask_dir, mask_data, sub_dir=None, name_suffix="_cell_mask"
+            fov, mask_dir, mask_data, sub_dir=None, name_suffix="_post_clustering_cell_mask"
         )
 
     # rename the columns of small_table
@@ -168,7 +168,7 @@ def create_mantis_project(
         mantis_project_path=mantis_dir,
         img_data_path=image_dir,
         mask_output_dir=mask_dir,
-        mask_suffix="_cell_mask",
+        mask_suffix="_post_clustering_cell_mask",
         mapping=mantis_df,
         seg_dir=seg_dir,
         cluster_type=cluster_type,

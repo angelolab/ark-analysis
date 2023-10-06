@@ -70,10 +70,10 @@ class TestExampleDataset:
                                       for j in ['whole_cell', 'nuclear']]
 
         self._example_pixel_output_dir_names = {
-            "root_files": ["cell_clustering_params", "channel_norm", "pixel_thresh",
+            "root_files": ["cell_clustering_params", "channel_norm_pre_rownorm", "pixel_thresh",
                            "pixel_channel_avg_meta_cluster", "pixel_channel_avg_som_cluster",
                            "pixel_meta_cluster_mapping", "pixel_som_weights",
-                           "channel_norm_post_rowsum"],
+                           "channel_norm_post_rownorm"],
             "pixel_mat_data": [f"fov{i}" for i in range(11)],
             "pixel_mat_subset": [f"fov{i}" for i in range(11)],
             "pixel_masks": [f"fov{i}_pixel_mask" for i in range(2)]

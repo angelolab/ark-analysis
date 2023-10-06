@@ -105,15 +105,15 @@ def test_create_c2pc_data():
     chans = ['chan1', 'chan2', 'chan3']
 
     # create an example cell table
-    cell_table = pd.DataFrame(np.random.rand(10, 3), columns=chans)
+    cell_table = pd.DataFrame(np.random.rand(12, 3), columns=chans)
 
     # assign dummy fovs
-    cell_table.loc[0:4, 'fov'] = 'fov1'
-    cell_table.loc[5:9, 'fov'] = 'fov2'
+    cell_table.loc[0:5, 'fov'] = 'fov1'
+    cell_table.loc[6:11, 'fov'] = 'fov2'
 
-    # assign dummy segmentation labels, 5 cells for each
-    cell_table.loc[0:4, 'label'] = np.arange(5)
-    cell_table.loc[5:9, 'label'] = np.arange(5)
+    # assign dummy segmentation labels, 6 cells for each
+    cell_table.loc[0:5, 'label'] = np.arange(6)
+    cell_table.loc[6:11, 'label'] = np.arange(6)
 
     # assign dummy cell sizes
     cell_table['cell_size'] = 5
@@ -136,21 +136,28 @@ def test_create_c2pc_data():
         # create dummy data for each fov
         for fov in ['fov1', 'fov2']:
             # assume each label has 10 pixels, create dummy data for each of them
-            fov_table = pd.DataFrame(np.random.rand(50, 3), columns=chans)
+            # ensure one label in each FOV gets dropped for testing non-expressed cells
+            fov_table = pd.DataFrame(np.random.rand(60, 3), columns=chans)
 
             # assign the fovs and labels
             fov_table['fov'] = fov
-            fov_table['label'] = np.repeat(np.arange(5), 10)
+            fov_table['label'] = np.repeat(np.arange(6), 10)
 
             # assign dummy pixel/meta labels
             # pixel: 0-1 for fov1 and 1-2 for fov2
             # meta: 0-1 for both fov1 and fov2
             if fov == 'fov1':
-                fov_table['pixel_som_cluster'] = np.repeat(np.arange(2), 25)
+                fov_table['pixel_som_cluster'] = np.concatenate(
+                    (np.repeat(np.arange(2), 25), np.repeat(np.nan, 10))
+                )
             else:
-                fov_table['pixel_som_cluster'] = np.repeat(np.arange(1, 3), 25)
+                fov_table['pixel_som_cluster'] = np.concatenate(
+                    (np.repeat(np.arange(1, 3), 25), np.repeat(np.nan, 10))
+                )
 
-            fov_table['pixel_meta_cluster_rename'] = np.repeat(np.arange(2), 25)
+            fov_table['pixel_meta_cluster_rename'] = np.concatenate(
+                (np.repeat(np.arange(2), 25), np.repeat(np.nan, 10))
+            )
 
             # write fov data to feather
             feather.write_dataframe(fov_table, os.path.join(pixel_data_path,
@@ -264,10 +271,11 @@ def test_create_c2pc_data():
         # append fov3 and fov4 to the cell table
         fovs += ['fov3', 'fov4']
 
-        cell_table_34 = cell_table.copy()
+        cell_table_34 = cell_table.copy().head(10)
         cell_table_34.loc[0:4, 'fov'] = 'fov3'
         cell_table_34.loc[5:9, 'fov'] = 'fov4'
         cell_table = pd.concat([cell_table, cell_table_34])
+        cell_table = cell_table.reset_index(drop=True)
         cell_table.to_csv(cell_table_path, index=False)
 
         # test NaN counts on the SOM cluster column

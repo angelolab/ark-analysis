@@ -387,6 +387,19 @@ class TestPixelSOMCluster:
         som_clusters = som_label_data['pixel_som_cluster'].values
         assert np.all(np.logical_and(som_clusters >= 1, som_clusters <= 200))
 
+        # test normalize_data flag, shouldn't assign different SOM labels on same dataset
+        som_label_data_no_norm = self.pixel_pysom_nonweights.assign_som_clusters(
+            som_label_data, normalize_data=False
+        )
+
+        # test that no additional normalization added to som_label_data_no_norm
+        som_cols = self.pixel_pysom_nonweights.columns
+        assert np.all(som_label_data[som_cols].values == som_label_data_no_norm[som_cols].values)
+
+        # test the SOM cluster assignments are the same
+        new_som_clusters = som_label_data_no_norm['pixel_som_cluster'].values
+        assert np.all(som_clusters == new_som_clusters)
+
 
 class TestCellSOMCluster:
     @pytest.fixture(autouse=True, scope="function")
