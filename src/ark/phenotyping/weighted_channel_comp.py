@@ -42,6 +42,9 @@ def compute_p2c_weighted_channel_avg(pixel_channel_avg, channels, cell_counts,
         pandas.DataFrame:
             Returns the average marker expression for each cell in the dataset
     """
+    
+    if "segmentation_label" in cell_counts.columns:
+        cell_counts.rename(columns={"segmentation_label": "label"}, inplace=True)
 
     # if no fovs provided make sure they're all iterated over
     if fovs is None:
@@ -123,8 +126,6 @@ def compute_p2c_weighted_channel_avg(pixel_channel_avg, channels, cell_counts,
     weighted_cell_channel = pd.DataFrame(
         weighted_cell_channel, columns=channels
     )
-    if "segmentation_label" in weighted_cell_channel.columns:
-        weighted_cell_channel.rename({"segmentation_label": "label"}, inplace=True)
 
     # add columns back
     meta_cols = ['cell_size', 'fov', 'label']

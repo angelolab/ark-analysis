@@ -257,19 +257,22 @@ class PixelSOMCluster(PixieSOMCluster):
 
         super().train_som(self.train_data[self.columns])
 
-    def assign_som_clusters(self, external_data: pd.DataFrame) -> pd.DataFrame:
+    def assign_som_clusters(self, external_data: pd.DataFrame, normalize_data: bool = True) -> pd.DataFrame:
         """Assigns SOM clusters using `weights` to a dataset
 
         Args:
             external_data (pandas.DataFrame):
                 The dataset to assign SOM clusters to
+            normalize_data (bool):
+                Whether or not to normalize `external_data`.
+                Flag needed to prevent re-normalization of normalized dataset.
 
         Returns:
             pandas.DataFrame:
                 The dataset with the SOM clusters assigned.
         """
-        # normalize external_data prior to assignment
-        external_data_norm = self.normalize_data(external_data)
+        # normalize external_data prior to assignment, if normalize_data set
+        external_data_norm = self.normalize_data(external_data) if normalize_data else external_data.copy()
         som_labels = super().generate_som_clusters(external_data_norm)
 
         # assign SOM clusters to external_data

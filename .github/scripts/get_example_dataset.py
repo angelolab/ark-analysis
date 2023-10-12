@@ -23,6 +23,7 @@ def load_dataset(cache_dir: pathlib.Path, name: str):
         cache_dir=cache_dir,
         name=name,
         use_auth_token=False,
+        revision="main"
     )
 
 # Make the cache directory if it doesn't exist.

@@ -91,7 +91,7 @@ def test_create_mantis_project(tmp_path):
     # make sure that the mask found in each mantis directory is correct
     for fov in fovs:
         # mask should only include 0, 1, and 2 for background, population_1, and population_2
-        mask = io.imread(os.path.join(mask_dir, fov + "_cell_mask.tiff"))
+        mask = io.imread(os.path.join(mask_dir, fov + "_post_clustering_cell_mask.tiff"))
         assert set(np.unique(mask)) == set([0, 1, 2])
 
         # mask should be non-zero in the same places as original

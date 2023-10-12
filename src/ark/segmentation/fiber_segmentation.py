@@ -1,6 +1,7 @@
 import itertools
 import os
-from typing import Dict, Optional
+import pathlib
+from typing import Dict, Optional, Union
 
 import matplotlib.pyplot as plt
 import natsort as ns
@@ -67,9 +68,9 @@ def plot_fiber_segmentation_steps(data_dir, fov_name, fiber_channel, img_sub_fol
                               all_channels=io_utils.remove_file_extensions(
                                   io_utils.list_files(
                                       os.path.join(data_dir, fov_name, img_sub_folder)
-                                      )
                                   )
-                              )
+    )
+    )
 
     data_xr = load_utils.load_imgs_from_tree(
         data_dir, img_sub_folder, fovs=[fov_name], channels=[fiber_channel]
@@ -171,9 +172,9 @@ def run_fiber_segmentation(data_dir, fiber_channel, out_dir, img_sub_folder=None
                               all_channels=io_utils.remove_file_extensions(
                                   io_utils.list_files(
                                       os.path.join(data_dir, fovs[0], img_sub_folder)
-                                      )
                                   )
-                              )
+    )
+    )
 
     fiber_object_table = []
 
@@ -246,7 +247,7 @@ def calculate_fiber_alignment(fiber_object_table, k=4, axis_thresh=2):
             # find index for smallest distances, excluding itself
             indy = fiber_dist_mat[indx, :].argsort()[1:1+k]
             neighbor_angles = filtered_lengths.orientation[indy]
-            fiber_scores.append(1 / (np.sqrt(np.sum((neighbor_angles - angle) ** 2)) / k))
+            fiber_scores.append((np.sqrt(np.sum((neighbor_angles - angle) ** 2)) / k))
 
         fov_alignments = pd.DataFrame(
             zip([fov] * len(fiber_scores), filtered_lengths.label, fiber_scores),
@@ -554,7 +555,7 @@ def generate_summary_stats(fiber_object_table, fibseg_dir, tile_length=512, min_
         'fov': fovs,
         'pixel_density': fov_pixel_density,
         'fiber_density': fov_fiber_density
-        })
+    })
 
     fov_prop_stats = np.vstack(fov_avg_stats)
     for i, metric in enumerate(properties):
@@ -567,51 +568,3 @@ def generate_summary_stats(fiber_object_table, fibseg_dir, tile_length=512, min_
                       index=False)
 
     return fov_stats, tile_stats
-
-
-def color_fibers_by_stat(fiber_object_table, fibseg_dir, save_dir, stat_name):
-    """ Creates colored fiber masks based on values from a user-specified column of the
-    fiber_object_table.
-
-    Args:
-        fiber_object_table (pd.DataFrame):
-            dataframe containing the fiber objects and their properties (fov, label, alignment,
-            centroid-0, centroid-1, major_axis_length, minor_axis_length)
-        fibseg_dir (string):
-            path to directory containing the fiber segmentation masks
-        save_dir (str):
-            where to save colored masks to
-        stat_name (int):
-            name of the column to use for fiber coloring
-       """
-
-    io_utils.validate_paths(fibseg_dir)
-    misc_utils.verify_in_list(statistic_name=[stat_name],
-                              fiber_table_columns=fiber_object_table.columns)
-    if not os.path.exists(save_dir):
-        os.makedirs(save_dir)
-
-    cmap = set_minimum_color_for_colormap(plt.cm.Blues)
-    # alignment score needs reversed colormap after taking the inverse
-    if stat_name == 'alignment_score':
-        cmap = set_minimum_color_for_colormap(plt.cm.Blues_r)
-
-    for fov in np.unique(fiber_object_table.fov):
-        fiber_data = fiber_object_table[fiber_object_table.fov == fov]
-        fov_fiber_img = io.imread(os.path.join(fibseg_dir, fov + '_fiber_labels.tiff'))
-        fov_fiber_img = fov_fiber_img.astype('float16')
-
-        # reassign the fiber mask values with the stat values
-        for fiber in fiber_data.label:
-            stat = fiber_data.loc[fiber_data.label == fiber][stat_name].values[0]
-
-            # ignore any fibers without stat value
-            if np.isnan(stat):
-                stat = 0
-            # use inverse of alignment score
-            elif stat_name == 'alignment_score':
-                stat = 1 / stat
-
-            fov_fiber_img[fov_fiber_img == fiber] = stat
-
-        plt.imsave(os.path.join(save_dir, fov + f"_{stat_name}.tiff"), fov_fiber_img, cmap=cmap)
