@@ -73,7 +73,7 @@ def create_object_masks(
         )
 
         # save the channel overlay
-        save_name = '_'.join([f'{fov}', mask_name, 'overlay.tiff'])
+        save_name = '_'.join([f'{fov}', mask_name, 'object.tiff'])
         save_path = '/'.join([masks_dir, save_name])
         image_utils.save_image(
             fname=save_path, data=object_masks
