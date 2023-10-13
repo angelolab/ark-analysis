@@ -150,6 +150,10 @@ source = ["src", "**/site-packages"]
 [tool.coverage.run]
 branch = true
 source = ["ark"]
+omit = [
+    "ark/utils/interactive_file_select/*",
+    "ark/utils/interactive_file_select"
+]
 
 [tool.coverage.report]
 exclude_lines = [
@@ -157,10 +161,6 @@ exclude_lines = [
     "raise AssertionError",
     "raise NotImplementedError",
     "(ArrowInvalid, OSError, IOError)",
-]
-omit = [
-    "ark/utils/interactive_file_select/*",
-    "ark/utils/interactive_file_select"
 ]
 
 # Pytest Options
