@@ -493,7 +493,7 @@ class Test_3_Cell_Clustering:
                                                   cache_dir=self.cache_dir)
 
     def test_cell_cluster_params_set(self):
-        self.tb.execute_cell("cell_cluster_params_set")
+        self.tb.execute_cell("pixel_output_dir_set")
 
     def test_param_load(self):
         self.tb.execute_cell("param_load")
