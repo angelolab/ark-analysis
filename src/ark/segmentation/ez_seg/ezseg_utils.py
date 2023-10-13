@@ -46,6 +46,7 @@ def create_mantis_project(
         ez_visualization_dir: Union[str, pathlib.Path],
 ):
     """
+    Creates a folder for viewing FOVs in Mantis.
 
     Args:
         fovs (str | list[str]):
@@ -58,9 +59,6 @@ def create_mantis_project(
             The path to the directory containing the segmentation data.
         ez_visualization_dir:
             The path to the directory containing housing the ezseg specific mantis project.
-
-    Returns:
-
     """
     for fov in tqdm(io_utils.list_folders(tiff_dir, substrs=fovs)):
         shutil.copytree(os.path.join(tiff_dir, fov), dst=os.path.join(ez_visualization_dir, fov))
