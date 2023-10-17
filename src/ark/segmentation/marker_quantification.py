@@ -528,48 +528,80 @@ def generate_cell_table(segmentation_dir, tiff_dir, img_sub_folder="TIFs",
         whole_cell_file = fov_name + '_whole_cell.tiff'
         nuclear_file = fov_name + '_nuclear.tiff'
 
-        # load the segmentation labels in
-        current_labels_cell = load_utils.load_imgs_from_dir(data_dir=segmentation_dir,
-                                                            files=[whole_cell_file],
-                                                            xr_dim_name='compartments',
-                                                            xr_channel_names=['whole_cell'],
-                                                            trim_suffix='_whole_cell')
+        # for each label given in the argument. read in that mask for the fov, and proceed with label and table appending
+        mask_files = io_utils.list_files(segmentation_dir, substrs=fov_name)
+        mask_types = process_lists(listA=fovs, listB=mask_files)
+        for mask_type in mask_types:
+            # load the segmentation labels in
+            fov_mask_name = fov_name + '_' + mask_type + ".tiff"
+            current_labels_cell = load_utils.load_imgs_from_dir(data_dir=segmentation_dir,
+                                                                files=[fov_mask_name],
+                                                                xr_dim_name='compartments',
+                                                                xr_channel_names=[mask_type],
+                                                                trim_suffix='_'+mask_type)
 
-        compartments = ['whole_cell']
-        segmentation_labels = current_labels_cell.values
+            compartments = ['whole_cell']
+            segmentation_labels = current_labels_cell.values
 
-        if nuclear_counts:
-            current_labels_nuc = load_utils.load_imgs_from_dir(data_dir=segmentation_dir,
-                                                               files=[nuclear_file],
-                                                               xr_dim_name='compartments',
-                                                               xr_channel_names=['nuclear'],
-                                                               trim_suffix='_nuclear')
-            compartments = ['whole_cell', 'nuclear']
-            segmentation_labels = np.concatenate((current_labels_cell.values,
-                                                  current_labels_nuc.values), axis=-1)
+            if nuclear_counts:
+                current_labels_nuc = load_utils.load_imgs_from_dir(data_dir=segmentation_dir,
+                                                                   files=[nuclear_file],
+                                                                   xr_dim_name='compartments',
+                                                                   xr_channel_names=['nuclear'],
+                                                                   trim_suffix='_nuclear')
+                compartments = ['whole_cell', 'nuclear']
+                segmentation_labels = np.concatenate((current_labels_cell.values,
+                                                      current_labels_nuc.values), axis=-1)
 
-        current_labels = xr.DataArray(segmentation_labels,
-                                      coords=[current_labels_cell.fovs,
-                                              current_labels_cell.rows,
-                                              current_labels_cell.cols,
-                                              compartments],
-                                      dims=current_labels_cell.dims)
+            current_labels = xr.DataArray(segmentation_labels,
+                                          coords=[current_labels_cell.fovs,
+                                                  current_labels_cell.rows,
+                                                  current_labels_cell.cols,
+                                                  compartments],
+                                          dims=current_labels_cell.dims)
 
-        # segment the imaging data
-        cell_table_size_normalized, cell_table_arcsinh_transformed = create_marker_count_matrices(
-            segmentation_labels=current_labels,
-            image_data=image_data,
-            extraction=extraction,
-            nuclear_counts=nuclear_counts,
-            fast_extraction=fast_extraction,
-            **kwargs
-        )
+            # segment the imaging data
+            cell_table_size_normalized, cell_table_arcsinh_transformed = create_marker_count_matrices(
+                segmentation_labels=current_labels,
+                image_data=image_data,
+                extraction=extraction,
+                nuclear_counts=nuclear_counts,
+                fast_extraction=fast_extraction,
+                **kwargs
+            )
 
-        normalized_tables.append(cell_table_size_normalized)
-        arcsinh_tables.append(cell_table_arcsinh_transformed)
+            # add mask type column to the data frame
+            if mask_type == "final_cells_remaining":
+                mask_type_str = "whole_cell"
+            else:
+                mask_type_str = mask_type
+            cell_table_size_normalized['mask_type'] = mask_type_str
+            cell_table_arcsinh_transformed['mask_type'] = mask_type_str
+
+            # add to larger dataframe
+            normalized_tables.append(cell_table_size_normalized)
+            arcsinh_tables.append(cell_table_arcsinh_transformed)
 
     # now append to the final dfs to return
     combined_cell_table_size_normalized = pd.concat(normalized_tables)
     combined_cell_table_arcsinh_transformed = pd.concat(arcsinh_tables)
 
     return combined_cell_table_size_normalized, combined_cell_table_arcsinh_transformed
+
+# Function to strip prefixes from list A, strip '.tiff' suffix from list B,
+# and remove underscore prefixes, returning unique values
+def process_lists(listA, listB):
+    stripped_listA = [itemA for itemA in listA]
+    stripped_listB = [itemB.replace('.tiff', '') for itemB in listB]
+
+    result = []
+    for itemB in stripped_listB:
+        for prefix in stripped_listA:
+            if itemB.startswith(prefix):
+                result.append(itemB[len(prefix):])
+                break  # Break the inner loop once a matching prefix is found
+
+    # Remove underscore prefixes and return unique values
+    cleaned_result = [item.lstrip('_') for item in result]
+    unique_result = list(set(cleaned_result))
+    return unique_result

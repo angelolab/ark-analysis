@@ -5,7 +5,7 @@ from .composite_builder import (
 )
 from .ez_object_segmentation import create_object_masks
 
-from .merge_masks import merge_masks, merge_masks_seq, combine_masks
+from .merge_masks import merge_masks, merge_masks_seq
 from .ez_seg_display import (
     display_channel_image,
     overlay_mask_outlines,
@@ -22,7 +22,6 @@ __all__ = [
     "create_object_masks",
     "merge_masks",
     "merge_masks_seq",
-    "combine_masks",
     "renumber_masks",
     "display_channel_image",
     "overlay_mask_outlines",
