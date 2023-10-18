@@ -13,18 +13,23 @@ from matplotlib import gridspec
 from alpineer import io_utils
 
 
-def display_channel_image(base_image_path: Union[str, pathlib.Path]) -> None:
+def display_channel_image(base_image_path: Union[str, pathlib.Path], test_fov_name: str, channel_name: str) -> None:
     """
     Displays a channel or a composite image.
 
     Args:
         base_image_path (Union[str, pathlib.Path]): The path to the image.
     """
-    if isinstance(base_image_path, str):
-        base_image_path = pathlib.Path(base_image_path)
-    io_utils.validate_paths(base_image_path)
+    # Show test composite image
+    image_path = os.path.join(
+        base_image_path, test_fov_name, channel_name + ".tiff"
+    )
 
-    base_image: np.ndarray = imread(base_image_path, as_gray=True)
+    if isinstance(image_path, str):
+        image_path = pathlib.Path(image_path)
+    io_utils.validate_paths(image_path)
+
+    base_image: np.ndarray = imread(image_path, as_gray=True)
 
     base_image_scaled = img_as_ubyte(base_image)
 
@@ -32,7 +37,7 @@ def display_channel_image(base_image_path: Union[str, pathlib.Path]) -> None:
     fig: Figure = plt.figure(dpi=300, figsize=(6, 6))
     fig.set_layout_engine(layout="constrained")
     gs = gridspec.GridSpec(1, 1, figure=fig)
-    fig.suptitle(f"{base_image_path.name}")
+    fig.suptitle(f"{image_path.name}")
 
     ax: Axes = fig.add_subplot(gs[0, 0])
     ax.imshow(base_image_scaled)

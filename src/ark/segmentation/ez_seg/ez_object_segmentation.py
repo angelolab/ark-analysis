@@ -5,6 +5,7 @@ from skimage import measure, filters, morphology
 from skimage.util import map_array
 import pandas as pd
 from alpineer import misc_utils, load_utils, image_utils
+from ez_seg_utils import log_creator
 import xarray as xr
 
 
@@ -21,6 +22,7 @@ def create_object_masks(
     fov_dim: int = 400,
     min_object_area: int = 100,
     max_object_area: int = 100000,
+    log_dir: Union[str, pathlib.Path],
 ) -> xr.DataArray:
     """
     Calculates a mask for each channel in the FOV for circular or 'blob'-like objects such as: single large cells or amyloid
@@ -79,6 +81,23 @@ def create_object_masks(
             fname=save_path, data=object_masks
         )
 
+    # Write a log saving ez segment info
+    variables_to_log = {
+        "image_dir": image_dir,
+        "fov_list": fov_list,
+        "mask_name": mask_name,
+        "channel_to_segment": channel_to_segment,
+        "masks_dir": masks_dir,
+        "object_shape_type": object_shape_type,
+        "sigma": sigma,
+        "thresh": thresh,
+        "hole_size": hole_size,
+        "fov_dim": fov_dim,
+        "min_object_area": min_object_area,
+        "max_object_area": max_object_area
+    }
+    log_creator(variables_to_log, log_dir, "object_segmentation_log.txt")
+
 
 def _create_object_mask(
     input_image: xr.DataArray,
@@ -111,6 +130,7 @@ def _create_object_mask(
         pixels. Defaults to 100.
         max_object_area (int): The maximum size (area) of an object to capture in
         pixels. Defaults to 100000.
+        log_dir: The directory to save log information to.
 
     Returns:
         np.ndarray: The object mask.

@@ -6,6 +6,7 @@ import os
 from skimage.io import imread
 from skimage.measure import label
 from alpineer import load_utils, image_utils
+from ez_seg_utils import log_creator
 
 def merge_masks_seq(
     fov_list: List[str],
@@ -14,6 +15,7 @@ def merge_masks_seq(
     cell_mask_path: Union[pathlib.Path, str],
     overlap_percent_threshold: int,
     save_path: Union[pathlib.Path, str],
+    log_dir: Union[pathlib.Path, str]
 ) -> None:
     """
     Sequentially merge object masks with cell masks. Object list is ordered enforced, e.g. object_list[i] will merge
@@ -25,6 +27,7 @@ def merge_masks_seq(
         cell_mask_path (Union[str, pathlib.Path]): Path to where the original cell mask is located.
         overlap_percent_threshold (int): Percent overlap of total pixel area needed fo object to be merged to a cell.
         save_path (Union[str, pathlib.Path]): The directory where merged masks and remaining cell mask will be saved.
+        log_dir: The directory to save log information to.
     """
     # validate paths
     if isinstance(object_mask_dir, str):
@@ -64,6 +67,17 @@ def merge_masks_seq(
 
         # save the unmerged cells as a tiff.
         image_utils.save_image(fname=save_path / (fov + "_final_cells_remaining.tiff"), data=curr_cell_mask.astype(np.int32))
+
+    # Write a log saving mask merging info
+    variables_to_log = {
+        "fov_list": fov_list,
+        "object_list": object_list,
+        "object_mask_dir": object_mask_dir,
+        "cell_mask_path": cell_mask_path,
+        "overlap_percent_threshold": overlap_percent_threshold,
+        "save_path": save_path
+    }
+    log_creator(variables_to_log, log_dir, "mask_merge_log.txt")
 
 
 def merge_masks(

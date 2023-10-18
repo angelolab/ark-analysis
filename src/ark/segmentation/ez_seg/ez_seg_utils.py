@@ -36,8 +36,6 @@ def renumber_masks(mask_dir):
     print("Complete.")
 
 
-
-
 def create_mantis_project(
         fovs: str | list[str],
         tiff_dir: Union[str, pathlib.Path],
@@ -68,3 +66,15 @@ def create_mantis_project(
 
         for sg_mask in io_utils.list_files(os.path.join(segmentation_dir, "deepcell_output"), substrs=fov):
             shutil.copy(os.path.join(segmentation_dir, "deepcell_output", sg_mask), os.path.join(ez_visualization_dir, fov))
+
+
+def log_creator(variables_to_log: dict, base_dir: str, log_name: str = "config_values.txt"):
+    # Define the filename for the text file
+    output_file = os.path.join(base_dir, log_name)
+
+    # Open the file in write mode and write the variable values
+    with open(output_file, "w") as file:
+        for variable_name, variable_value in variables_to_log.items():
+            file.write(f"{variable_name}: {variable_value}\n")
+
+    print(f"Values saved to {output_file}")
