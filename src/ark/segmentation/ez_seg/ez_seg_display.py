@@ -1,4 +1,3 @@
-import itertools
 import pathlib
 from typing import Union
 from matplotlib.axes import Axes
@@ -19,6 +18,8 @@ def display_channel_image(base_image_path: Union[str, pathlib.Path], test_fov_na
 
     Args:
         base_image_path (Union[str, pathlib.Path]): The path to the image.
+        test_fov_name (str): The name of the fov you wish to display.
+        channel_name (str): The name of the channel you wish to display.
     """
     # Show test composite image
     image_path = os.path.join(
@@ -54,6 +55,7 @@ def overlay_mask_outlines(fov_name, channel_to_view, channel_to_view_path, mask_
         channel_to_view (str): name of channel to view
         channel_to_view_path (str): path to channel to be viewed
         mask_name (str): name of mask to view
+        mask_to_view_path (Union[str, pathlib.Path]): Path to mask to view
     """
 
     # Get test segmentation image paths
@@ -137,12 +139,6 @@ def create_overlap_and_merge_visual(test_fov_name, mask_name, object_mask_dir, c
     Returns:
     """
     # read in masks
-    if isinstance(object_mask_dir, str):
-        base_image_path = pathlib.Path(object_mask_dir)
-    if isinstance(cell_mask_dir, str):
-        mask_image_path = pathlib.Path(cell_mask_dir)
-    if isinstance(merged_mask_dir, str):
-        mask_image_path = pathlib.Path(merged_mask_dir)
     io_utils.validate_paths([object_mask_dir, cell_mask_dir, merged_mask_dir])
 
     object_mask: np.ndarray = imread(
@@ -154,9 +150,6 @@ def create_overlap_and_merge_visual(test_fov_name, mask_name, object_mask_dir, c
     merged_mask: np.ndarray = imread(
         merged_mask_dir + "/" + test_fov_name + "_" + mask_name + "_merged.tiff", as_gray=True
     )
-
-    # Create an image with the size of the masks
-    image: np.ndarray = np.zeros(shape=object_mask.shape, dtype=np.uint8)
 
     # Assign colors to the non-overlapping areas of each mask
     # Object masks in red

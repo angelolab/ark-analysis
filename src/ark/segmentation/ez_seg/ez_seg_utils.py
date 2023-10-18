@@ -2,19 +2,29 @@ from typing import Generator, Union
 from skimage.io import imread
 from alpineer.image_utils import save_image
 from alpineer import io_utils
-import os, shutil
+import os
+import shutil
 from tqdm.auto import tqdm
 import numpy as np
 import pathlib
 
-def renumber_masks(mask_dir):
+
+def renumber_masks(
+        mask_dir: Union[pathlib.Path, str]
+):
+    """
+    Relabels all masks in mask tiffs so each label is unique across all mask images in entire dataset.
+    Args:
+        mask_dir (Union[pathlib.Path, str]): Directory that points to parent directory of all segmentation masks to be relabeled.
+    """
     mask_dir = pathlib.Path(mask_dir)
     io_utils.validate_paths(mask_dir)
-    
+
     all_images: Generator[pathlib.Path, None, None] = mask_dir.rglob("*.tiff")
 
     global_unique_labels = 1
 
+    # First pass - get total number of unique masks
     for image in all_images:
         img: np.ndarray = imread(image)
         unique_labels: np.ndarray = np.unique(img)
@@ -24,6 +34,7 @@ def renumber_masks(mask_dir):
 
     all_images: Generator[pathlib.Path, None, None] = mask_dir.rglob("*.tiff")
 
+    # Second pass - relabel all masks starting at unique num of masks +1
     for image in all_images:
         print("Relabeling: " + image.stem + image.suffix)
         img: np.ndarray = imread(image)
@@ -40,9 +51,8 @@ def create_mantis_project(
         fovs: str | list[str],
         tiff_dir: Union[str, pathlib.Path],
         mask_dir: Union[str, pathlib.Path],
-        segmentation_dir: Union[str, pathlib.Path],
-        ez_visualization_dir: Union[str, pathlib.Path],
-):
+        mantis_dir: Union[str, pathlib.Path],
+) -> None:
     """
     Creates a folder for viewing FOVs in Mantis.
 
@@ -53,19 +63,14 @@ def create_mantis_project(
             The path to the directory containing the raw image data.
         mask_dir (Union[str, pathlib.Path]):
             The path to the directory containing the masks.
-        segmentation_dir (Union[str, pathlib.Path]):
-            The path to the directory containing the segmentation data.
-        ez_visualization_dir:
-            The path to the directory containing housing the ezseg specific mantis project.
+        mantis_dir:
+            The path to the directory containing housing the ez_seg specific mantis project.
     """
     for fov in tqdm(io_utils.list_folders(tiff_dir, substrs=fovs)):
-        shutil.copytree(os.path.join(tiff_dir, fov), dst=os.path.join(ez_visualization_dir, fov))
+        shutil.copytree(os.path.join(tiff_dir, fov), dst=os.path.join(mantis_dir, fov))
 
         for mask in io_utils.list_files(mask_dir, substrs=fov):
-            shutil.copy(os.path.join(mask_dir, mask), os.path.join(ez_visualization_dir, fov))
-
-        for sg_mask in io_utils.list_files(os.path.join(segmentation_dir, "deepcell_output"), substrs=fov):
-            shutil.copy(os.path.join(segmentation_dir, "deepcell_output", sg_mask), os.path.join(ez_visualization_dir, fov))
+            shutil.copy(os.path.join(mask_dir, mask), os.path.join(mantis_dir, fov))
 
 
 def log_creator(variables_to_log: dict, base_dir: str, log_name: str = "config_values.txt"):

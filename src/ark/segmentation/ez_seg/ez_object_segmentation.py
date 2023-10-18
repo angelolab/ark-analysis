@@ -1,5 +1,5 @@
 import pathlib
-from typing import Dict, Optional, Tuple, Union
+from typing import Optional, Tuple, Union
 import numpy as np
 from skimage import measure, filters, morphology
 from skimage.util import map_array
@@ -15,6 +15,7 @@ def create_object_masks(
     mask_name: str,
     channel_to_segment: str,
     masks_dir: Union[str, pathlib.Path],
+    log_dir: Union[str, pathlib.Path],
     object_shape_type: str = "blob",
     sigma: int = 1,
     thresh: Optional[np.float32] = None,
@@ -22,8 +23,7 @@ def create_object_masks(
     fov_dim: int = 400,
     min_object_area: int = 100,
     max_object_area: int = 100000,
-    log_dir: Union[str, pathlib.Path],
-) -> xr.DataArray:
+) -> None:
     """
     Calculates a mask for each channel in the FOV for circular or 'blob'-like objects such as: single large cells or amyloid
     plaques. It will blur the input image, then threshold the blurred image on either a given
@@ -31,11 +31,14 @@ def create_object_masks(
     that same thresholding input and filters out objects which are either too small or too large.
 
     Args:
-        input_image (np.ndarray): The numpy array (image) to perform segmentation on.
+        image_dir (Union[str, pathlib.Path]): The directory to pull images from to perform segmentation on.
+        fov_list: A list of fov names to segment on.
         mask_name (str): The name of the masks you are creating.
+        channel_to_segment: The channel on which to perform segmentation.
+        masks_dir (Union[str, pathlib.Path]): The directory to save segmented images to.
         object_shape_type (str, optional): Specify whether the object is either "blob" or
         "projection" shaped. Defaults to "blob".
-        sigma (int): The standard deviation for Gaussian kernel, used for bluring the
+        sigma (int): The standard deviation for Gaussian kernel, used for blurring the
         image. Defaults to 1.
         thresh (np.float32, optional): The global threshold value for image thresholding if
         desired. Defaults to None.
@@ -46,6 +49,7 @@ def create_object_masks(
         pixels. Defaults to 100.
         max_object_area (int): The maximum size (area) of an object to capture in
         pixels. Defaults to 100000.
+        log_dir (Union[str, pathlib.Path]): The directory to save log information to.
 
     Returns:
         xr.DataArray: The object masks for all channels in a FOV.
@@ -119,7 +123,7 @@ def _create_object_mask(
         input_image (xr.DataArray): The numpy array (image) to perform segmentation on.
         object_shape_type (str, optional): Specify whether the object is either "blob" or
         "projection" shaped. Defaults to "blob".
-        sigma (int): The standard deviation for Gaussian kernel, used for bluring the
+        sigma (int): The standard deviation for Gaussian kernel, used for blurring the
         image. Defaults to 1.
         thresh (np.float32, optional): The global threshold value for image thresholding if
         desired. Defaults to None.
@@ -130,7 +134,6 @@ def _create_object_mask(
         pixels. Defaults to 100.
         max_object_area (int): The maximum size (area) of an object to capture in
         pixels. Defaults to 100000.
-        log_dir: The directory to save log information to.
 
     Returns:
         np.ndarray: The object mask.
@@ -141,7 +144,7 @@ def _create_object_mask(
         object_shape=[object_shape_type], object_shape_options=["blob", "projection"]
     )
 
-    # Copy the input image, and get it's shape
+    # Copy the input image, and get its shape
     img2mask: np.ndarray = input_image.copy()
     img2mask_shape: Tuple[int, int] = img2mask.shape
 
@@ -188,7 +191,7 @@ def _create_object_mask(
     labeled_object_masks = measure.label(img2mask_filtered, connectivity=2)
 
     # Convert dictionary of region properties to DataFrame
-    object_masks_df: Dict = pd.DataFrame(
+    object_masks_df: pd.DataFrame = pd.DataFrame(
         measure.regionprops_table(
             label_image=labeled_object_masks,
             cache=True,

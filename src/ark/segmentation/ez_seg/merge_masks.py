@@ -23,8 +23,10 @@ def merge_masks_seq(
     then be used to merge with object_list[i+1], etc.
 
     Args:
+        fov_list (List[str]): A list of fov names to merge masks over.
+        object_mask_dir (Union[pathlib.Path, str]): Directory where object (ez) segmented masks are located
         object_list (List[str]): A list of names representing previously generated object masks. Note, order matters.
-        cell_mask_path (Union[str, pathlib.Path]): Path to where the original cell mask is located.
+        cell_mask_path (Union[str, pathlib.Path]): Path to where the original cell masks are located.
         overlap_percent_threshold (int): Percent overlap of total pixel area needed fo object to be merged to a cell.
         save_path (Union[str, pathlib.Path]): The directory where merged masks and remaining cell mask will be saved.
         log_dir: The directory to save log information to.
@@ -56,7 +58,7 @@ def merge_masks_seq(
         # for each object type in the fov, merge with cell masks
         for obj in fov_object_names:
             curr_object_mask = imread(fname=(object_mask_dir / obj))
-            remaining_cells = merge_masks(
+            remaining_cells = merge_masks_single(
                 object_mask=curr_object_mask,
                 cell_mask=curr_cell_mask,
                 overlap_thresh=overlap_percent_threshold,
@@ -80,7 +82,7 @@ def merge_masks_seq(
     log_creator(variables_to_log, log_dir, "mask_merge_log.txt")
 
 
-def merge_masks(
+def merge_masks_single(
     object_mask: np.ndarray,
     cell_mask: np.ndarray,
     overlap_thresh: int,
@@ -88,13 +90,13 @@ def merge_masks(
     mask_save_path: str,
 ) -> np.ndarray:
     """
-    Combines overlapping object and cell masks. For any combination which represents has atleast `overlap` percentage
+    Combines overlapping object and cell masks. For any combination which represents has at least `overlap` percentage
     of overlap, the combined mask is kept and incorporated into the original object masks to generate a new set of masks.
 
     Args:
         object_mask (np.ndarray): The object mask numpy array.
         cell_mask (np.ndarray): The cell mask numpy array.
-        overlap (int): The amount of overlap required for a cell to be merged.
+        overlap_thresh (int): The amount of overlap required for a cell to be merged.
         object_name (str): The name of the object.
         mask_save_path (str): The path to save the mask.
 

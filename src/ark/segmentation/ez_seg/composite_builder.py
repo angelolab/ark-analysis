@@ -4,7 +4,6 @@ import numpy as np
 import xarray as xr
 from alpineer import misc_utils, image_utils, load_utils
 from ez_seg_utils import log_creator
-from matplotlib import pyplot as plt
 
 
 def composite_builder(
@@ -17,12 +16,13 @@ def composite_builder(
     composite_directory: Union[str, pathlib.Path],
     composite_name: str,
     log_dir: Union[str, pathlib.Path],
-) -> np.ndarray:
+) -> None:
     """
     Adds tiffs together, either pixel clusters or base signal tiffs and returns a composite channel or mask.
 
     Args:
-        data (xr.DataArray): The data array containing the set of all images which get filtered out with images_to_add and images_to_subtract.
+        data_dir (xr.DataArray): The path to dir containing the set of all images which get filtered out with
+            images_to_add and images_to_subtract.
         fov_list: A list of fov's to create composite channels through.
         images_to_add (List[str]): A list of channels or pixel cluster names to add together.
         images_to_subtract (List[str]): A list of channels or pixel cluster names to subtract from the composite.
@@ -33,7 +33,7 @@ def composite_builder(
         log_dir: The directory to save log information to.
 
     Returns:
-        np.ndarray: Returns the composite array, either as a binary mask, or as a scaled intensity array.
+        np.ndarray: Saves the composite array, either as a binary mask, or as a scaled intensity array.
     """
     for fov in fov_list:
         # load in tiff images and verify channels are present
@@ -73,7 +73,7 @@ def composite_builder(
 
         # Save the composite image
         image_utils.save_image(
-            fname=composite_directory / fov / (f"{composite_name}.tiff"), data=composite_array.astype(np.uint32)
+            fname=composite_directory / fov / f"{composite_name}.tiff", data=composite_array.astype(np.uint32)
         )
 
     # Write a log saving composite builder info
@@ -88,6 +88,8 @@ def composite_builder(
         "composite_name": composite_name,
     }
     log_creator(variables_to_log, log_dir, "composite_log.txt")
+
+    print("Composites built and saved")
 
 
 def add_to_composite(
@@ -109,10 +111,9 @@ def add_to_composite(
 
     Returns:
         np.ndarray: The composite array, either as a binary mask, or as a scaled intensity array.
-
     """
 
-    filtered_channels: xr.DataArray = data.sel({"channels": images_to_add}).squeeze().astype((np.int32))
+    filtered_channels: xr.DataArray = data.sel({"channels": images_to_add}).squeeze().astype(np.int32)
 
     if image_type == "signal":
         composite_array: np.ndarray = filtered_channels.sum(dim="channels").values
@@ -135,7 +136,8 @@ def subtract_from_composite(
     Subtracts tiffs from a composite array.
 
     Args:
-        data (xr.DataArray): The data array containing the set of all images which get filtered out with images_to_subtract.
+        data (xr.DataArray): The data array containing the set of all images which get filtered out with
+            images_to_subtract.
         composite_array (np.ndarray): An array to subtract channels from.
         images_to_subtract (List[str]): A list of channels or pixel cluster names to subtract from the composite.
         image_type (str): Either "signal" or "pixel_cluster" data.
@@ -147,7 +149,7 @@ def subtract_from_composite(
 
     filtered_channels: xr.DataArray = data.sel(
         {"channels": images_to_subtract}
-    ).squeeze().astype((np.int32))
+    ).squeeze().astype(np.int32)
     # for each channel to subtract
     for channel in filtered_channels.channels.values:
         channel_data = filtered_channels.sel(channels=channel)
