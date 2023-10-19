@@ -116,13 +116,13 @@ class PixieSOMCluster(ABC):
         feather.write_dataframe(self.weights, self.weights_path, compression='uncompressed')
 
     def generate_som_clusters(self, external_data: pd.DataFrame,
-                              num_parallel_pixels: int = 1000000) -> np.ndarray:
+                              num_parallel_obs: int = 1000000) -> np.ndarray:
         """Uses the weights to generate SOM clusters for a dataset
 
         Args:
             external_data (pandas.DataFrame):
                 The dataset to generate SOM clusters for
-            num_parallel_pixels (int):
+            num_parallel_obs (int):
                 Partition size of `external_data` for assigning SOM labels
 
         Returns:
@@ -130,8 +130,8 @@ class PixieSOMCluster(ABC):
                 The SOM clusters generated for each pixel in `external_data`
         """
         # ensure batch_size passed is valid
-        if num_parallel_pixels <= 0:
-            raise ValueError("batch_size specified needs to be greater than 0")
+        if num_parallel_obs <= 0:
+            raise ValueError("num_parallel_obs specified needs to be greater than 0")
 
         # subset on just the weights columns prior to SOM cluster mapping
         weights_cols = self.weights.columns.values
@@ -145,14 +145,14 @@ class PixieSOMCluster(ABC):
         # define the batches of cluster labels assigned
         cluster_labels = []
 
-        # work in batches of 100 to account to support large dataframe sizes
+        # work in batches to support large dataframe sizes
         # TODO: possible dynamic computation in order?
-        for i in np.arange(0, external_data.shape[0], num_parallel_pixels):
+        for i in np.arange(0, external_data.shape[0], num_parallel_obs):
             # NOTE: this also orders the columns of external_data_sub the same as self.weights
             cluster_labels.append(map_data_to_nodes(
                 self.weights.values.astype(np.float64),
                 external_data.loc[
-                    i:min(i + num_parallel_pixels - 1, external_data.shape[0]), weights_cols
+                    i:min(i + num_parallel_obs - 1, external_data.shape[0]), weights_cols
                 ].values.astype(np.float64)
             )[0])
 
@@ -286,7 +286,7 @@ class PixelSOMCluster(PixieSOMCluster):
         external_data_norm = self.normalize_data(external_data) if normalize_data \
             else external_data.copy()
         som_labels = super().generate_som_clusters(
-            external_data_norm, num_parallel_pixels=num_parallel_pixels
+            external_data_norm, num_parallel_obs=num_parallel_pixels
         )
 
         # assign SOM clusters to external_data
