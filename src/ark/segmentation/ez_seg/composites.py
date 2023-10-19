@@ -3,7 +3,7 @@ from typing import List, Union
 import numpy as np
 import xarray as xr
 from alpineer import misc_utils, image_utils, load_utils
-from ez_seg_utils import log_creator
+from ark.segmentation.ez_seg.ez_seg_utils import log_creator
 
 
 def composite_builder(

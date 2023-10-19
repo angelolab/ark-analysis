@@ -4,9 +4,9 @@ import xarray as xr
 import numpy as np
 import os
 from skimage.io import imread
-from skimage.measure import label
+from scipy.ndimage import label
 from alpineer import load_utils, image_utils
-from ez_seg_utils import log_creator
+from ark.segmentation.ez_seg.ez_seg_utils import log_creator
 
 def merge_masks_seq(
     fov_list: List[str],
@@ -45,7 +45,7 @@ def merge_masks_seq(
             cell_mask_path, '_'.join([f'{fov}', 'whole_cell.tiff']))
         )
 
-        fov_object_names = [f'{fov}_' + o + "_object.tiff" for o in object_list]
+        fov_object_names = [f'{fov}_' + obj + '.tiff' for obj in object_list]
 
         objects: xr.DataArray = load_utils.load_imgs_from_dir(
             object_mask_dir, files=fov_object_names).drop_vars("compartments").squeeze()
@@ -153,7 +153,7 @@ def merge_masks_single(
 
     # Save the merged mask tiff.
     image_utils.save_image(
-        fname=mask_save_path / (object_name.removesuffix("_object.tiff") + "_merged.tiff"),
+        fname=os.path.join(mask_save_path, object_name.removesuffix(".tiff") + "_merged.tiff"),
         data=merged_mask)
     # Return unmerged cells
     return cell_labels

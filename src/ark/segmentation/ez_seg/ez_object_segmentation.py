@@ -5,7 +5,7 @@ from skimage import measure, filters, morphology
 from skimage.util import map_array
 import pandas as pd
 from alpineer import misc_utils, load_utils, image_utils
-from ez_seg_utils import log_creator
+from ark.segmentation.ez_seg.ez_seg_utils import log_creator
 import xarray as xr
 
 
@@ -79,7 +79,7 @@ def create_object_masks(
         )
 
         # save the channel overlay
-        save_name = '_'.join([f'{fov}', mask_name, 'object.tiff'])
+        save_name = ''.join([f'{fov}', '_', mask_name, '.tiff'])
         save_path = '/'.join([masks_dir, save_name])
         image_utils.save_image(
             fname=save_path, data=object_masks
@@ -100,7 +100,7 @@ def create_object_masks(
         "min_object_area": min_object_area,
         "max_object_area": max_object_area
     }
-    log_creator(variables_to_log, log_dir, "object_segmentation_log.txt")
+    log_creator(variables_to_log, log_dir, f"{mask_name}_segmentation_log.txt")
 
 
 def _create_object_mask(

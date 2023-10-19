@@ -63,14 +63,15 @@ def overlay_mask_outlines(fov_name, channel_to_view, channel_to_view_path, mask_
         channel_to_view_path, fov_name, f"{channel_to_view}.tiff"
     )
     mask_image_path = os.path.join(
-        mask_to_view_path, '_'.join([f'{fov_name}', mask_name, 'overlay.tiff'])
+        mask_to_view_path, ''.join([f'{fov_name}', '_', mask_name, '.tiff'])
     )
 
-    io_utils.validate_paths(paths=[channel_image_path, mask_image_path])
     if isinstance(channel_to_view_path, str):
         channel_image_path = pathlib.Path(channel_image_path)
     if isinstance(mask_image_path, str):
         mask_image_path = pathlib.Path(mask_image_path)
+
+    io_utils.validate_paths(paths=[channel_image_path, mask_image_path])
 
     # Load the base image and mask image
     # Autoscale the base image
@@ -142,7 +143,7 @@ def create_overlap_and_merge_visual(test_fov_name, mask_name, object_mask_dir, c
     io_utils.validate_paths([object_mask_dir, cell_mask_dir, merged_mask_dir])
 
     object_mask: np.ndarray = imread(
-        object_mask_dir + "/" + test_fov_name + "_" + mask_name + "_object.tiff"
+        object_mask_dir + "/" + test_fov_name + "_" + mask_name + ".tiff"
     )
     cell_mask: np.ndarray = imread(
         cell_mask_dir + "/" + test_fov_name + "_whole_cell.tiff", as_gray=True

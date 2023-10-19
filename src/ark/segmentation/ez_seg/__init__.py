@@ -1,11 +1,13 @@
-from .composite_builder import (
+from .composites import (
     composite_builder,
     add_to_composite,
     subtract_from_composite,
 )
+
 from .ez_object_segmentation import create_object_masks
 
 from .merge_masks import merge_masks_seq, merge_masks_single
+
 from .ez_seg_display import (
     display_channel_image,
     overlay_mask_outlines,

@@ -50,7 +50,7 @@ def renumber_masks(
 def create_mantis_project(
         fovs: str | list[str],
         tiff_dir: Union[str, pathlib.Path],
-        mask_dir: Union[str, pathlib.Path],
+        segmentation_dir: Union[str, pathlib.Path],
         mantis_dir: Union[str, pathlib.Path],
 ) -> None:
     """
@@ -61,17 +61,20 @@ def create_mantis_project(
             A list of FOVs to use for creating the mantis project
         tiff_dir (Union[str, pathlib.Path]):
             The path to the directory containing the raw image data.
-        mask_dir (Union[str, pathlib.Path]):
-            The path to the directory containing the masks.
+        segmentation_dir (Union[str, pathlib.Path]):
+            The path to the directory containing masks.
         mantis_dir:
             The path to the directory containing housing the ez_seg specific mantis project.
     """
     for fov in tqdm(io_utils.list_folders(tiff_dir, substrs=fovs)):
         shutil.copytree(os.path.join(tiff_dir, fov), dst=os.path.join(mantis_dir, fov))
 
-        for mask in io_utils.list_files(mask_dir, substrs=fov):
-            shutil.copy(os.path.join(mask_dir, mask), os.path.join(mantis_dir, fov))
+        for seg_type in io_utils.list_folders(segmentation_dir):
 
+            for mask in io_utils.list_files(os.path.join(segmentation_dir, seg_type), substrs=fov):
+                shutil.copy(os.path.join(segmentation_dir, seg_type, mask),
+                            dst=os.path.join(mantis_dir, fov)
+                            )
 
 def log_creator(variables_to_log: dict, base_dir: str, log_name: str = "config_values.txt"):
     # Define the filename for the text file
