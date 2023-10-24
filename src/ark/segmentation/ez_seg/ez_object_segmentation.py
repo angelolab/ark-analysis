@@ -101,6 +101,7 @@ def create_object_masks(
         "max_object_area": max_object_area
     }
     log_creator(variables_to_log, log_dir, f"{mask_name}_segmentation_log.txt")
+    print("ez masks built and saved")
 
 
 def _create_object_mask(

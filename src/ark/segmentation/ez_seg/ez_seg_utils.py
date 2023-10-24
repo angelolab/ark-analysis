@@ -36,7 +36,7 @@ def renumber_masks(
 
     # Second pass - relabel all masks starting at unique num of masks +1
     for image in all_images:
-        print("Relabeling: " + image.stem + image.suffix)
+        #print("Relabeling: " + image.stem + image.suffix)
         img: np.ndarray = imread(image)
         unique_labels: np.ndarray = np.unique(img)
         for label in unique_labels:
@@ -44,7 +44,7 @@ def renumber_masks(
                 img[img == label] = global_unique_labels
                 global_unique_labels += 1
         save_image(fname=image, data=img)
-    print("Complete.")
+    print("Relabeling Complete.")
 
 
 def create_mantis_project(
@@ -128,5 +128,7 @@ def filter_csvs_by_mask(csv_path_name: Union[str, pathlib.Path], csv_name: str) 
             filtered_dfs[filter_value] = filtered_df
 
         # Print a message for each filtered DataFrame
-        for filter_value, filtered_df in filtered_dfs.items():
-            print(f"Filtered DataFrame for '{filter_value}' saved as filtered_{filter_value}.csv")
+        #for filter_value, filtered_df in filtered_dfs.items():
+            #print(f"Filtered DataFrame for '{filter_value}' saved as filtered_{filter_value}.csv")
+    # Print msg
+    print("Filtering of csv's complete.")

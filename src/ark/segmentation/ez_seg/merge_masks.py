@@ -80,6 +80,7 @@ def merge_masks_seq(
         "save_path": save_path
     }
     log_creator(variables_to_log, log_dir, "mask_merge_log.txt")
+    print("Merged masks built and saved")
 
 
 def merge_masks_single(

@@ -106,8 +106,6 @@ def overlay_mask_outlines(fov_name, channel_to_view, channel_to_view_path, mask_
     ax.imshow(rgb_channel_image_scaled, alpha=0.3)
     ax.axis("off")
 
-    fig.show()
-
 
 def multiple_mask_displays(test_fov_name, mask_name, object_mask_dir, cell_mask_dir, merged_mask_dir) -> None:
     # Create a grid to display the images
