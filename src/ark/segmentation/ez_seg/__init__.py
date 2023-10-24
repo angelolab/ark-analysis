@@ -15,7 +15,7 @@ from .ez_seg_display import (
     create_overlap_and_merge_visual,
 )
 
-from .ez_seg_utils import renumber_masks, log_creator
+from .ez_seg_utils import renumber_masks, log_creator, filter_csvs_by_mask
 
 __all__ = [
     "composite_builder",
@@ -26,6 +26,7 @@ __all__ = [
     "merge_masks_single",
     "renumber_masks",
     "log_creator",
+    "filter_csvs_by_mask",
     "display_channel_image",
     "overlay_mask_outlines",
     "multiple_mask_displays",

@@ -1,5 +1,6 @@
 import copy
 import warnings
+from typing import List
 
 import numpy as np
 import pandas as pd
@@ -125,7 +126,7 @@ def assign_single_compartment_features(marker_counts, compartment, cell_props, c
     # add counts of each marker to appropriate column
     # Only include the marker_count features up to the last filtered feature.
     marker_counts.loc[compartment, cell_id,
-                      marker_counts.features[1]:filtered_regionprops_names[-1]] = cell_features
+    marker_counts.features[1]:filtered_regionprops_names[-1]] = cell_features
 
     # add cell size to first column
     marker_counts.loc[compartment, cell_id, marker_counts.features[0]] = cell_coords.shape[0]
@@ -530,7 +531,8 @@ def generate_cell_table(segmentation_dir, tiff_dir, img_sub_folder="TIFs",
 
         # for each label given in the argument. read in that mask for the fov, and proceed with label and table appending
         mask_files = io_utils.list_files(segmentation_dir, substrs=fov_name)
-        mask_types = process_lists(listA=fovs, listB=mask_files)
+        mask_types = process_lists(fov_names=fovs, mask_names=mask_files)
+
         for mask_type in mask_types:
             # load the segmentation labels in
             fov_mask_name = fov_name + '_' + mask_type + ".tiff"
@@ -538,7 +540,7 @@ def generate_cell_table(segmentation_dir, tiff_dir, img_sub_folder="TIFs",
                                                                 files=[fov_mask_name],
                                                                 xr_dim_name='compartments',
                                                                 xr_channel_names=[mask_type],
-                                                                trim_suffix='_'+mask_type)
+                                                                trim_suffix='_' + mask_type)
 
             compartments = ['whole_cell']
             segmentation_labels = current_labels_cell.values
@@ -588,19 +590,21 @@ def generate_cell_table(segmentation_dir, tiff_dir, img_sub_folder="TIFs",
 
     return combined_cell_table_size_normalized, combined_cell_table_arcsinh_transformed
 
-# Function to strip prefixes from list A, strip '.tiff' suffix from list B,
-# and remove underscore prefixes, returning unique values
-def process_lists(listA, listB):
-    stripped_listA = [itemA for itemA in listA]
-    stripped_listB = [itemB.replace('.tiff', '') for itemB in listB]
 
-    result = []
-    for itemB in stripped_listB:
-        for prefix in stripped_listA:
-            if itemB.startswith(prefix):
-                result.append(itemB[len(prefix):])
-                break  # Break the inner loop once a matching prefix is found
+def process_lists(fov_names: List[str], mask_names: List[str]) -> List[str]:
+    """
+    Function to strip prefixes from list: fov_names, strip '.tiff' suffix from list: mask names,
+    and remove underscore prefixes, returning unique mask values (i.e. categories of masks).
 
+    Args:
+        fov_names (List[str]): list of fov names. Matching fov names in mask names will be returned without fov prefix.
+        mask_names (List[str]): list of mask names. Mask names will be returned without tif suffix.
+
+    Returns:
+        List[str]: Unique mask names (i.e. categories of masks)
+    """
+    stripped_mask_names = io_utils.remove_file_extensions(mask_names)
+    result = [itemB[len(prefix):] for itemB in stripped_mask_names for prefix in fov_names if itemB.startswith(prefix)]
     # Remove underscore prefixes and return unique values
     cleaned_result = [item.lstrip('_') for item in result]
     unique_result = list(set(cleaned_result))
