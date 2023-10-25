@@ -650,7 +650,7 @@ def make_paths_visible(chooser, dir_to_assign: str = None, file_to_assign: str =
     if dir_to_assign:
         path_vars[dir_to_assign] = chooser.selected_path
     if file_to_assign:
-        path_vars[file_to_assign] = chooser.selected_file
+        path_vars[file_to_assign] = chooser.selected_filename
 
 def create_file_chooser(home_dir: str, dir_to_assign: str = None, file_to_assign: str = None):
     """Define a FileChooser instance to allow the user to interactively set paths
