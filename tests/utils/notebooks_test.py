@@ -347,10 +347,7 @@ class Test_2_Pixel_Clustering:
         self.tb.execute_cell("import")
 
     def test_use_example_dataset(self):
-        use_example_dataset_inject = f"""
-            use_example_dataset = True
-        """
-        self.tb.inject(use_example_dataset_inject, "use_example_dataset")
+        self.tb.execute_cell("use_example_dataset")
 
     def test_base_dir(self):
         base_dir_inject = f"""
@@ -477,10 +474,7 @@ class Test_3_Cell_Clustering:
         self.tb.execute_cell("import")
 
     def test_use_example_dataset(self):
-        use_example_dataset_inject = f"""
-            use_example_dataset = True
-        """
-        self.tb.inject(use_example_dataset_inject, "use_example_dataset")
+        self.tb.execute_cell("use_example_dataset")
 
     def test_base_dir(self):
         base_dir_inject = f"""
