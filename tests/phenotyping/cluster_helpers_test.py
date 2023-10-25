@@ -504,9 +504,12 @@ class TestCellSOMCluster:
         self.cell_pysom_nonweights.cell_data = old_cell_data
         self.cell_pysom_nonweights.columns = old_columns
 
-    def test_assign_som_clusters(self):
+    @parametrize("num_parallel_cells", [10, 10000])
+    def test_assign_som_clusters(self, num_parallel_cells):
         # generate SOM cluster values for cell_data
-        som_label_data = self.cell_pysom_nonweights.assign_som_clusters()
+        som_label_data = self.cell_pysom_nonweights.assign_som_clusters(
+            num_parallel_cells=num_parallel_cells
+        )
 
         # assert the som labels were assigned and they are all in the range 1 to 200
         assert 'cell_som_cluster' in som_label_data.columns.values

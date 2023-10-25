@@ -386,19 +386,23 @@ class CellSOMCluster(PixieSOMCluster):
 
         super().train_som(self.cell_data[self.columns])
 
-    def assign_som_clusters(self) -> pd.DataFrame:
+    def assign_som_clusters(self, num_parallel_cells=1000000) -> pd.DataFrame:
         """Assigns SOM clusters using `weights` to `cell_data`
 
         Args:
             external_data (pandas.DataFrame):
                 The dataset to assign SOM clusters to
+            num_parallel_cells (int):
+                Partition size of `self.cell_data` for assigning SOM labels
 
         Returns:
             pandas.DataFrame:
                 `cell_data` with the SOM clusters assigned.
         """
         # cell_data is already normalized, don't repeat
-        som_labels = super().generate_som_clusters(self.cell_data[self.columns])
+        som_labels = super().generate_som_clusters(
+            self.cell_data[self.columns], num_parallel_obs=num_parallel_cells
+        )
 
         # assign SOM clusters to cell_data
         self.cell_data['cell_som_cluster'] = som_labels
