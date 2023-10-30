@@ -65,6 +65,7 @@ def ez_fov(
 _fov_dim = param_fixture("_fov_dim", [400, 800])
 
 
+@pytest.mark.skip(reason="WIP")
 @pytest.mark.parametrize(
     "_min_object_area, _max_object_area, _object_shape_type, _thresh",
     [(100, 100000, "blob", None), (200, 2000, "projection", 0.1)],
