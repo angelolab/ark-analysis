@@ -1,4 +1,4 @@
-from typing import Generator, Union
+from typing import Generator, List, Union
 from skimage.io import imread
 from alpineer.image_utils import save_image
 from alpineer import io_utils
@@ -15,6 +15,7 @@ def renumber_masks(
 ):
     """
     Relabels all masks in mask tiffs so each label is unique across all mask images in entire dataset.
+
     Args:
         mask_dir (Union[pathlib.Path, str]): Directory that points to parent directory of all segmentation masks to be relabeled.
     """
@@ -47,10 +48,10 @@ def renumber_masks(
 
 
 def create_mantis_project(
-        fovs: str | list[str],
-        tiff_dir: Union[str, pathlib.Path],
-        segmentation_dir: Union[str, pathlib.Path],
-        mantis_dir: Union[str, pathlib.Path],
+    fovs: Union[str, List[str]],
+    tiff_dir: Union[str, pathlib.Path],
+    segmentation_dir: Union[str, pathlib.Path],
+    mantis_dir: Union[str, pathlib.Path],
 ) -> None:
     """
     Creates a folder for viewing FOVs in Mantis.
