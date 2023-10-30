@@ -108,7 +108,15 @@ def overlay_mask_outlines(fov_name, channel_to_view, channel_to_view_path, mask_
 
 
 def multiple_mask_displays(test_fov_name, mask_name, object_mask_dir, cell_mask_dir, merged_mask_dir) -> None:
-    # Create a grid to display the images
+    """
+    Create a grid to display the images
+
+    Args:
+        test_fov_name (str): name of fov to view
+        object_mask_dir (Posix.path): path name for object mask
+        cell_mask_dir (Posix.path): path name for cell mask
+        merged_mask_dir (Posix.path): path name for merged mask
+    """
 
     modified_overlay_mask = create_overlap_and_merge_visual(test_fov_name, mask_name, object_mask_dir, cell_mask_dir,
                                                             merged_mask_dir)
@@ -124,10 +132,11 @@ def multiple_mask_displays(test_fov_name, mask_name, object_mask_dir, cell_mask_
     ax.axis("off")
 
 
-# for showing the overlap between two masks
 def create_overlap_and_merge_visual(test_fov_name, mask_name, object_mask_dir, cell_mask_dir,
                                     merged_mask_dir) -> np.ndarray:
     """
+    Show the overlap between two masks
+
     Args:
         test_fov_name (str): name of fov to view
         mask_name (str): name of mask to view
@@ -136,6 +145,8 @@ def create_overlap_and_merge_visual(test_fov_name, mask_name, object_mask_dir, c
         merged_mask_dir (Posix.path): path name for merged mask
 
     Returns:
+        np.ndarray:
+            Contains an overlap image of the two masks
     """
     # read in masks
     io_utils.validate_paths([object_mask_dir, cell_mask_dir, merged_mask_dir])
