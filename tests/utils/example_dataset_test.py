@@ -18,7 +18,8 @@ from ark.utils.example_dataset import ExampleDataset, get_example_dataset
                                          "LDA_training_inference",
                                          "neighborhood_analysis",
                                          "pairwise_spatial_enrichment",
-                                         "ome_tiff"])
+                                         "ome_tiff",
+                                         "ez_seg_data"])
 def dataset_download(request, dataset_cache_dir) -> Iterator[ExampleDataset]:
     """
     A Fixture which instantiates and downloads the dataset with respect to each
@@ -103,6 +104,38 @@ class TestExampleDataset:
 
         self._ome_tiff_files: List[str] = ["fov1.ome"]
 
+        self._ez_seg_files = {
+            "fov_names": [f"fov{i}" for i in range(10)],
+            "channel_names": ["Ca40", "GFAP", "Synaptophysin", "PanAmyloidbeta1724",
+                              "Na23", "Reelin", "Presenilin1NTF", "Iba1", "CD105",
+                              "C12", "EEA1", "VGLUT1", "PolyubiK63", "Ta181", "Au197",
+                              "Si28", "PanGAD6567", "CD33Lyo", "MAP2", "Calretinin",
+                              "PolyubiK48", "MAG", "TotalTau", "Amyloidbeta140",
+                              "Background", "CD45", "8OHGuano", "pTDP43", "ApoE4",
+                              "PSD95", "TH", "HistoneH3Lyo", "CD47", "Parvalbumin",
+                              "Amyloidbeta142", "Calbindin", "PanApoE2E3E4", "empty139",
+                              "CD31", "MCT1", "MBP", "SERT", "PHF1Tau", "VGAT",
+                              "VGLUT2", "CD56Lyo", "MFN2"],
+            "composite_names": ["composite_microglia"],
+            "cell_table_names": [
+                "filtered_whole_cell_table_size_normalized",
+                "filtered_whole_cell_table_arcsinh_transformed",
+                "filtered_microglia-arms_merged_table_size_normalized",
+                "filtered_microglia-arms_merged_table_arcsinh_transformed",
+                "cell_and_objects_table_size_normalized",
+                "cell_and_objects_table_arcsinh_transformed"
+            ],
+            "mantis_suffixes": [
+                "final_cells_remaining",
+                "microglia-arms_merged",
+                "microglia-arms",
+                "whole_cell"
+            ],
+            "log_names": ["composite_log", "mask_merge_log",
+                          "microglia-arms_segmentation_log",
+                          "object_segmentation_log"]
+        }
+
         self.dataset_test_fns: dict[str, Callable] = {
             "image_data": self._image_data_check,
             "cell_table": self._cell_table_check,
@@ -111,7 +144,8 @@ class TestExampleDataset:
             "example_cell_output_dir": self._example_cell_output_dir_check,
             "spatial_lda": self._spatial_lda_output_dir_check,
             "post_clustering": self._post_clustering_output_dir_check,
-            "ome_tiff": self._ome_tiff_check
+            "ome_tiff": self._ome_tiff_check,
+            "ez_seg_data": self._ez_seg_data_check
         }
 
         # Mapping the datasets to their respective test functions.
@@ -125,6 +159,7 @@ class TestExampleDataset:
             "spatial_lda": "spatial_analysis/spatial_lda",
             "post_clustering": "post_clustering",
             "ome_tiff": "ome_tiff",
+            "ez_seg_data": "ez_seg_data",
         }
 
     def test_download_example_dataset(self, dataset_download: ExampleDataset):
@@ -428,6 +463,95 @@ class TestExampleDataset:
         downloaded_ome_tiff = list(dir_p.glob("*.ome.tiff"))
         downloaded_ome_tiff_names = [f.stem for f in downloaded_ome_tiff]
         assert set(self._ome_tiff_files) == set(downloaded_ome_tiff_names)
+
+    def _ez_seg_data_check(self, dir_p: pathlib.Path):
+        """
+        Checks to make sure that the correct files exist w.r.t the 'ez_seg_data' output dir
+
+        Args:
+            dir_p (pathlib.Path): The directory to check.
+        """
+        image_data = dir_p / "image_data"
+        composites = dir_p / "composites"
+        cell_tables = dir_p / "cell_table"
+        deepcell_output = dir_p / "segmentation" / "deepcell_output"
+        ez_masks = dir_p / "segmentation" / "ez_masks"
+        merged_masks = dir_p / "segmentation" / "merged_masks_dir"
+        mantis_visualization = dir_p / "mantis_visualization"
+        logs = dir_p / "logs"
+
+        # import os
+        # print(os.listdir(image_data))
+        # print(os.listdir(composites))
+        # print(os.listdir(cell_tables))
+        # print(os.listdir(deepcell_output))
+        # print(os.listdir(ez_masks))
+        # print(os.listdir(merged_masks))
+        # print(os.listdir(mantis_visualization))
+        # print(os.listdir(logs))
+
+        # image_data check
+        downloaded_fovs = list(image_data.glob("*"))
+        downloaded_fov_names = [f.stem for f in downloaded_fovs]
+        assert set(self._ez_seg_files["fov_names"]) == set(downloaded_fov_names)
+
+        for fov in downloaded_fovs:
+            c_names = [c.stem for c in fov.rglob("*")]
+            assert set(self._ez_seg_files["channel_names"]) == set(c_names)
+
+        # composites check
+        downloaded_fovs = list(composites.glob("*"))
+        downloaded_fov_names = [f.stem for f in downloaded_fovs]
+        assert set(self._ez_seg_files["fov_names"]) == set(downloaded_fov_names)
+
+        for fov in downloaded_fovs:
+            c_names = [c.stem for c in fov.rglob("*")]
+            assert set(self._ez_seg_files["composite_names"]) == set(c_names)
+
+        # cell tables check
+        downloaded_cell_tables = list(cell_tables.glob("*.csv"))
+        downloaded_cell_table_names = [f.stem for f in downloaded_cell_tables]
+        assert set(self._ez_seg_files["cell_table_names"]) == set(downloaded_cell_table_names)
+
+        # deepcell output check
+        downloaded_whole_cell_seg = list(deepcell_output.glob("*.tiff"))
+        downloaded_whole_cell_names = [f.stem for f in downloaded_whole_cell_seg]
+        actual_whole_cell_names = [f"{fov}_whole_cell" for fov in self._ez_seg_files["fov_names"]]
+        assert set(actual_whole_cell_names) == set(downloaded_whole_cell_names)
+
+        # ezSegmenter masks check
+        downloaded_ez = list(ez_masks.glob("*.tiff"))
+        downloaded_ez_names = [f.stem for f in downloaded_ez]
+        actual_ez_names = [f"{fov}_microglia-arms" for fov in self._ez_seg_files["fov_names"]]
+        assert set(actual_ez_names) == set(downloaded_ez_names)
+
+        # merged masks check
+        downloaded_merged = list(merged_masks.glob("*.tiff"))
+        downloaded_merged_names = [f.stem for f in downloaded_merged]
+        actual_merged_names = [
+            f"{fov}_final_cells_remaining" for fov in self._ez_seg_files["fov_names"]
+        ] + [
+            f"{fov}_microglia-arms_merged" for fov in self._ez_seg_files["fov_names"]
+        ]
+        assert set(actual_merged_names) == set(downloaded_merged_names)
+
+        # mantis check
+        downloaded_fovs = list(mantis_visualization.glob("*"))
+        downloaded_fov_names = [f.stem for f in downloaded_fovs]
+        assert set(self._ez_seg_files["fov_names"]) == set(downloaded_fov_names)
+
+        for fov in downloaded_fovs:
+            c_names = [c.stem for c in fov.rglob("*")]
+            actual_channel_names = self._ez_seg_files["channel_names"] + [
+                f"{fov.stem}_{ms}"
+                for ms in self._ez_seg_files["mantis_suffixes"]
+            ]
+            assert set(actual_channel_names) == set(c_names)
+
+        # logs check
+        downloaded_logs = list(logs.glob("*.txt"))
+        downloaded_log_names = [f.stem for f in downloaded_logs]
+        assert set(self._ez_seg_files["log_names"]) == set(downloaded_log_names)
 
     def _suffix_paths(self, dataset_download: ExampleDataset,
                       parent_dir: pathlib.Path) -> Generator:

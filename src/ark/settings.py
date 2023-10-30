@@ -60,4 +60,4 @@ MIBITRACKER_BACKEND = 'https://backend-dot-mibitracker-angelolab.appspot.com'
 
 # Switch it from `main` to the commit ID on HuggingFace to test a
 # specific version of the Example Dataset
-EXAMPLE_DATASET_REVISION: str = "1359d2bd16d134f4b995595cf2918cc1f063bee4"
+EXAMPLE_DATASET_REVISION: str = "7e13d41813dbb541bff4ae6f8b384a4f20f4ca70"
