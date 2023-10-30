@@ -113,6 +113,7 @@ def multiple_mask_displays(test_fov_name, mask_name, object_mask_dir, cell_mask_
 
     Args:
         test_fov_name (str): name of fov to view
+        mask_name (str): name of mask to view
         object_mask_dir (Posix.path): path name for object mask
         cell_mask_dir (Posix.path): path name for cell mask
         merged_mask_dir (Posix.path): path name for merged mask
