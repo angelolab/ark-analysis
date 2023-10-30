@@ -146,7 +146,7 @@ def _create_object_mask(
     )
 
     # Copy the input image, and get its shape
-    img2mask: np.ndarray = input_image.copy()
+    img2mask: np.ndarray = input_image.copy().to_numpy()
     img2mask_shape: Tuple[int, int] = img2mask.shape
 
     # Blur the input mask using given sigma value
