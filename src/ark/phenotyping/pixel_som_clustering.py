@@ -90,7 +90,7 @@ def train_pixel_som(fovs, channels, base_dir,
     return pixel_pysom
 
 
-def run_pixel_som_assignment(pixel_data_path, pixel_pysom_obj, overwrite, fov):
+def run_pixel_som_assignment(pixel_data_path, pixel_pysom_obj, overwrite, num_parallel_pixels, fov):
     """Helper function to assign pixel SOM cluster labels
 
     Args:
@@ -100,6 +100,8 @@ def run_pixel_som_assignment(pixel_data_path, pixel_pysom_obj, overwrite, fov):
             The pixel SOM cluster object
         overwrite (bool):
             Whether to overwrite the pixel SOM clusters or not
+        num_parallel_pixels (int):
+            How many pixels to label in parallel at once for each FOV
         fov (str):
             The name of the FOV to process
 
@@ -123,7 +125,9 @@ def run_pixel_som_assignment(pixel_data_path, pixel_pysom_obj, overwrite, fov):
         fov_data = fov_data.drop(columns="pixel_som_cluster")
 
     # assign the SOM labels to fov_data, overwrite flag indicates if data needs normalization
-    fov_data = pixel_pysom_obj.assign_som_clusters(fov_data, normalize_data=not overwrite)
+    fov_data = pixel_pysom_obj.assign_som_clusters(
+        fov_data, normalize_data=not overwrite, num_parallel_pixels=num_parallel_pixels
+    )
 
     # resave the data with the SOM cluster labels assigned
     temp_path = os.path.join(pixel_data_path + '_temp', fov + '.feather')
@@ -133,7 +137,8 @@ def run_pixel_som_assignment(pixel_data_path, pixel_pysom_obj, overwrite, fov):
 
 
 def cluster_pixels(fovs, channels, base_dir, pixel_pysom, data_dir='pixel_mat_data',
-                   multiprocess=False, batch_size=5, overwrite=False):
+                   multiprocess=False, batch_size=5, num_parallel_pixels=1000000,
+                   overwrite=False):
     """Uses trained SOM weights to assign cluster labels on full pixel data.
 
     Saves data with cluster labels to `data_dir`.
@@ -153,6 +158,8 @@ def cluster_pixels(fovs, channels, base_dir, pixel_pysom, data_dir='pixel_mat_da
             Whether to use multiprocessing or not
         batch_size (int):
             The number of FOVs to process in parallel, ignored if `multiprocess` is `False`
+        num_parallel_pixels (int):
+            How many pixels to label in parallel at once for each FOV
         overwrite (bool):
             If set, force overwrite the SOM labels in all the FOVs
     """
@@ -242,7 +249,7 @@ def cluster_pixels(fovs, channels, base_dir, pixel_pysom, data_dir='pixel_mat_da
 
     # define the partial function to iterate over
     fov_data_func = partial(
-        run_pixel_som_assignment, data_path, pixel_pysom, overwrite
+        run_pixel_som_assignment, data_path, pixel_pysom, overwrite, num_parallel_pixels
     )
 
     # use the som weights to assign SOM cluster values to data in data_dir
