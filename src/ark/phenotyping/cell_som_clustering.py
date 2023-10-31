@@ -75,7 +75,8 @@ def train_cell_som(fovs, base_dir, cell_table_path, cell_som_cluster_cols,
     return cell_pysom
 
 
-def cluster_cells(base_dir, cell_pysom, cell_som_cluster_cols, overwrite=False):
+def cluster_cells(base_dir, cell_pysom, cell_som_cluster_cols, num_parallel_cells=1000000,
+                  overwrite=False):
     """Uses trained SOM weights to assign cluster labels on full cell data.
 
     Saves data with cluster labels to `cell_cluster_name`.
@@ -87,6 +88,8 @@ def cluster_cells(base_dir, cell_pysom, cell_som_cluster_cols, overwrite=False):
             The SOM cluster object containing the cell SOM weights
         cell_som_cluster_cols (list):
             The list of columns used for SOM training
+        num_parallel_cells (int):
+            How many cells to label in parallel at once
         overwrite (bool):
             If set, overwrites the SOM cluster assignments if they exist
 
@@ -131,7 +134,7 @@ def cluster_cells(base_dir, cell_pysom, cell_som_cluster_cols, overwrite=False):
 
     # run the trained SOM on the dataset, assigning clusters
     print("Mapping cell data to SOM cluster labels")
-    cell_data_som_labels = cell_pysom.assign_som_clusters()
+    cell_data_som_labels = cell_pysom.assign_som_clusters(num_parallel_cells)
 
     return cell_data_som_labels
 

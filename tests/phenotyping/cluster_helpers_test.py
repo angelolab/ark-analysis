@@ -368,7 +368,8 @@ class TestPixelSOMCluster:
         self.pixel_pysom_nonweights.train_data = old_train_data
         self.pixel_pysom_nonweights.columns = old_columns
 
-    def test_assign_som_clusters(self):
+    @parametrize("num_parallel_pixels", [10, 10000])
+    def test_assign_som_clusters(self, num_parallel_pixels):
         # generate sample external data
         # NOTE: test on shuffled data to ensure column matching
         col_shuffle = deepcopy(self.pixel_pysom_nonweights.columns)
@@ -380,7 +381,9 @@ class TestPixelSOMCluster:
         )
 
         # assign SOM labels to sample_external_data
-        som_label_data = self.pixel_pysom_nonweights.assign_som_clusters(sample_external_data)
+        som_label_data = self.pixel_pysom_nonweights.assign_som_clusters(
+            sample_external_data, num_parallel_pixels=num_parallel_pixels
+        )
 
         # assert the som labels were assigned and they are all in the range 1 to 200
         assert 'pixel_som_cluster' in som_label_data.columns.values
@@ -389,7 +392,7 @@ class TestPixelSOMCluster:
 
         # test normalize_data flag, shouldn't assign different SOM labels on same dataset
         som_label_data_no_norm = self.pixel_pysom_nonweights.assign_som_clusters(
-            som_label_data, normalize_data=False
+            som_label_data, num_parallel_pixels=num_parallel_pixels, normalize_data=False
         )
 
         # test that no additional normalization added to som_label_data_no_norm
@@ -399,6 +402,22 @@ class TestPixelSOMCluster:
         # test the SOM cluster assignments are the same
         new_som_clusters = som_label_data_no_norm['pixel_som_cluster'].values
         assert np.all(som_clusters == new_som_clusters)
+
+    def test_assign_som_clusters_bad(self):
+        col_shuffle = deepcopy(self.pixel_pysom_nonweights.columns)
+        random.shuffle(col_shuffle)
+        meta_cols = ['fov', 'row_index', 'column_index', 'label']
+        sample_external_data = pd.DataFrame(
+            np.random.rand(1000, 10),
+            columns=col_shuffle + meta_cols
+        )
+
+        # assign SOM labels to sample_external_data
+        with pytest.raises(ValueError):
+            som_label_data = self.pixel_pysom_nonweights.assign_som_clusters(
+                sample_external_data, num_parallel_pixels=0,
+                normalize_data=False
+            )
 
 
 class TestCellSOMCluster:
@@ -485,9 +504,12 @@ class TestCellSOMCluster:
         self.cell_pysom_nonweights.cell_data = old_cell_data
         self.cell_pysom_nonweights.columns = old_columns
 
-    def test_assign_som_clusters(self):
+    @parametrize("num_parallel_cells", [10, 10000])
+    def test_assign_som_clusters(self, num_parallel_cells):
         # generate SOM cluster values for cell_data
-        som_label_data = self.cell_pysom_nonweights.assign_som_clusters()
+        som_label_data = self.cell_pysom_nonweights.assign_som_clusters(
+            num_parallel_cells=num_parallel_cells
+        )
 
         # assert the som labels were assigned and they are all in the range 1 to 200
         assert 'cell_som_cluster' in som_label_data.columns.values
