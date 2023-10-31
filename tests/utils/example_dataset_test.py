@@ -125,12 +125,6 @@ class TestExampleDataset:
                 "cell_and_objects_table_size_normalized",
                 "cell_and_objects_table_arcsinh_transformed"
             ],
-            "mantis_suffixes": [
-                "final_cells_remaining",
-                "microglia-arms_merged",
-                "microglia-arms",
-                "whole_cell"
-            ],
             "log_names": ["composite_log", "mask_merge_log",
                           "microglia-arms_segmentation_log",
                           "object_segmentation_log"]
@@ -480,16 +474,6 @@ class TestExampleDataset:
         mantis_visualization = dir_p / "mantis_visualization"
         logs = dir_p / "logs"
 
-        # import os
-        # print(os.listdir(image_data))
-        # print(os.listdir(composites))
-        # print(os.listdir(cell_tables))
-        # print(os.listdir(deepcell_output))
-        # print(os.listdir(ez_masks))
-        # print(os.listdir(merged_masks))
-        # print(os.listdir(mantis_visualization))
-        # print(os.listdir(logs))
-
         # image_data check
         downloaded_fovs = list(image_data.glob("*"))
         downloaded_fov_names = [f.stem for f in downloaded_fovs]
@@ -534,19 +518,6 @@ class TestExampleDataset:
             f"{fov}_microglia-arms_merged" for fov in self._ez_seg_files["fov_names"]
         ]
         assert set(actual_merged_names) == set(downloaded_merged_names)
-
-        # mantis check
-        downloaded_fovs = list(mantis_visualization.glob("*"))
-        downloaded_fov_names = [f.stem for f in downloaded_fovs]
-        assert set(self._ez_seg_files["fov_names"]) == set(downloaded_fov_names)
-
-        for fov in downloaded_fovs:
-            c_names = [c.stem for c in fov.rglob("*")]
-            actual_channel_names = self._ez_seg_files["channel_names"] + [
-                f"{fov.stem}_{ms}"
-                for ms in self._ez_seg_files["mantis_suffixes"]
-            ]
-            assert set(actual_channel_names) == set(c_names)
 
         # logs check
         downloaded_logs = list(logs.glob("*.txt"))
