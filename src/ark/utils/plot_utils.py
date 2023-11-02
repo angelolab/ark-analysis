@@ -399,7 +399,7 @@ def plot_pixel_cell_cluster(
         cbar_visible: bool = True,
         save_dir=None,
         fov_col: str = "fovs",
-        erode: bool = True,
+        erode: bool = False,
         dpi=300,
         figsize=(10, 10)
 ):
@@ -424,7 +424,7 @@ def plot_pixel_cell_cluster(
         fov_col (str):
             The column with the fov names in `img_xr`. Defaults to "fovs".
         erode (bool):
-            Whether or not to erode the segmentation mask.
+            Whether or not to erode the segmentation mask. Defaults to False.
         dpi (int):
             The resolution of the image to use for saving. Defaults to 300.
         figsize (tuple):
