@@ -769,6 +769,10 @@ class Test_EZSegmenter:
     def test_ex_data_download(self):
         notebooks_test_utils._ex_dataset_download(dataset=self.dataset, save_dir=self.base_dir,
                                                   cache_dir=self.cache_dir)
+        base_dir_subpath_inject = f"""
+            base_dir = os.path.join(base_dir, "ez_seg_data")
+        """
+        self.tb.inject(base_dir_subpath_inject, "ex_data_download")
 
     def test_file_path(self):
         self.tb.execute_cell("file_path")
