@@ -381,6 +381,7 @@ def generate_and_save_cell_cluster_masks(
     save_dir: Union[pathlib.Path, str],
     seg_dir: Union[pathlib.Path, str],
     cell_data: pd.DataFrame,
+    cluster_id_to_name_path: Union[pathlib.Path, str],
     fov_col: str = settings.FOV_ID,
     label_col: str = settings.CELL_LABEL,
     cell_cluster_col: str = settings.CELL_TYPE,
@@ -399,6 +400,9 @@ def generate_and_save_cell_cluster_masks(
             The path to the segmentation data.
         cell_data (pd.DataFrame):
             The cell data with both cell SOM and meta cluster assignments.
+       cluster_id_to_name_path (Union[str, pathlib.Path]): A path to a CSV identifying the
+            cell cluster to manually-defined name mapping this is output by the remapping
+            visualization found in `metacluster_remap_gui`.
         fov_col (str, optional):
             The column name containing the FOV IDs . Defaults to `settings.FOV_ID` (`"fov"`).
         label_col (str, optional):
@@ -423,6 +427,15 @@ def generate_and_save_cell_cluster_masks(
         label_col=label_col,
         cluster_col=cell_cluster_col,
     )
+
+    # read in gui cluster mapping file and new cluster mapping created by ClusterMaskData
+    gui_map = pd.read_csv(cluster_id_to_name_path)
+    cluster_map = cmd.mapping.filter([cmd.cluster_column, cmd.cluster_id_column])
+    cluster_map = cluster_map.drop_duplicates()
+
+    # add a cluster_id column corresponding to the new mask integers
+    updated_cluster_map = gui_map.merge(cluster_map, on=[cmd.cluster_column], how="left")
+    updated_cluster_map.to_csv(cluster_id_to_name_path, index=False)
 
     # create the pixel cluster masks across each fov
     with tqdm(total=len(fovs), desc="Cell Cluster Mask Generation", unit="FOVs") as pbar:

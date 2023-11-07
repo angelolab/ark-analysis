@@ -94,13 +94,13 @@ class MetaclusterColormap:
 
         # The mapping file needs to contain the following columns:
         # 'cluster', 'metacluster', and 'mc_name'
-        misc_utils.verify_same_elements(
-            cluster_mapping_cols=cluster_id_to_name.columns.values,
+        misc_utils.verify_in_list(
             required_cols=[
                 f"{self.cluster_type}_som_cluster",
                 f"{self.cluster_type}_meta_cluster",
                 f"{self.cluster_type}_meta_cluster_rename",
             ],
+            cluster_mapping_cols=cluster_id_to_name.columns.values
         )
 
         # subset on just metacluster and mc_name
@@ -740,15 +740,16 @@ def create_mantis_dir(fovs: List[str], mantis_project_path: Union[str, pathlib.P
     if not new_mask_suffix:
         new_mask_suffix = mask_suffix
 
-    map_df = map_df.loc[:, [f'{cluster_type}_meta_cluster', f'{cluster_type}_meta_cluster_rename']]
+    cluster_id_key = 'cluster_id' if cluster_type == 'cell' else f'{cluster_type}_meta_cluster'
+    map_df = map_df.loc[:, [cluster_id_key, f'{cluster_type}_meta_cluster_rename']]
     # remove duplicates from df
     map_df = map_df.drop_duplicates()
-    map_df = map_df.sort_values(by=[f'{cluster_type}_meta_cluster'])
+    map_df = map_df.sort_values(by=[cluster_id_key])
 
     # rename for mantis names
     map_df = map_df.rename(
         {
-            f'{cluster_type}_meta_cluster': 'region_id',
+            cluster_id_key: 'region_id',
             f'{cluster_type}_meta_cluster_rename': 'region_name'
         },
         axis=1
