@@ -758,3 +758,9 @@ def test_stitch_images_by_shape(segmentation, clustering, subdir, stitching_fovs
         # remove stitched_images from fov list
         if not segmentation and not clustering:
             stitching_fovs.pop()
+
+
+from distributed.utils_test import client
+
+def test_convert_ct_fov_to_adata(client):
+    generate_cell_table()

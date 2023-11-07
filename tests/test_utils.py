@@ -1,13 +1,20 @@
 from copy import deepcopy
+from functools import partial
 from random import choices
 from string import ascii_lowercase
-
+from anndata import AnnData
+from anndata.experimental import AnnCollection
 import numpy as np
 import pandas as pd
 import synthetic_spatial_datagen
 import xarray as xr
+from ark.utils.data_utils import AnnCollectionKwargs
 
 import ark.settings as settings
+try:
+    from typing import Unpack
+except ImportError:
+    from typing_extensions import Unpack
 
 TEST_MARKERS = list('ABCDEFG')
 
@@ -621,3 +628,122 @@ def generate_sample_fovs_list(fov_coords, fov_names):
         )
 
     return sample_fovs_list
+
+
+def generate_anndata_table(
+    rng: np.random.Generator, n_obs: int, n_vars: int, fov_id: str | int, 
+    obs_properties: int, obs_categorical_properties: int,
+    ) -> AnnData:
+    """Generates an AnnData Table with the following structure:
+
+    >>> `AnnData`
+    >>> ├── `X`: `n_obs` x `n_vars`
+    >>> ├── `obs`: `n_obs` x (1 + `obs_properties` + `obs_categorical_properties`)
+    >>> └── `obsm`: `n_obs` x 2
+    
+    Args:
+        rng (np.random.Generator): The random number generator for reproducibility.
+        n_obs (int): The number of observations (cells, fiber segments, ezseg objects, etc...)
+        n_vars (int): The number of markers (channels).
+        fov_id (str | int): The FOV ID, can be a integer or a string used as a suffix.
+            `1` would make a FOV named `"fov_1"`, `"test"` would make a FOV named `"fov_test"`.
+        obs_properties (int): The number of floating point properties to add to the `obs` table.
+        obs_categorical_properties (int): The number of categorical properties to add to the `obs` table.
+
+    Returns:
+        AnnData: The generated AnnData table.
+    """
+    
+    _X = pd.DataFrame(
+        data=rng.random(size=(n_obs, n_vars)),
+        index=[f"cell_{i}" for i in range(n_obs)],
+        columns=[f"channel_{i}" for i in range(n_vars)],
+    )
+
+    _obs = pd.DataFrame(
+        data={
+            settings.FOV_ID: [f"fov_{fov_id}" for _ in range(n_obs)],
+            settings.CELL_LABEL: np.arange(n_obs),
+            settings.CELL_TYPE: [
+                f"cell_type_{i}" for i in rng.integers(0, 10, size=n_obs)
+            ],
+            **{
+                f"obs_prop_{i}": rng.random(size=n_obs)
+                for i in range(obs_properties)
+            },
+            **{
+                f"obs_cat_prop_{i}": [
+                    f"obs_cat_prop_{j}"
+                    for j in rng.integers(0, 10, size=n_obs)
+                ]
+                for i in range(obs_categorical_properties)
+            },
+        }
+    )
+    _obsm = {
+        "spatial": pd.DataFrame(
+            data={
+                "centroid_y": rng.integers(0, 1024, size=n_obs),
+                "centroid_x": rng.integers(0, 1024, size=n_obs),
+            }
+        )
+    }
+    
+    adata = AnnData(
+        X = _X,
+        obs = _obs,
+        obsm = _obsm,
+    )
+    
+    return adata
+
+
+
+def generate_anncollection(
+    rng: np.random.Generator,
+    fovs: int | list[str],
+    n_obs: int,
+    n_vars: int,
+    obs_properties: int,
+    obs_categorical_properties: int,
+    random_sizes: bool = True,
+    **anncollection_kwargs: Unpack[AnnCollectionKwargs],
+):
+    """Generates an AnnCollection with the following parameters:
+    
+
+    Args:
+        rng (np.random.Generator): _description_
+        fovs (int | list[str]): _description_
+        n_obs (int): _description_
+        n_vars (int): _description_
+        obs_properties (int): _description_
+        obs_categorical_properties (int): _description_
+        random_sizes (bool, optional): _description_. Defaults to True.
+
+    Returns:
+        _type_: _description_
+    """
+    if isinstance(fovs, int):
+        fovs = [f"fov_{i}" for i in range(fovs)]
+
+    adatas = []
+
+    gen_ct_adata_func = partial(
+        generate_anndata_table,
+        rng=rng,
+        obs_properties=obs_properties,
+        obs_categorical_properties=obs_categorical_properties,
+    )
+
+    for fov in fovs:
+        if random_sizes:
+            n_obs_rand: int = rng.integers(low=1, high=n_obs)
+            n_vars_rand: int = rng.integers(low=1, high=n_vars)
+            
+            fov_adata = gen_ct_adata_func(n_obs=n_obs_rand, n_vars=n_vars_rand, fov_id=fov)
+        else:
+            fov_adata = gen_ct_adata_func(n_obs=n_obs, n_vars=n_vars, fov_id=fov)
+        adatas.append(fov_adata)
+    
+    return AnnCollection(adatas=adatas, **anncollection_kwargs)
