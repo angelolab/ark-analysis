@@ -400,7 +400,7 @@ def generate_and_save_cell_cluster_masks(
             The path to the segmentation data.
         cell_data (pd.DataFrame):
             The cell data with both cell SOM and meta cluster assignments.
-       cluster_id_to_name_path (Union[str, pathlib.Path]): A path to a CSV identifying the
+        cluster_id_to_name_path (Union[str, pathlib.Path]): A path to a CSV identifying the
             cell cluster to manually-defined name mapping this is output by the remapping
             visualization found in `metacluster_remap_gui`.
         fov_col (str, optional):
