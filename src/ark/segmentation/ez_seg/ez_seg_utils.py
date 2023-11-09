@@ -98,7 +98,7 @@ def log_creator(variables_to_log: dict, base_dir: str, log_name: str = "config_v
     print(f"Values saved to {output_file}")
 
 
-def filter_csvs_by_mask(csv_path_name: Union[str, pathlib.Path], csv_name: str,
+def filter_csvs_by_mask(csv_path_name: Union[str, pathlib.Path], csv_substr_replace: str,
                         column_to_filter: str = "mask_type") -> None:
     """Function to take in and separate a single cell table into multiple
     based on the mask_type parameter.
@@ -106,8 +106,8 @@ def filter_csvs_by_mask(csv_path_name: Union[str, pathlib.Path], csv_name: str,
     Args:
         csv_path_name (Union[str, pathlib.Path]):
             The path to the directory containing the cell table CSVs.
-        csv_name (str):
-            The path to the directory containing the raw image data.
+        csv_substr_replace (str):
+            The substring in the CSV file name to replace in favor of the mask names
         column_to_filter (str):
             The name of the column to split on, defaults to `"mask_type"`
     """
@@ -127,8 +127,10 @@ def filter_csvs_by_mask(csv_path_name: Union[str, pathlib.Path], csv_name: str,
             filtered_df = df[df[column_to_filter] == filter_value]
 
             # Define the output CSV file name based on the filtered value
-            table_type_str = item.replace(csv_name, '')
-            output_csv_file = os.path.join(csv_path_name, ''.join([f'filtered_{filter_value}', table_type_str]))
+            table_type_str = item.replace(csv_substr_replace, '')
+            output_csv_file = os.path.join(
+                csv_path_name, ''.join([f'filtered_{filter_value}', table_type_str])
+            )
 
             # Save the filtered DataFrame to a new CSV file
             filtered_df.to_csv(output_csv_file, index=False)

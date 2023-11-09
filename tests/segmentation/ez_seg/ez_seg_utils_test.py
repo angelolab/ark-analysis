@@ -1,70 +1,14 @@
 import numpy as np
 import os
+import pandas as pd
 import pathlib
 import pytest
 import skimage.io as io
 import tempfile
-import xarray as xr
 
-from alpineer import image_utils, io_utils
+from alpineer import io_utils
 from ark.segmentation.ez_seg import ez_seg_utils
-from pytest_cases import param_fixture
-from scipy import ndimage
-from skimage import draw
-from typing import List, Tuple, Union
-
-
-# @pytest.fixture(scope="module")
-# def ez_fov(
-#     tmpdir_factory: pytest.TempPathFactory, rng: np.random.Generator
-# ) -> pathlib.Path:
-#     """
-#     Creates an DataArray with a 1024 by 1024 image with random noise, uneven illumination
-#     and spots.
-
-#     Yields:
-#         pathlib.Path: The path to the FOV.
-#     """
-#     channel_count: int = 3
-#     image_size: int = 1024
-#     spot_count: int = 60
-#     spot_radius: int = 40
-#     cloud_noise_size: int = 4
-
-#     image: np.ndarray = rng.normal(
-#         loc=0.25, scale=0.25, size=(channel_count, image_size, image_size)
-#     )
-#     output_image: np.ndarray = np.zeros_like(a=image)
-
-#     for channel_idx in range(channel_count):
-#         channel: np.ndarray = image[channel_idx]
-
-#         for _ in range(spot_count):
-#             rr, cc = draw.disk(
-#                 center=(rng.integers(channel.shape[0]), rng.integers(channel.shape[1])),
-#                 radius=spot_radius,
-#                 shape=channel.shape,
-#             )
-#             channel[rr, cc] = 1
-
-#         channel *= rng.normal(loc=1.0, scale=0.1, size=channel.shape)
-
-#         channel *= ndimage.zoom(
-#             rng.normal(loc=1.0, scale=0.5, size=(cloud_noise_size, cloud_noise_size)),
-#             image_size / cloud_noise_size,
-#         )
-
-#         output_image[channel_idx]: np.ndarray = ndimage.gaussian_filter(
-#             channel, sigma=2.0
-#         )
-
-#     # Make temporary path
-#     tmp_path: pathlib.Path = tmpdir_factory.mktemp("data")
-
-#     for idx, output_channel in enumerate(output_image):
-#         image_utils.save_image(fname=tmp_path / f"chan_{idx}.tiff", data=output_channel)
-
-#     yield tmp_path
+from typing import List, Union
 
 
 @pytest.fixture(scope="module")
@@ -184,4 +128,13 @@ def test_log_creator():
 
 
 def test_split_csvs_by_mask():
-    pass
+    with tempfile.TemporaryDirectory() as td:
+        csv_dir: Union[str, pathlib.Path] = os.path.join(td, "csv_dir")
+        os.mkdir(csv_dir)
+
+        for csv_file in ["sample1.csv", "sample2.csv"]:
+            sample_data: pd.DataFrame = pd.DataFrame(np.random.rand(5, 5))
+            sample_data["mask_type"]: pd.Series = ["mask1"] * 3 + ["mask2"] * 2
+            sample_data.to_csv(os.path.join(csv_dir, csv_file), index=False)
+
+        # ez_seg_utils.split_csvs_by_mask(csv_dir)
