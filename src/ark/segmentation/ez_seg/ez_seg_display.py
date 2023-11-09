@@ -12,18 +12,25 @@ from matplotlib import gridspec
 from alpineer import io_utils
 
 
-def display_channel_image(base_image_path: Union[str, pathlib.Path], test_fov_name: str, channel_name: str) -> None:
+def display_channel_image(base_image_path: Union[str, pathlib.Path], sub_folder_name: str, test_fov_name: str, channel_name: str, composite: bool = False) -> None:
     """
     Displays a channel or a composite image.
 
     Args:
         base_image_path (Union[str, pathlib.Path]): The path to the image.
+        sub_folder_name (str): If a subfolder name for the channel data exists.
         test_fov_name (str): The name of the fov you wish to display.
         channel_name (str): The name of the channel you wish to display.
+        composite (bool): Whether the image to be viewed is a composite image.
     """
     # Show test composite image
+    if composite:
+        sub_folder_name = ''
+    if sub_folder_name is None:
+        sub_folder_name = ''
+
     image_path = os.path.join(
-        base_image_path, test_fov_name, channel_name + ".tiff"
+        base_image_path, test_fov_name, sub_folder_name, channel_name + ".tiff"
     )
 
     if isinstance(image_path, str):
@@ -46,7 +53,7 @@ def display_channel_image(base_image_path: Union[str, pathlib.Path], test_fov_na
 
 
 # for displaying segmentation masks overlaid upon a base channel or composite
-def overlay_mask_outlines(fov_name, channel_to_view, channel_to_view_path, mask_name, mask_to_view_path) -> None:
+def overlay_mask_outlines(fov_name, channel_to_view, channel_to_view_path, sub_folder_name: str, mask_name, mask_to_view_path) -> None:
     """
     Displays a segmentation mask overlaid on a base image (channel or composite)
 
@@ -54,13 +61,17 @@ def overlay_mask_outlines(fov_name, channel_to_view, channel_to_view_path, mask_
         fov_name (str): name of fov to be viewed
         channel_to_view (str): name of channel to view
         channel_to_view_path (str): path to channel to be viewed
+        sub_folder_name (str): If a subfolder name for the channel data exists.
         mask_name (str): name of mask to view
         mask_to_view_path (Union[str, pathlib.Path]): Path to mask to view
     """
 
     # Get test segmentation image paths
+    if sub_folder_name is None:
+        sub_folder_name = ''
+
     channel_image_path = os.path.join(
-        channel_to_view_path, fov_name, f"{channel_to_view}.tiff"
+        channel_to_view_path, fov_name, sub_folder_name, f"{channel_to_view}.tiff"
     )
     mask_image_path = os.path.join(
         mask_to_view_path, ''.join([f'{fov_name}', '_', mask_name, '.tiff'])
