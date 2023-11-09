@@ -11,7 +11,7 @@ from .merge_masks import merge_masks_seq, merge_masks_single
 from .ez_seg_display import (
     display_channel_image,
     overlay_mask_outlines,
-    multiple_mask_displays,
+    multiple_mask_display,
     create_overlap_and_merge_visual,
 )
 
@@ -29,6 +29,6 @@ __all__ = [
     "filter_csvs_by_mask",
     "display_channel_image",
     "overlay_mask_outlines",
-    "multiple_mask_displays",
+    "multiple_mask_display",
     "create_overlap_and_merge_visual",
 ]

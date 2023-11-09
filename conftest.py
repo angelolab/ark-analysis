@@ -16,7 +16,7 @@ def dataset_cache_dir() -> Iterator[Union[str, None]]:
     yield cache_dir
 
 
-@pytest.fixture(scope="module")
+@pytest.fixture(scope="session")
 def rng() -> Generator[np.random.Generator, None, None]:
     """
     Create a new Random Number Generator for tests which require randomized data.

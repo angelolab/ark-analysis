@@ -12,7 +12,7 @@ from matplotlib import gridspec
 from alpineer import io_utils
 
 
-def display_channel_image(base_image_path: Union[str, pathlib.Path], test_fov_name: str, channel_name: str) -> None:
+def display_channel_image(base_image_path: str | pathlib.Path, test_fov_name: str, channel_name: str) -> None:
     """
     Displays a channel or a composite image.
 
@@ -46,31 +46,30 @@ def display_channel_image(base_image_path: Union[str, pathlib.Path], test_fov_na
 
 
 # for displaying segmentation masks overlaid upon a base channel or composite
-def overlay_mask_outlines(fov_name, channel_to_view, channel_to_view_path, mask_name, mask_to_view_path) -> None:
+def overlay_mask_outlines(fov: str, channel: str, image_dir: str | os.PathLike, mask_name: str, mask_dir: str | os.PathLike) -> None:
     """
-    Displays a segmentation mask overlaid on a base image (channel or composite)
+    Displays a segmentation mask overlaid on a base image (channel or composite).
 
     Args:
-        fov_name (str): name of fov to be viewed
-        channel_to_view (str): name of channel to view
-        channel_to_view_path (str): path to channel to be viewed
-        mask_name (str): name of mask to view
-        mask_to_view_path (Union[str, pathlib.Path]): Path to mask to view
+        fov (str): name of fov to be viewed
+        channel (str): name of channel to view
+        image_dir (str | os.PathLike): The Path to channel for viewing.
+        mask_name (str): The name of mask to view
+        mask_dir (str | os.PathLike): The path to the directory containing the mask.
     """
 
-    # Get test segmentation image paths
-    channel_image_path = os.path.join(
-        channel_to_view_path, fov_name, f"{channel_to_view}.tiff"
-    )
-    mask_image_path = os.path.join(
-        mask_to_view_path, ''.join([f'{fov_name}', '_', mask_name, '.tiff'])
-    )
+    if isinstance(image_dir, str):
+        image_dir = pathlib.Path(image_dir)
+    if isinstance(mask_dir, str):
+        mask_dir = pathlib.Path(mask_dir)
 
-    if isinstance(channel_to_view_path, str):
-        channel_image_path = pathlib.Path(channel_image_path)
-    if isinstance(mask_image_path, str):
-        mask_image_path = pathlib.Path(mask_image_path)
+    io_utils.validate_paths([image_dir, mask_dir])
 
+    # Get ezseg and channel image paths
+    channel_image_path = pathlib.Path(image_dir) / fov / f"{channel}.tiff"
+    mask_image_path = pathlib.Path(mask_dir) / f"{fov}_{mask_name}.tiff"
+
+    # Validate paths
     io_utils.validate_paths(paths=[channel_image_path, mask_image_path])
 
     # Load the base image and mask image
@@ -107,19 +106,30 @@ def overlay_mask_outlines(fov_name, channel_to_view, channel_to_view_path, mask_
     ax.axis("off")
 
 
-def multiple_mask_displays(test_fov_name, mask_name, object_mask_dir, cell_mask_dir, merged_mask_dir) -> None:
+def multiple_mask_display(fov: str,
+                          mask_name: str,
+                          object_mask_dir: str | os.PathLike,
+                          cell_mask_dir: str | os.PathLike,
+                          merged_mask_dir: str | os.PathLike) -> None:
     """
-    Create a grid to display the images
+    Create a grid to display the object, cell, and merged masks for a given fov.
 
     Args:
-        test_fov_name (str): name of fov to view
-        mask_name (str): name of mask to view
-        object_mask_dir (Posix.path): path name for object mask
-        cell_mask_dir (Posix.path): path name for cell mask
-        merged_mask_dir (Posix.path): path name for merged mask
+        fov (str): Name of the fov to view
+        mask_name (str): Name of mask to view
+        object_mask_dir (str | os.PathLike): Directory where the object masks are stored.
+        cell_mask_dir (str | os.PathLike): Directory where the cell masks are stored.
+        merged_mask_dir (str | os.PathLike): Directory where the merged masks are stored.
     """
+    if isinstance(object_mask_dir, str):
+        object_mask_dir = pathlib.Path(object_mask_dir)
+    if isinstance(cell_mask_dir, str):
+        cell_mask_dir = pathlib.Path(cell_mask_dir)
+    if isinstance(merged_mask_dir, str):
+        merged_mask_dir = pathlib.Path(merged_mask_dir)
+    io_utils.validate_paths([object_mask_dir, cell_mask_dir, merged_mask_dir])
 
-    modified_overlay_mask = create_overlap_and_merge_visual(test_fov_name, mask_name, object_mask_dir, cell_mask_dir,
+    modified_overlay_mask = create_overlap_and_merge_visual(fov, mask_name, object_mask_dir, cell_mask_dir,
                                                             merged_mask_dir)
 
     # Create a new figure
@@ -133,34 +143,29 @@ def multiple_mask_displays(test_fov_name, mask_name, object_mask_dir, cell_mask_
     ax.axis("off")
 
 
-def create_overlap_and_merge_visual(test_fov_name, mask_name, object_mask_dir, cell_mask_dir,
-                                    merged_mask_dir) -> np.ndarray:
+def create_overlap_and_merge_visual(fov: str,
+                                    mask_name: str,
+                                    object_mask_dir: pathlib.Path,
+                                    cell_mask_dir: pathlib.Path,
+                                    merged_mask_dir: pathlib.Path) -> np.ndarray:
     """
-    Show the overlap between two masks
+    Generate the NumPy Array representing the overlap between two masks
 
     Args:
-        test_fov_name (str): name of fov to view
-        mask_name (str): name of mask to view
-        object_mask_dir (Posix.path): path name for object mask
-        cell_mask_dir (Posix.path): path name for cell mask
-        merged_mask_dir (Posix.path): path name for merged mask
+        fov (str): Name of the fov to view
+        mask_name (str): Name of mask to view
+        object_mask_dir (pathlib.Path): Directory where the object masks are stored.
+        cell_mask_dir (pathlib.Path): Directory where the cell masks are stored.
+        merged_mask_dir (pathlib.Path): Directory where the merged masks are stored.
 
     Returns:
         np.ndarray:
             Contains an overlap image of the two masks
     """
     # read in masks
-    io_utils.validate_paths([object_mask_dir, cell_mask_dir, merged_mask_dir])
-
-    object_mask: np.ndarray = imread(
-        object_mask_dir + "/" + test_fov_name + "_" + mask_name + ".tiff"
-    )
-    cell_mask: np.ndarray = imread(
-        cell_mask_dir + "/" + test_fov_name + "_whole_cell.tiff", as_gray=True
-    )
-    merged_mask: np.ndarray = imread(
-        merged_mask_dir + "/" + test_fov_name + "_" + mask_name + "_merged.tiff", as_gray=True
-    )
+    object_mask: np.ndarray = imread(object_mask_dir / f"{fov}_{mask_name}.tiff")
+    cell_mask: np.ndarray = imread(cell_mask_dir / f"{fov}_whole_cell.tiff", as_gray=True)
+    merged_mask: np.ndarray = imread(merged_mask_dir / f"{fov}_{mask_name}_merged.tiff", as_gray=True)
 
     # Assign colors to the non-overlapping areas of each mask
     # Object masks in red
