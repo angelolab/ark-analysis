@@ -127,14 +127,28 @@ def test_log_creator():
         assert log_lines[1] == "var2: 2\n"
 
 
-def test_split_csvs_by_mask():
+def test_filter_csvs_by_mask():
     with tempfile.TemporaryDirectory() as td:
         csv_dir: Union[str, pathlib.Path] = os.path.join(td, "csv_dir")
         os.mkdir(csv_dir)
 
-        for csv_file in ["sample1.csv", "sample2.csv"]:
-            sample_data: pd.DataFrame = pd.DataFrame(np.random.rand(5, 5))
-            sample_data["mask_type"]: pd.Series = ["mask1"] * 3 + ["mask2"] * 2
-            sample_data.to_csv(os.path.join(csv_dir, csv_file), index=False)
+        table_names: List[str] = [f"table{i}" for i in np.arange(2)]
+        mask_names: List[str] = [f"mask{i}" for i in np.arange(2)]
 
-        # ez_seg_utils.split_csvs_by_mask(csv_dir)
+        for tn in table_names:
+            sample_data: pd.DataFrame = pd.DataFrame(np.random.rand(6, 3))
+            sample_data["mask_type"]: pd.Series = [mask_names[0]] * 3 + [mask_names[1]] * 3
+            sample_data.to_csv(os.path.join(csv_dir, tn + "_replace.csv"), index=False)
+
+        ez_seg_utils.filter_csvs_by_mask(csv_dir, "_replace")
+        num_total_files = len(table_names) * len(mask_names)
+        assert len(io_utils.list_files(csv_dir, substrs="filtered_")) == num_total_files
+
+        for tn in table_names:
+            for mn in mask_names:
+                created_csv = f"filtered_{mn}{tn}.csv"
+                assert os.path.exists(os.path.join(csv_dir, created_csv))
+
+                csv_data = pd.read_csv(os.path.join(csv_dir, created_csv))
+                assert csv_data.shape == (3, 4)
+                assert np.all(csv_data["mask_type"].values == mn)

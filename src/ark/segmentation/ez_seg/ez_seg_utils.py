@@ -107,7 +107,7 @@ def filter_csvs_by_mask(csv_path_name: Union[str, pathlib.Path], csv_substr_repl
         csv_path_name (Union[str, pathlib.Path]):
             The path to the directory containing the cell table CSVs.
         csv_substr_replace (str):
-            The substring in the CSV file name to replace in favor of the mask names
+            The substring in the CSV file name to replace in favor of the mask name
         column_to_filter (str):
             The name of the column to split on, defaults to `"mask_type"`
     """
