@@ -138,7 +138,7 @@ def merge_masks_single(
             meets_overlap_thresh = overlap / cell_mask_component.sum() > overlap_thresh / 100
 
             # Ensure cell overlap meets percent threshold and has the highest relative cell-object overlap
-            if overlap > best_overlap & meets_overlap_thresh:
+            if overlap > best_overlap and meets_overlap_thresh:
                 best_overlap = overlap
                 best_cell_mask_component = cell_mask_component
                 cell_to_merge_label = cell_label
