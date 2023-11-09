@@ -7,7 +7,8 @@ from ark.segmentation.ez_seg.ez_seg_utils import log_creator
 
 
 def composite_builder(
-    data_dir: Union[str, pathlib.Path],
+    image_data_dir: Union[str, pathlib.Path],
+    img_sub_folder: str,
     fov_list: list[str],
     images_to_add: list[str],
     images_to_subtract: list[str],
@@ -21,8 +22,9 @@ def composite_builder(
     Adds tiffs together, either pixel clusters or base signal tiffs and returns a composite channel or mask.
 
     Args:
-        data_dir (xr.DataArray): The path to dir containing the set of all images which get filtered out with
+        image_data_dir (xr.DataArray): The path to dir containing the set of all images which get filtered out with
             images_to_add and images_to_subtract.
+        sub_folder (str): A name for sub-folders within each fov in the image_data location.
         fov_list: A list of fov's to create composite channels through.
         images_to_add (List[str]): A list of channels or pixel cluster names to add together.
         images_to_subtract (List[str]): A list of channels or pixel cluster names to subtract from the composite.
@@ -37,7 +39,7 @@ def composite_builder(
     """
     for fov in fov_list:
         # load in tiff images and verify channels are present
-        fov_data = load_utils.load_imgs_from_tree(data_dir=data_dir, fovs=fov)
+        fov_data = load_utils.load_imgs_from_tree(data_dir=image_data_dir, img_sub_folder=img_sub_folder, fovs=fov)
 
         image_shape = fov_data.shape[1:3]
 
@@ -78,7 +80,7 @@ def composite_builder(
 
     # Write a log saving composite builder info
     variables_to_log = {
-        "data_dir": data_dir,
+        "image_data_dir": image_data_dir,
         "fov_list": fov_list,
         "images_to_add": images_to_add,
         "images_to_subtract": images_to_subtract,

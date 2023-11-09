@@ -49,7 +49,7 @@ def renumber_masks(
 
 def create_mantis_project(
     fovs: Union[str, List[str]],
-    tiff_dir: Union[str, pathlib.Path],
+    image_data_dir: Union[str, pathlib.Path],
     segmentation_dir: Union[str, pathlib.Path],
     mantis_dir: Union[str, pathlib.Path],
 ) -> None:
@@ -59,15 +59,15 @@ def create_mantis_project(
     Args:
         fovs (str | list[str]):
             A list of FOVs to use for creating the mantis project
-        tiff_dir (Union[str, pathlib.Path]):
+        image_data_dir (Union[str, pathlib.Path]):
             The path to the directory containing the raw image data.
         segmentation_dir (Union[str, pathlib.Path]):
             The path to the directory containing masks.
         mantis_dir:
             The path to the directory containing housing the ez_seg specific mantis project.
     """
-    for fov in tqdm(io_utils.list_folders(tiff_dir, substrs=fovs)):
-        shutil.copytree(os.path.join(tiff_dir, fov), dst=os.path.join(mantis_dir, fov))
+    for fov in tqdm(io_utils.list_folders(image_data_dir, substrs=fovs)):
+        shutil.copytree(os.path.join(image_data_dir, fov), dst=os.path.join(mantis_dir, fov))
 
         for seg_type in io_utils.list_folders(segmentation_dir):
             for mask in io_utils.list_files(os.path.join(segmentation_dir, seg_type), substrs=fov):
