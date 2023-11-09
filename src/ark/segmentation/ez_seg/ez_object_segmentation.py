@@ -10,7 +10,8 @@ import xarray as xr
 
 
 def create_object_masks(
-    image_dir: Union[str, pathlib.Path],
+    image_data_dir: Union[str, pathlib.Path],
+    img_sub_folder: str,
     fov_list: list[str],
     mask_name: str,
     channel_to_segment: str,
@@ -31,7 +32,8 @@ def create_object_masks(
     that same thresholding input and filters out objects which are either too small or too large.
 
     Args:
-        image_dir (Union[str, pathlib.Path]): The directory to pull images from to perform segmentation on.
+        image_data_dir (Union[str, pathlib.Path]): The directory to pull images from to perform segmentation on.
+        img_sub_folder (str): A name for sub-folders within each fov in the image_data location.
         fov_list: A list of fov names to segment on.
         mask_name (str): The name of the masks you are creating.
         channel_to_segment: The channel on which to perform segmentation.
@@ -61,7 +63,7 @@ def create_object_masks(
 
     for fov in fov_list:
         fov_xr: xr.DataArray = load_utils.load_imgs_from_tree(
-                data_dir=image_dir, fovs=fov
+                data_dir=image_data_dir, img_sub_folder=img_sub_folder, fovs=fov
             ).squeeze()
 
         # handles folders where only 1 channel is loaded, often for composites
@@ -90,7 +92,7 @@ def create_object_masks(
 
     # Write a log saving ez segment info
     variables_to_log = {
-        "image_dir": image_dir,
+        "image_data_dir": image_data_dir,
         "fov_list": fov_list,
         "mask_name": mask_name,
         "channel_to_segment": channel_to_segment,

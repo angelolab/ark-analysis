@@ -11,7 +11,7 @@ import pandas as pd
 
 
 def renumber_masks(
-        mask_dir: Union[pathlib.Path, str]
+    mask_dir: Union[pathlib.Path, str]
 ):
     """
     Relabels all masks in mask tiffs so each label is unique across all mask images in entire dataset.
@@ -49,7 +49,7 @@ def renumber_masks(
 
 def create_mantis_project(
     fovs: Union[str, List[str]],
-    tiff_dir: Union[str, pathlib.Path],
+    image_data_dir: Union[str, pathlib.Path],
     segmentation_dir: Union[str, pathlib.Path],
     mantis_dir: Union[str, pathlib.Path],
 ) -> None:
@@ -59,18 +59,17 @@ def create_mantis_project(
     Args:
         fovs (str | list[str]):
             A list of FOVs to use for creating the mantis project
-        tiff_dir (Union[str, pathlib.Path]):
+        image_data_dir (Union[str, pathlib.Path]):
             The path to the directory containing the raw image data.
         segmentation_dir (Union[str, pathlib.Path]):
             The path to the directory containing masks.
         mantis_dir:
             The path to the directory containing housing the ez_seg specific mantis project.
     """
-    for fov in tqdm(io_utils.list_folders(tiff_dir, substrs=fovs)):
-        shutil.copytree(os.path.join(tiff_dir, fov), dst=os.path.join(mantis_dir, fov))
+    for fov in tqdm(io_utils.list_folders(image_data_dir, substrs=fovs)):
+        shutil.copytree(os.path.join(image_data_dir, fov), dst=os.path.join(mantis_dir, fov))
 
         for seg_type in io_utils.list_folders(segmentation_dir):
-
             for mask in io_utils.list_files(os.path.join(segmentation_dir, seg_type), substrs=fov):
                 shutil.copy(os.path.join(segmentation_dir, seg_type, mask),
                             dst=os.path.join(mantis_dir, fov)
@@ -78,6 +77,16 @@ def create_mantis_project(
 
 
 def log_creator(variables_to_log: dict, base_dir: str, log_name: str = "config_values.txt"):
+    """Logs the variables in `variables_to_log` to the file at `base_dir/log_name`
+
+    Args:
+        variables_to_log (dict):
+            The name of each variable along with their associated value
+        base_dir (str):
+            Where the log will be written to
+        log_name (str):
+            The name of the log file to write the variables to
+    """
     # Define the filename for the text file
     output_file = os.path.join(base_dir, log_name)
 
@@ -89,23 +98,23 @@ def log_creator(variables_to_log: dict, base_dir: str, log_name: str = "config_v
     print(f"Values saved to {output_file}")
 
 
-def filter_csvs_by_mask(csv_path_name: Union[str, pathlib.Path], csv_name: str) -> None:
-    """
-    Function to take in and separate a single cell table into multiple based on the mask_type parameter.
+def filter_csvs_by_mask(csv_path_name: Union[str, pathlib.Path], csv_substr_replace: str,
+                        column_to_filter: str = "mask_type") -> None:
+    """Function to take in and separate a single cell table into multiple
+    based on the mask_type parameter.
+
     Args:
         csv_path_name (Union[str, pathlib.Path]):
-            The path to the directory containing the raw image data.
-        csv_name (str):
-            The path to the directory containing the raw image data.
+            The path to the directory containing the cell table CSVs.
+        csv_substr_replace (str):
+            The substring in the CSV file name to replace in favor of the mask name
+        column_to_filter (str):
+            The name of the column to split on, defaults to `"mask_type"`
     """
     # Load the CSV file as a DataFrame (replace 'input.csv' with your CSV file)
-
-    for item in io_utils.list_files(csv_path_name):
+    for item in io_utils.list_files(csv_path_name, substrs=".csv"):
         input_csv_file = os.path.join(csv_path_name, item)
         df = pd.read_csv(input_csv_file)
-
-        # Define the column to filter
-        column_to_filter = 'mask_type'  # Replace with the actual column name
 
         # Get unique values from the specified column
         filter_values = df[column_to_filter].unique()
@@ -118,8 +127,10 @@ def filter_csvs_by_mask(csv_path_name: Union[str, pathlib.Path], csv_name: str) 
             filtered_df = df[df[column_to_filter] == filter_value]
 
             # Define the output CSV file name based on the filtered value
-            table_type_str = item.replace(csv_name, '')
-            output_csv_file = os.path.join(csv_path_name, ''.join([f'filtered_{filter_value}', table_type_str]))
+            table_type_str = item.replace(csv_substr_replace, '')
+            output_csv_file = os.path.join(
+                csv_path_name, ''.join([f'filtered_{filter_value}', table_type_str])
+            )
 
             # Save the filtered DataFrame to a new CSV file
             filtered_df.to_csv(output_csv_file, index=False)
@@ -127,7 +138,5 @@ def filter_csvs_by_mask(csv_path_name: Union[str, pathlib.Path], csv_name: str) 
             # Store the filtered DataFrame in the dictionary
             filtered_dfs[filter_value] = filtered_df
 
-        # Print a message for each filtered DataFrame
-        #for filter_value, filtered_df in filtered_dfs.items():
     # Print msg
     print("Filtering of csv's complete.")
