@@ -8,6 +8,7 @@ from scipy.ndimage import label
 from alpineer import load_utils, image_utils
 from ark.segmentation.ez_seg.ez_seg_utils import log_creator
 
+
 def merge_masks_seq(
     fov_list: List[str],
     object_list: List[str],
@@ -24,12 +25,12 @@ def merge_masks_seq(
 
     Args:
         fov_list (List[str]): A list of fov names to merge masks over.
-        object_mask_dir (Union[pathlib.Path, str]): Directory where object (ez) segmented masks are located
         object_list (List[str]): A list of names representing previously generated object masks. Note, order matters.
+        object_mask_dir (Union[pathlib.Path, str]): Directory where object (ez) segmented masks are located
         cell_mask_path (Union[str, pathlib.Path]): Path to where the original cell masks are located.
         overlap_percent_threshold (int): Percent overlap of total pixel area needed fo object to be merged to a cell.
         save_path (Union[str, pathlib.Path]): The directory where merged masks and remaining cell mask will be saved.
-        log_dir: The directory to save log information to.
+        log_dir (Union[str, pathlib.Path]): The directory to save log information to.
     """
     # validate paths
     if isinstance(object_mask_dir, str):
@@ -97,7 +98,7 @@ def merge_masks_single(
     Args:
         object_mask (np.ndarray): The object mask numpy array.
         cell_mask (np.ndarray): The cell mask numpy array.
-        overlap_thresh (int): The amount of overlap required for a cell to be merged.
+        overlap_thresh (int): The percentage overlap required for a cell to be merged.
         object_name (str): The name of the object.
         mask_save_path (str): The path to save the mask.
 
@@ -112,8 +113,10 @@ def merge_masks_single(
     # Relabel cell, object masks
     cell_labels, num_cell_labels = label(cell_mask)
     object_labels, num_object_labels = label(object_mask)
+
     # Instantiate new array for merging
     merged_mask = object_labels.copy()
+
     # Set up list to store merged cell labels
     remove_cells_list = [0]
 
@@ -156,5 +159,6 @@ def merge_masks_single(
     image_utils.save_image(
         fname=os.path.join(mask_save_path, object_name.removesuffix(".tiff") + "_merged.tiff"),
         data=merged_mask)
+
     # Return unmerged cells
     return cell_labels

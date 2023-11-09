@@ -24,7 +24,7 @@ def composite_builder(
     Args:
         image_data_dir (xr.DataArray): The path to dir containing the set of all images which get filtered out with
             images_to_add and images_to_subtract.
-        sub_folder (str): A name for sub-folders within each fov in the image_data location.
+        img_sub_folder (str): A name for sub-folders within each fov in the image_data location.
         fov_list: A list of fov's to create composite channels through.
         images_to_add (List[str]): A list of channels or pixel cluster names to add together.
         images_to_subtract (List[str]): A list of channels or pixel cluster names to subtract from the composite.
