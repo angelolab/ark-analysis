@@ -11,7 +11,7 @@ import xarray as xr
 
 def create_object_masks(
     image_data_dir: Union[str, pathlib.Path],
-    img_sub_folder: str,
+    img_sub_folder: str | None,
     fov_list: list[str],
     mask_name: str,
     channel_to_segment: str,
@@ -55,7 +55,7 @@ def create_object_masks(
     """
 
     # Input validation
-    io_utils.validate_paths([image_dir, masks_dir, log_dir])
+    io_utils.validate_paths([image_data_dir, masks_dir, log_dir])
 
     misc_utils.verify_in_list(
         object_shape=[object_shape_type], object_shape_options=["blob", "projection"]

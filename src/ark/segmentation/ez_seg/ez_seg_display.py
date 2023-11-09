@@ -12,7 +12,13 @@ from matplotlib import gridspec
 from alpineer import io_utils
 
 
-def display_channel_image(base_image_path: str | pathlib.Path, sub_folder_name: str, sub_folder_name: str, test_fov_name: str, channel_name: str, composite: bool = False, composite: bool = False) -> None:
+def display_channel_image(
+    base_image_path: str | pathlib.Path,
+    sub_folder_name: str,
+    test_fov_name: str,
+    channel_name: str,
+    composite: bool = False,
+) -> None:
     """
     Displays a channel or a composite image.
 
@@ -27,8 +33,11 @@ def display_channel_image(base_image_path: str | pathlib.Path, sub_folder_name: 
     if composite or (sub_folder_name is None):
         sub_folder_name = ""
 
-    image_path = os.path.join(
-        base_image_path, test_fov_name, sub_folder_name, channel_name + ".tiff"
+    image_path = (
+        pathlib.Path(base_image_path)
+        / test_fov_name
+        / sub_folder_name
+        / f"{channel_name}.tiff"
     )
 
     if isinstance(image_path, str):
@@ -51,7 +60,14 @@ def display_channel_image(base_image_path: str | pathlib.Path, sub_folder_name: 
 
 
 # for displaying segmentation masks overlaid upon a base channel or composite
-def overlay_mask_outlines(fov: str, channel: str, image_dir: str | os.PathLike, sub_folder_name: str, sub_folder_name: str, mask_name: str, mask_dir: str | os.PathLike) -> None:
+def overlay_mask_outlines(
+    fov: str,
+    channel: str,
+    image_dir: str | os.PathLike,
+    sub_folder_name: str,
+    mask_name: str,
+    mask_dir: str | os.PathLike,
+) -> None:
     """
     Displays a segmentation mask overlaid on a base image (channel or composite).
 
@@ -60,18 +76,18 @@ def overlay_mask_outlines(fov: str, channel: str, image_dir: str | os.PathLike, 
         channel (str): name of channel to view
         image_dir (str | os.PathLike): The Path to channel for viewing.
         sub_folder_name (str): If a subfolder name for the channel data exists.
-        sub_folder_name (str): If a subfolder name for the channel data exists.
         mask_name (str): The name of mask to view
         mask_dir (str | os.PathLike): The path to the directory containing the mask.
     """
-
     if sub_folder_name is None:
         sub_folder_name = ""
-    
+
     if isinstance(image_dir, str):
         image_dir = pathlib.Path(image_dir)
     if isinstance(mask_dir, str):
         mask_dir = pathlib.Path(mask_dir)
+
+    image_dir = image_dir / sub_folder_name
 
     io_utils.validate_paths([image_dir, mask_dir])
 
@@ -116,11 +132,13 @@ def overlay_mask_outlines(fov: str, channel: str, image_dir: str | os.PathLike, 
     ax.axis("off")
 
 
-def multiple_mask_display(fov: str,
-                          mask_name: str,
-                          object_mask_dir: str | os.PathLike,
-                          cell_mask_dir: str | os.PathLike,
-                          merged_mask_dir: str | os.PathLike) -> None:
+def multiple_mask_display(
+    fov: str,
+    mask_name: str,
+    object_mask_dir: str | os.PathLike,
+    cell_mask_dir: str | os.PathLike,
+    merged_mask_dir: str | os.PathLike,
+) -> None:
     """
     Create a grid to display the object, cell, and merged masks for a given fov.
 
@@ -139,8 +157,9 @@ def multiple_mask_display(fov: str,
         merged_mask_dir = pathlib.Path(merged_mask_dir)
     io_utils.validate_paths([object_mask_dir, cell_mask_dir, merged_mask_dir])
 
-    modified_overlay_mask = create_overlap_and_merge_visual(fov, mask_name, object_mask_dir, cell_mask_dir,
-                                                            merged_mask_dir)
+    modified_overlay_mask: np.ndarray = create_overlap_and_merge_visual(
+        fov, mask_name, object_mask_dir, cell_mask_dir, merged_mask_dir
+    )
 
     # Create a new figure
     fig: Figure = plt.figure(dpi=300, figsize=(6, 6))
@@ -153,11 +172,13 @@ def multiple_mask_display(fov: str,
     ax.axis("off")
 
 
-def create_overlap_and_merge_visual(fov: str,
-                                    mask_name: str,
-                                    object_mask_dir: pathlib.Path,
-                                    cell_mask_dir: pathlib.Path,
-                                    merged_mask_dir: pathlib.Path) -> np.ndarray:
+def create_overlap_and_merge_visual(
+    fov: str,
+    mask_name: str,
+    object_mask_dir: pathlib.Path,
+    cell_mask_dir: pathlib.Path,
+    merged_mask_dir: pathlib.Path,
+) -> np.ndarray:
     """
     Generate the NumPy Array representing the overlap between two masks
 
@@ -174,8 +195,12 @@ def create_overlap_and_merge_visual(fov: str,
     """
     # read in masks
     object_mask: np.ndarray = imread(object_mask_dir / f"{fov}_{mask_name}.tiff")
-    cell_mask: np.ndarray = imread(cell_mask_dir / f"{fov}_whole_cell.tiff", as_gray=True)
-    merged_mask: np.ndarray = imread(merged_mask_dir / f"{fov}_{mask_name}_merged.tiff", as_gray=True)
+    cell_mask: np.ndarray = imread(
+        cell_mask_dir / f"{fov}_whole_cell.tiff", as_gray=True
+    )
+    merged_mask: np.ndarray = imread(
+        merged_mask_dir / f"{fov}_{mask_name}_merged.tiff", as_gray=True
+    )
 
     # Assign colors to the non-overlapping areas of each mask
     # Object masks in red

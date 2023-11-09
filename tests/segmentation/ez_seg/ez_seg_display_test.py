@@ -61,6 +61,7 @@ def mask_data(
 def test_display_channel_image(mask_data: MaskDataPaths):
     ez_seg_display.display_channel_image(
         base_image_path=mask_data.image_data_path,
+        sub_folder_name=None,
         test_fov_name="fov_0",
         channel_name="chan_0",
     )
@@ -68,6 +69,7 @@ def test_display_channel_image(mask_data: MaskDataPaths):
     with pytest.raises(FileNotFoundError):
         ez_seg_display.display_channel_image(
             base_image_path=mask_data.image_data_path,
+            sub_folder_name=None,
             test_fov_name="fov_0",
             channel_name="bad_chan_name",
         )
@@ -78,6 +80,7 @@ def test_overlay_mask_outlines(mask_data: MaskDataPaths):
         fov="fov_0",
         channel="chan_0",
         image_dir=mask_data.image_data_path,
+        sub_folder_name=None,
         mask_name="mask_0",
         mask_dir=mask_data.object_mask_dir,
     )
@@ -87,6 +90,7 @@ def test_overlay_mask_outlines(mask_data: MaskDataPaths):
             fov="fov_0",
             channel="chan_0",
             image_dir=mask_data.image_data_path,
+            sub_folder_name=None,
             mask_name="bad_mask_name",
             mask_dir=mask_data.object_mask_dir,
         )
@@ -96,6 +100,7 @@ def test_overlay_mask_outlines(mask_data: MaskDataPaths):
             fov="fov_0",
             channel="bad_chan_name",
             image_dir=mask_data.image_data_path,
+            sub_folder_name=None,
             mask_name="mask_0",
             mask_dir=mask_data.object_mask_dir,
         )

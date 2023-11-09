@@ -74,7 +74,13 @@ def generate_sample_feature_tifs(fovs, deepcell_output_dir, img_shape=(50, 50)):
 
 
 def _ex_dataset_download(dataset: str, save_dir: str, cache_dir: Union[str, None]):
+    """Downloads the example dataset and moves it to the save_dir.
 
+    Args:
+        dataset (str): The name of the dataset to download.
+        save_dir (str): The directory to save the dataset to.
+        cache_dir (Union[str, None]): The directory to cache the dataset to.
+    """
     overwrite_existing = True
     ex_dataset = example_dataset.ExampleDataset(dataset=dataset,
                                                 overwrite_existing=overwrite_existing,

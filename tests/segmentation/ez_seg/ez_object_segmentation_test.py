@@ -115,7 +115,8 @@ def test_create_object_masks(
 
     with pytest.raises(ValueError):
         ez_object_segmentation.create_object_masks(
-            image_dir=ez_fov / "image_data",
+            image_data_dir=ez_fov / "image_data",
+            img_sub_folder="wrong_sub_folder",
             fov_list=["fov_0", "fov_1"],
             mask_name="test_mask",
             object_shape_type="wrong_shape",
@@ -125,7 +126,8 @@ def test_create_object_masks(
         )
     with pytest.raises(FileNotFoundError):
         ez_object_segmentation.create_object_masks(
-            image_dir="wrong_path",
+            image_data_dir="wrong_path",
+            img_sub_folder="wrong_sub_folder",
             fov_list=["fov_0", "fov_1"],
             mask_name="test_mask",
             object_shape_type="blob",
@@ -135,7 +137,8 @@ def test_create_object_masks(
         )
     # Test the function (succeeds)
     ez_object_segmentation.create_object_masks(
-        image_dir=ez_fov / "image_data",
+        image_data_dir=ez_fov / "image_data",
+        img_sub_folder=None,
         fov_list=["fov_0", "fov_1"],
         mask_name="test_mask",
         object_shape_type=_object_shape_type,
