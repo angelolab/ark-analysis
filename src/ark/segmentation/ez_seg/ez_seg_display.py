@@ -12,7 +12,7 @@ from matplotlib import gridspec
 from alpineer import io_utils
 
 
-def display_channel_image(base_image_path: str | pathlib.Path, sub_folder_name: str, test_fov_name: str, channel_name: str, composite: bool = False) -> None:
+def display_channel_image(base_image_path: str | pathlib.Path, sub_folder_name: str, sub_folder_name: str, test_fov_name: str, channel_name: str, composite: bool = False, composite: bool = False) -> None:
     """
     Displays a channel or a composite image.
 
@@ -24,10 +24,8 @@ def display_channel_image(base_image_path: str | pathlib.Path, sub_folder_name: 
         composite (bool): Whether the image to be viewed is a composite image.
     """
     # Show test composite image
-    if composite:
-        sub_folder_name = ''
-    if sub_folder_name is None:
-        sub_folder_name = ''
+    if composite or (sub_folder_name is None):
+        sub_folder_name = ""
 
     image_path = os.path.join(
         base_image_path, test_fov_name, sub_folder_name, channel_name + ".tiff"
@@ -53,7 +51,7 @@ def display_channel_image(base_image_path: str | pathlib.Path, sub_folder_name: 
 
 
 # for displaying segmentation masks overlaid upon a base channel or composite
-def overlay_mask_outlines(fov: str, channel: str, image_dir: str | os.PathLike, sub_folder_name: str, mask_name: str, mask_dir: str | os.PathLike) -> None:
+def overlay_mask_outlines(fov: str, channel: str, image_dir: str | os.PathLike, sub_folder_name: str, sub_folder_name: str, mask_name: str, mask_dir: str | os.PathLike) -> None:
     """
     Displays a segmentation mask overlaid on a base image (channel or composite).
 
@@ -61,6 +59,7 @@ def overlay_mask_outlines(fov: str, channel: str, image_dir: str | os.PathLike, 
         fov (str): name of fov to be viewed
         channel (str): name of channel to view
         image_dir (str | os.PathLike): The Path to channel for viewing.
+        sub_folder_name (str): If a subfolder name for the channel data exists.
         sub_folder_name (str): If a subfolder name for the channel data exists.
         mask_name (str): The name of mask to view
         mask_dir (str | os.PathLike): The path to the directory containing the mask.
