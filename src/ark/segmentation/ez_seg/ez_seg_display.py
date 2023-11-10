@@ -13,7 +13,7 @@ from alpineer import io_utils
 
 
 def display_channel_image(
-    base_image_path: str | pathlib.Path,
+    base_image_path: Union[str, pathlib.Path],
     sub_folder_name: str,
     test_fov_name: str,
     channel_name: str,
@@ -63,10 +63,10 @@ def display_channel_image(
 def overlay_mask_outlines(
     fov: str,
     channel: str,
-    image_dir: str | os.PathLike,
+    image_dir: Union[str, os.PathLike],
     sub_folder_name: str,
     mask_name: str,
-    mask_dir: str | os.PathLike,
+    mask_dir: Union[str, os.PathLike],
 ) -> None:
     """
     Displays a segmentation mask overlaid on a base image (channel or composite).
@@ -74,10 +74,10 @@ def overlay_mask_outlines(
     Args:
         fov (str): name of fov to be viewed
         channel (str): name of channel to view
-        image_dir (str | os.PathLike): The Path to channel for viewing.
+        image_dir (Union[str, os.PathLike]): The Path to channel for viewing.
         sub_folder_name (str): If a subfolder name for the channel data exists.
         mask_name (str): The name of mask to view
-        mask_dir (str | os.PathLike): The path to the directory containing the mask.
+        mask_dir (Union[str, os.PathLike]): The path to the directory containing the mask.
     """
     if sub_folder_name is None:
         sub_folder_name = ""
@@ -135,9 +135,9 @@ def overlay_mask_outlines(
 def multiple_mask_display(
     fov: str,
     mask_name: str,
-    object_mask_dir: str | os.PathLike,
-    cell_mask_dir: str | os.PathLike,
-    merged_mask_dir: str | os.PathLike,
+    object_mask_dir: Union[str, os.PathLike],
+    cell_mask_dir: Union[str, os.PathLike],
+    merged_mask_dir: Union[str, os.PathLike],
 ) -> None:
     """
     Create a grid to display the object, cell, and merged masks for a given fov.
@@ -145,9 +145,9 @@ def multiple_mask_display(
     Args:
         fov (str): Name of the fov to view
         mask_name (str): Name of mask to view
-        object_mask_dir (str | os.PathLike): Directory where the object masks are stored.
-        cell_mask_dir (str | os.PathLike): Directory where the cell masks are stored.
-        merged_mask_dir (str | os.PathLike): Directory where the merged masks are stored.
+        object_mask_dir (Union[str, os.PathLike]): Directory where the object masks are stored.
+        cell_mask_dir (Union[str, os.PathLike]): Directory where the cell masks are stored.
+        merged_mask_dir (Union[str, os.PathLike]): Directory where the merged masks are stored.
     """
     if isinstance(object_mask_dir, str):
         object_mask_dir = pathlib.Path(object_mask_dir)

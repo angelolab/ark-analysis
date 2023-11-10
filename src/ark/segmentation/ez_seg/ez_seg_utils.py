@@ -57,7 +57,7 @@ def create_mantis_project(
     Creates a folder for viewing FOVs in Mantis.
 
     Args:
-        fovs (str | list[str]):
+        fovs (Union[str, List[str]]):
             A list of FOVs to use for creating the mantis project
         image_data_dir (Union[str, pathlib.Path]):
             The path to the directory containing the raw image data.
