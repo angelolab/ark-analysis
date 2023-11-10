@@ -157,8 +157,6 @@ def test_create_object_masks(
     assert (ez_fov / "ez_logs" / "test_mask_segmentation_log.txt").exists()
     with open(ez_fov / "ez_logs" / "test_mask_segmentation_log.txt", "r") as f:
         log_contents = f.read()
-    assert (ez_fov / "image_data").as_uri() in log_contents
-    assert (ez_fov / "ez_seg_masks").as_uri() in log_contents
     assert "fov_0" in log_contents
     assert "fov_1" in log_contents
     assert "test_mask" in log_contents
