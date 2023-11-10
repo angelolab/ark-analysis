@@ -11,7 +11,7 @@ import xarray as xr
 
 def create_object_masks(
     image_data_dir: Union[str, pathlib.Path],
-    img_sub_folder: str | None,
+    img_sub_folder: Optional[str],
     fov_list: list[str],
     mask_name: str,
     channel_to_segment: str,
