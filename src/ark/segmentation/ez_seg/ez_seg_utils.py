@@ -112,7 +112,11 @@ def filter_csvs_by_mask(csv_path_name: Union[str, pathlib.Path], csv_substr_repl
             The name of the column to split on, defaults to `"mask_type"`
     """
     # Load the CSV file as a DataFrame (replace 'input.csv' with your CSV file)
-    for item in io_utils.list_files(csv_path_name, substrs=".csv"):
+    csv_files = io_utils.list_files(csv_path_name, substrs=".csv")
+    for item in csv_files:
+        if csv_substr_replace not in item:
+            continue
+
         input_csv_file = os.path.join(csv_path_name, item)
         df = pd.read_csv(input_csv_file)
 
