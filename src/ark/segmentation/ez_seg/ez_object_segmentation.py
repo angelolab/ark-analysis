@@ -152,11 +152,19 @@ def _create_object_mask(
     img2mask_shape: Tuple[int, int] = img2mask.shape
 
     # Blur the input mask using given sigma value
-    img2mask_blur: np.ndarray = filters.gaussian(img2mask, sigma=sigma)
+    img2mask_blur: np.ndarray = filters.gaussian(img2mask, sigma=sigma, preserve_range=True)
 
     # Apply binary thresholding to the blurred image
-    if thresh is not None:
-        img2mask_thresh = img2mask_blur > thresh
+
+    if thresh is None:
+        img2mask_thresh = img2mask_blur
+    elif thresh != -1:
+        # Find the threshold value based on the given percentile number
+        img_nonzero = img2mask_blur[img2mask_blur != 0]
+        thresh_percentile = np.percentile(img_nonzero, thresh)
+
+        # Create a thresholded array where values below the threshold are set to 0
+        img2mask_thresh = np.where(img2mask_blur < thresh_percentile, 0, img2mask_blur)
     else:
         local_thresh_block_size: int = get_block_size(
             block_type="local_thresh", fov_dim=fov_dim, img_shape=img2mask_shape[0]
@@ -166,7 +174,7 @@ def _create_object_mask(
         )
 
     # Remove small holes within the objects
-    if hole_size is not None:
+    if hole_size != -1:
         img2mask_rm_holes: np.ndarray = morphology.remove_small_holes(
             img2mask_thresh, area_threshold=hole_size
         )
