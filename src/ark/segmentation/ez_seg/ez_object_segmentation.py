@@ -4,14 +4,14 @@ import numpy as np
 from skimage import measure, filters, morphology
 from skimage.util import map_array
 import pandas as pd
-from alpineer import misc_utils, load_utils, image_utils
+from alpineer import misc_utils, load_utils, image_utils, io_utils
 from ark.segmentation.ez_seg.ez_seg_utils import log_creator
 import xarray as xr
 
 
 def create_object_masks(
     image_data_dir: Union[str, pathlib.Path],
-    img_sub_folder: str,
+    img_sub_folder: Optional[str],
     fov_list: list[str],
     mask_name: str,
     channel_to_segment: str,
@@ -28,7 +28,7 @@ def create_object_masks(
     """
     Calculates a mask for each channel in the FOV for circular or 'blob'-like objects such as: single large cells or amyloid
     plaques. It will blur the input image, then threshold the blurred image on either a given
-    fixed value, or an adaptive thresholding method. In addition it removes small holes using
+    fixed value, or an adaptive thresholding method. In addition, it removes small holes using
     that same thresholding input and filters out objects which are either too small or too large.
 
     Args:
@@ -52,10 +52,14 @@ def create_object_masks(
         max_object_area (int): The maximum size (area) of an object to capture in
         pixels. Defaults to 100000.
         log_dir (Union[str, pathlib.Path]): The directory to save log information to.
-
-    Returns:
-        xr.DataArray: The object masks for all channels in a FOV.
     """
+
+    # Input validation
+    io_utils.validate_paths([image_data_dir, masks_dir, log_dir])
+
+    misc_utils.verify_in_list(
+        object_shape=[object_shape_type], object_shape_options=["blob", "projection"]
+    )
 
     for fov in fov_list:
         fov_xr: xr.DataArray = load_utils.load_imgs_from_tree(
@@ -81,8 +85,7 @@ def create_object_masks(
         )
 
         # save the channel overlay
-        save_name = ''.join([f'{fov}', '_', mask_name, '.tiff'])
-        save_path = '/'.join([masks_dir, save_name])
+        save_path = pathlib.Path(masks_dir) / f"{fov}_{mask_name}.tiff"
         image_utils.save_image(
             fname=save_path, data=object_masks
         )
@@ -142,10 +145,6 @@ def _create_object_mask(
         np.ndarray: The object mask.
     """
 
-    # Input validation
-    misc_utils.verify_in_list(
-        object_shape=[object_shape_type], object_shape_options=["blob", "projection"]
-    )
 
     # Copy the input image, and get its shape
     img2mask: np.ndarray = input_image.copy().to_numpy()

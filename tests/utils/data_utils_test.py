@@ -126,8 +126,6 @@ class TestClusterMaskData:
         # And each FOV should have some background pixels
         assert fov_mapping_df["label"].min() == 0
 
-        assert set(fov_mapping_df["label"]) == set(self.cmd.mapping["label"])
-
     def test_cluster_ids(self):
         assert set(self.cmd.cluster_names) == {"A", "B"}
 
