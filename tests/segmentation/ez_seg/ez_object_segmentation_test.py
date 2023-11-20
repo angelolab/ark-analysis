@@ -8,6 +8,8 @@ from skimage import draw
 import xarray as xr
 from skimage.io import imread
 from alpineer import image_utils
+from skimage.util import img_as_int
+from sklearn.preprocessing import minmax_scale
 
 
 @pytest.fixture(scope="session")
@@ -43,7 +45,7 @@ def ez_fov(
     image: np.ndarray = rng.normal(
         loc=0.25, scale=0.25, size=(channel_count, image_size, image_size)
     )
-    output_image: np.ndarray = np.zeros_like(a=image)
+    output_image: np.ndarray = np.zeros_like(a=image, dtype=np.int64)
 
     # Make temporary path
     tmp_path: pathlib.Path = tmp_path_factory.mktemp("data")
@@ -83,9 +85,16 @@ def ez_fov(
                 image_size / cloud_noise_size,
             )
 
-            output_image[channel_idx]: np.ndarray = ndimage.gaussian_filter(
-                channel, sigma=2.0
-            )
+            int_channel = img_as_int(
+                minmax_scale(
+                    ndimage.gaussian_filter(
+                        channel, sigma=2.0
+                    ),
+                    feature_range=(-1., 0.999)
+                )
+            ).astype(np.int64)
+
+            output_image[channel_idx]: np.ndarray = int_channel
 
         fov_dir = tmp_image_dir / f"fov_{fov_idx}"
         fov_dir.mkdir(parents=True, exist_ok=True)
@@ -100,7 +109,7 @@ def ez_fov(
 
 @pytest.mark.parametrize(
     "_min_object_area, _max_object_area, _object_shape_type, _thresh, _fov_dim",
-    [(100, 100000, "blob", None, 400), (200, 2000, "projection", 0.1, 800)],
+    [(100, 100000, "blob", None, 400), (200, 2000, "projection", 20, 800)],
 )
 def test_create_object_masks(
     ez_fov: pathlib.Path,
@@ -172,7 +181,7 @@ def test_create_object_masks(
 
 @pytest.mark.parametrize(
     "_min_object_area, _max_object_area, _object_shape_type, _thresh, _fov_dim",
-    [(100, 100000, "blob", None, 400), (200, 2000, "projection", 0.1, 800)],
+    [(100, 100000, "blob", None, 400), (200, 2000, "projection", 100, 800)],
 )
 def test_create_object_mask(
     ez_fov: pathlib.Path,

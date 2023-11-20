@@ -6,7 +6,7 @@ import pytest
 import skimage.io as io
 import tempfile
 
-from alpineer import io_utils
+from alpineer import io_utils, image_utils
 from ark.segmentation.ez_seg import ez_seg_utils
 from typing import List, Union
 
@@ -18,9 +18,9 @@ def tiff_dir(tmpdir_factory: pytest.TempPathFactory) -> pathlib.Path:
 
     for nf in range(num_fovs):
         os.mkdir(tiff_dir_name / f"fov{nf}")
-        tiff_file: pathlib.Path = tiff_dir_name / f"fov{nf}" / f"fov{nf}.tiff"
+        img_path: pathlib.Path = tiff_dir_name / f"fov{nf}" / f"fov{nf}.tiff"
         tiff_data: np.ndarray = np.random.rand(32, 32)
-        io.imsave(str(tiff_file), tiff_data)
+        image_utils.save_image(fname=img_path, data=tiff_data)
 
     yield tiff_dir_name
 
@@ -35,9 +35,9 @@ def seg_dir(tmpdir_factory: pytest.TempPathFactory) -> pathlib.Path:
         os.mkdir(seg_dir_name / ss)
 
         for nf in range(num_fovs):
-            mask_file: pathlib.Path = seg_dir_name / ss / f"fov{nf}_{ss}.tiff"
+            mask_path: pathlib.Path = seg_dir_name / ss / f"fov{nf}_{ss}.tiff"
             mask_data: np.ndarray = np.random.randint(0, 2, (32, 32))
-            io.imsave(str(mask_file), mask_data)
+            image_utils.save_image(fname=mask_path, data=mask_data)
 
     yield seg_dir_name
 
@@ -61,7 +61,6 @@ def mask_dir(tmpdir_factory: pytest.TempPathFactory) -> pathlib.Path:
 
     mask_suffixes: List[str] = ["type1.tiff", "type2.tiff"]
     fov_count: int = 3
-    cluster_count: int = 2
 
     mask_files: List[pathlib.Path] = [
         mask_dir_name / f"fov{fov_num}_{ms}"
@@ -71,7 +70,7 @@ def mask_dir(tmpdir_factory: pytest.TempPathFactory) -> pathlib.Path:
 
     for mf in mask_files:
         mask_data: np.ndarray = np.random.randint(0, 3, (32, 32))
-        io.imsave(str(mf), mask_data)
+        image_utils.save_image(fname=mf, data=mask_data)
 
     yield mask_dir_name
 

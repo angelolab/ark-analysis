@@ -1,5 +1,5 @@
 import pathlib
-from typing import Optional, Tuple, Union
+from typing import Optional, Tuple, Union, Literal
 import numpy as np
 from skimage import measure, filters, morphology
 from skimage.util import map_array
@@ -63,13 +63,15 @@ def create_object_masks(
 
     for fov in fov_list:
         fov_xr: xr.DataArray = load_utils.load_imgs_from_tree(
-                data_dir=image_data_dir, img_sub_folder=img_sub_folder, fovs=fov
-            ).squeeze()
+            data_dir=image_data_dir, img_sub_folder=img_sub_folder, fovs=fov
+        ).squeeze()
 
         # handles folders where only 1 channel is loaded, often for composites
         try:
             len(fov_xr.channels)
-            channel: xr.DataArray = fov_xr.sel({"channels": channel_to_segment}).astype(int)
+            channel: xr.DataArray = fov_xr.sel({"channels": channel_to_segment}).astype(
+                int
+            )
         except TypeError:
             channel: xr.DataArray = fov_xr.astype(int)
 
@@ -86,9 +88,7 @@ def create_object_masks(
 
         # save the channel overlay
         save_path = pathlib.Path(masks_dir) / f"{fov}_{mask_name}.tiff"
-        image_utils.save_image(
-            fname=save_path, data=object_masks
-        )
+        image_utils.save_image(fname=save_path, data=object_masks)
 
     # Write a log saving ez segment info
     variables_to_log = {
@@ -103,7 +103,7 @@ def create_object_masks(
         "hole_size": hole_size,
         "fov_dim": fov_dim,
         "min_object_area": min_object_area,
-        "max_object_area": max_object_area
+        "max_object_area": max_object_area,
     }
     log_creator(variables_to_log, log_dir, f"{mask_name}_segmentation_log.txt")
     print("ez masks built and saved")
@@ -111,10 +111,10 @@ def create_object_masks(
 
 def _create_object_mask(
     input_image: xr.DataArray,
-    object_shape_type: str = "blob",
+    object_shape_type: Union[Literal["blob"], Literal["projection"]] = "blob",
     sigma: int = 1,
-    thresh: Optional[np.float32] = None,
-    hole_size: Optional[int] = None,
+    thresh: Union[int, Literal["auto"]] = None,
+    hole_size: Union[int, Literal["auto"]] = "auto",
     fov_dim: int = 400,
     min_object_area: int = 10,
     max_object_area: int = 100000,
@@ -122,7 +122,7 @@ def _create_object_mask(
     """
     Calculates a mask for circular or 'blob'-like objects such as: single large cells or amyloid
     plaques. It will blur the input image, then threshold the blurred image on either a given
-    fixed value, or an adaptive thresholding method. In addition it removes small holes using
+    fixed value, or an adaptive thresholding method. In addition, it removes small holes using
     that same thresholding input and filters out objects which are either too small or too large.
 
     Args:
@@ -131,9 +131,9 @@ def _create_object_mask(
         "projection" shaped. Defaults to "blob".
         sigma (int): The standard deviation for Gaussian kernel, used for blurring the
         image. Defaults to 1.
-        thresh (np.float32, optional): The global threshold value for image thresholding if
-        desired. Defaults to None.
-        hole_size (int, optional): A specific area to close small holes over in object masks.
+        thresh (int, str,  optional): The global threshold value for image thresholding if
+        desired. Defaults to "auto".
+        hole_size (int, str, optional): A specific area to close small holes over in object masks.
         Defaults to None.
         fov_dim (int): The dimension in μm of the FOV.
         min_object_area (int): The minimum size (area) of an object to capture in
@@ -145,53 +145,60 @@ def _create_object_mask(
         np.ndarray: The object mask.
     """
 
+    # Input validation
+    misc_utils.verify_in_list(object_shape_type=[object_shape_type], object_shape_options=["blob", "projection"])
 
     # Copy the input image, and get its shape
     img2mask: np.ndarray = input_image.copy().to_numpy()
     img2mask_shape: Tuple[int, int] = img2mask.shape
 
     # Blur the input mask using given sigma value
-    img2mask_blur: np.ndarray = filters.gaussian(img2mask, sigma=sigma, preserve_range=True)
+    img2mask_blur: np.ndarray = np.round(filters.gaussian(
+        img2mask, sigma=sigma, preserve_range=True
+    )).astype(int)
 
     # Apply binary thresholding to the blurred image
-
     if thresh is None:
         img2mask_thresh = img2mask_blur
-    elif thresh != -1:
-        # Find the threshold value based on the given percentile number
-        img_nonzero = img2mask_blur[img2mask_blur != 0]
-        thresh_percentile = np.percentile(img_nonzero, thresh)
-
-        # Create a thresholded array where values below the threshold are set to 0
-        img2mask_thresh = np.where(img2mask_blur < thresh_percentile, 0, img2mask_blur)
-    else:
+    elif thresh == "auto":
         local_thresh_block_size: int = get_block_size(
             block_type="local_thresh", fov_dim=fov_dim, img_shape=img2mask_shape[0]
         )
         img2mask_thresh: np.ndarray = img2mask_blur > filters.threshold_local(
             img2mask_blur, block_size=local_thresh_block_size
         )
+    else:
+        # Find the threshold value based on the given percentile number
+        img_nonzero = img2mask_blur[img2mask_blur != 0]
+        thresh_percentile = np.percentile(img_nonzero, thresh)
+
+        # Threshold the array where values below the threshold are set to 0
+        img2mask_thresh = np.where(img2mask_blur < thresh_percentile, 0, img2mask_blur)
 
     # Remove small holes within the objects
-    if hole_size != -1:
+    if isinstance(hole_size, int):
         img2mask_rm_holes: np.ndarray = morphology.remove_small_holes(
             img2mask_thresh, area_threshold=hole_size
         )
-    else:
+    elif hole_size in (None, "auto"):
         small_holes_block_size: int = get_block_size(
             block_type="small_holes", fov_dim=fov_dim, img_shape=img2mask_shape[0]
         )
         img2mask_rm_holes: np.ndarray = morphology.remove_small_holes(
             img2mask_thresh, area_threshold=small_holes_block_size
         )
+    else:
+        raise ValueError(
+            f"Invalid `hole_size` value: {hole_size}. Must be either `None` or an integer."
+        )
 
     # Filter projections
-    if object_shape_type == "blob":
-        img2mask_filtered: np.ndarray = img2mask_rm_holes
-    else:
+    if object_shape_type == "projection":
         img2mask_filtered: np.ndarray = filters.meijering(
             img2mask_rm_holes, sigmas=range(1, 5, 1), black_ridges=False
         )
+    else:
+        img2mask_filtered: np.ndarray = img2mask_rm_holes
 
     # Binarize the image in prep for labeling.
     img2mask_filtered_binary = img2mask_filtered > 0
@@ -213,12 +220,16 @@ def _create_object_mask(
     )
 
     # zero out objects not meeting size requirements
-    keep_labels_bool = (object_masks_df["area"] >= min_object_area) & (object_masks_df["area"] <= max_object_area)
+    keep_labels_bool = (object_masks_df["area"] >= min_object_area) & (
+        object_masks_df["area"] <= max_object_area
+    )
     all_labels = object_masks_df["label"]
     labels_to_keep = all_labels * keep_labels_bool
 
     # Map filtered objects to the object mask
-    objects_filtered_by_size = map_array(labeled_object_masks, all_labels.to_numpy(), labels_to_keep.to_numpy())
+    objects_filtered_by_size = map_array(
+        labeled_object_masks, all_labels.to_numpy(), labels_to_keep.to_numpy()
+    )
 
     return objects_filtered_by_size.astype(np.int32)
 
