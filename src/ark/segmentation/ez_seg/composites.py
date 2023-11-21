@@ -159,6 +159,7 @@ def subtract_from_composite(
     Returns:
         np.ndarray: The composite array, either as a binary mask, or as a scaled intensity array.
     """
+    print(composite_array)
 
     filtered_channels: xr.DataArray = data.sel(
         {"channels": images_to_subtract}
