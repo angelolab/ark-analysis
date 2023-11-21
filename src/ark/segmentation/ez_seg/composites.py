@@ -22,14 +22,16 @@ def composite_builder(
     Adds tiffs together, either pixel clusters or base signal tiffs and returns a composite channel or mask.
 
     Args:
-        image_data_dir (xr.DataArray): The path to dir containing the set of all images which get filtered out with
-            images_to_add and images_to_subtract.
+        image_data_dir (Union[str, pathlib.Path]): The path to dir containing the set of all images 
+            which get filtered out with `images_to_add` and `images_to_subtract`.
         img_sub_folder (str): A name for sub-folders within each fov in the image_data location.
         fov_list: A list of fov's to create composite channels through.
         images_to_add (List[str]): A list of channels or pixel cluster names to add together.
-        images_to_subtract (List[str]): A list of channels or pixel cluster names to subtract from the composite.
+        images_to_subtract (List[str]): A list of channels or pixel cluster names to subtract 
+            from the composite.
         image_type (str): Either "signal" or "pixel_cluster" data.
-        composite_method (str): Binarized mask returns ("binary") or intensity, gray-scale tiffs returned ("total").
+        composite_method (str): Binarized mask returns ("binary") or intensity, gray-scale tiffs 
+            returned ("total").
         composite_directory (Union[str, pathlib.Path]): The directory to save the composite array.
         composite_name (str): The name of the composite array to save.
         log_dir: The directory to save log information to.
@@ -39,7 +41,9 @@ def composite_builder(
     """
     for fov in fov_list:
         # load in tiff images and verify channels are present
-        fov_data = load_utils.load_imgs_from_tree(data_dir=image_data_dir, img_sub_folder=img_sub_folder, fovs=fov)
+        fov_data = load_utils.load_imgs_from_tree(
+            data_dir=image_data_dir, img_sub_folder=img_sub_folder, fovs=fov
+        )
 
         image_shape = fov_data.shape[1:3]
 
@@ -75,7 +79,8 @@ def composite_builder(
 
         # Save the composite image
         image_utils.save_image(
-            fname=composite_directory / fov / f"{composite_name}.tiff", data=composite_array.astype(np.uint32)
+            fname=composite_directory / fov / f"{composite_name}.tiff",
+            data=composite_array.astype(np.uint32)
         )
 
     # Write a log saving composite builder info
@@ -105,25 +110,29 @@ def add_to_composite(
     Adds tiffs together to form a composite array.
 
     Args:
-        data (xr.DataArray): The data array containing the set of all images which get filtered out with images_to_add.
+        data (xr.DataArray): The data array containing the set of all images which get filtered out
+            with `images_to_add`.
         composite_array (np.ndarray): The array to add channels to.
         images_to_add (List[str]): A list of channels or pixel cluster names to add together.
         image_type (str): Either "signal" or "pixel_cluster" data.
-        composite_method (str): Binarized mask returns ("binary") or intensity, gray-scale tiffs returned ("total").
+        composite_method (str): Binarized mask returns ("binary") or intensity, gray-scale tiffs
+            returned ("total").
 
     Returns:
         np.ndarray: The composite array, either as a binary mask, or as a scaled intensity array.
     """
 
-    filtered_channels: xr.DataArray = data.sel({"channels": images_to_add}).squeeze().astype(np.int32)
+    filtered_channels: xr.DataArray = data.sel(
+        {"channels": images_to_add}
+    )
+    if len(images_to_add) > 1:
+        filtered_channels = filtered_channels.squeeze()
+    filtered_channels = filtered_channels.astype(np.int32)
 
-    if image_type == "signal":
-        composite_array: np.ndarray = filtered_channels.sum(dim="channels").values
-        if composite_method == "binary":
-            composite_array = composite_array.clip(min=None, max=1)
-    else:
-        for fov in filtered_channels.fovs.values:
-            composite_array |= filtered_channels.sel(fovs=fov).values
+    composite_array: np.ndarray = filtered_channels.sum(dim="channels").values
+    if image_type == "pixel_cluster" or composite_method == "binary":
+        composite_array = composite_array.clip(min=None, max=1)
+
     return composite_array
 
 
@@ -138,12 +147,14 @@ def subtract_from_composite(
     Subtracts tiffs from a composite array.
 
     Args:
-        data (xr.DataArray): The data array containing the set of all images which get filtered out with
-            images_to_subtract.
+        data (xr.DataArray): The data array containing the set of all images which get
+            filtered out with `images_to_subtract`.
         composite_array (np.ndarray): An array to subtract channels from.
-        images_to_subtract (List[str]): A list of channels or pixel cluster names to subtract from the composite.
+        images_to_subtract (List[str]): A list of channels or pixel cluster names to subtract
+            from the composite.
         image_type (str): Either "signal" or "pixel_cluster" data.
-        composite_method (str): Binarized mask returns ('binary') or intensity, gray-scale tiffs returned ('total').
+        composite_method (str): Binarized mask returns ('binary') or intensity, gray-scale tiffs
+            returned ('total').
 
     Returns:
         np.ndarray: The composite array, either as a binary mask, or as a scaled intensity array.
@@ -151,10 +162,14 @@ def subtract_from_composite(
 
     filtered_channels: xr.DataArray = data.sel(
         {"channels": images_to_subtract}
-    ).squeeze().astype(np.int32)
-    # for each channel to subtract
-    for channel in filtered_channels.channels.values:
-        channel_data = filtered_channels.sel(channels=channel)
+    )
+    if len(images_to_subtract) > 1:
+        filtered_channels = filtered_channels.squeeze()
+    filtered_channels = filtered_channels.astype(np.int32)
+
+    for channel in images_to_subtract:
+        channel_data = filtered_channels.sel(channels=channel).squeeze().values
+
         if image_type == "signal" and composite_method == "binary":
             mask_2_zero = channel_data > 0
             composite_array[mask_2_zero] = 0
