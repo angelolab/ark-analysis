@@ -816,14 +816,17 @@ class Test_EZSegmenter:
     def test_validate_mask_dirs(self):
         self.tb.execute_cell("validate_mask_dirs")
 
+    def test_merge_seg_cell(self):
+        self.tb.execute_cell("merge_seg_cell")
+
     def test_view_merged_mask(self):
         self.tb.execute_cell("view_merged_mask")
 
+    def test_consolidate_mask(self):
+        self.tb.execute_cell("consolidate_mask")
+
     def test_relabel_mask(self):
         self.tb.execute_cell("relabel_mask")
-
-    def test_merge_seg_cell(self):
-        self.tb.execute_cell("merge_seg_cell")
 
     def test_nuc_props_set(self):
         self.tb.execute_cell("nuc_props_set")
