@@ -50,13 +50,6 @@ def mantis_dir(tmpdir_factory: pytest.TempPathFactory) -> pathlib.Path:
 
 @pytest.fixture(scope="module")
 def mask_dir(tmpdir_factory: pytest.TempPathFactory) -> pathlib.Path:
-    """Creates an example mask directory
-
-    Yields:
-        pathlib.Path:
-            The path to the mask directory
-    """
-
     mask_dir_name: pathlib.Path = tmpdir_factory.mktemp("mask_dir")
 
     mask_suffixes: List[str] = ["type1.tiff", "type2.tiff"]
@@ -73,6 +66,51 @@ def mask_dir(tmpdir_factory: pytest.TempPathFactory) -> pathlib.Path:
         image_utils.save_image(fname=mf, data=mask_data)
 
     yield mask_dir_name
+
+
+@pytest.fixture(scope="module")
+def nested_mask_dir(tmpdir_factory: pytest.TempPathFactory) -> pathlib.Path:
+    nested_mask_dir_name: pathlib.Path = tmpdir_factory.mktemp("nested_mask_dir")
+
+    mask_suffixes: List[str] = ["type1.tiff", "type2.tiff", "type3.tiff"]
+    fov_count: int = 3
+
+    nested_mask_subdir = nested_mask_dir_name / "nested_mask_subdir"
+    os.makedirs(nested_mask_subdir)
+
+    mask_files_root: List[pathlib.Path] = [
+        nested_mask_dir_name / f"fov{fov_num}_{ms}"
+        for fov_num in range(4)
+        for ms in mask_suffixes
+    ]
+    mask_files_subdir: List[pathlib.Path] = [
+        nested_mask_subdir / f"fov{fov_num}_{ms}"
+        for fov_num in range(4, 7)
+        for ms in mask_suffixes
+    ]
+    all_mask_files: List[pathlib.Path] = mask_files_root + mask_files_subdir
+
+    for mf in all_mask_files:
+        mask_data: np.ndarray = np.random.randint(0, 3, (32, 32))
+        image_utils.save_image(fname=mf, data=mask_data)
+
+    yield nested_mask_dir_name
+
+
+def test_find_and_copy_files(
+    tmpdir_factory: pytest.TempPathFactory, nested_mask_dir: pathlib.Path
+):
+    combined_mask_dir: pathlib.Path = tmpdir_factory.mktemp("mask_dest_dir")
+    mask_suffix_names: List[str] = ["type1", "type2"]
+
+    ez_seg_utils.find_and_copy_files(mask_suffix_names, nested_mask_dir, combined_mask_dir)
+
+    files_copied = [
+        combined_mask_dir / f"fov{fov_num}_{ms}.tiff"
+        for fov_num in range(7)
+        for ms in mask_suffix_names
+    ]
+    assert all([os.path.exists(fc) for fc in files_copied])
 
 
 def test_renumber_masks(mask_dir: pathlib.Path):

@@ -11,13 +11,14 @@ import pathlib
 import pandas as pd
 
 
-def find_and_copy_files(names: List, source_folder: Union[str, List[str]], destination_folder: Union[str, List[str]]):
+def find_and_copy_files(mask_names: List[str], source_folder: Union[str, List[str]],
+                        destination_folder: Union[str, List[str]]):
     """
-    Creates a new directory of masks for relabeling and cell table generation. Useful if more than one mask type is
-    needed for cell table generation. E.g. merged cells and proteopathy objects.
+    Creates a new directory of masks for relabeling and cell table generation. Useful if more than
+    one mask type is needed for cell table generation. E.g. merged cells and proteopathy objects.
 
     Args:
-        names (List):
+        mask_names (List[str]):
             List of mask names to be merged. Can be partial names.
         source_folder (Union[str, List[str]]):
             The parent segmentation folder all masks are found in.
@@ -29,9 +30,9 @@ def find_and_copy_files(names: List, source_folder: Union[str, List[str]], desti
         os.makedirs(destination_folder)
 
     # Iterate through each name in the list
-    for name in names:
+    for mn in mask_names:
         # Compile a regex pattern to match files containing the name anywhere in the file name
-        pattern = re.compile(f".*{re.escape(name)}.*", re.IGNORECASE)
+        pattern = re.compile(f".*{re.escape(mn)}.*", re.IGNORECASE)
 
         # Search for files associated with the current name in the source folder using regex
         files_to_copy = []
@@ -49,10 +50,12 @@ def renumber_masks(
     mask_dir: Union[pathlib.Path, str]
 ):
     """
-    Relabels all masks in mask tiffs so each label is unique across all mask images in entire dataset.
+    Relabels all masks in mask tiffs so each label is unique across all mask images
+    in entire dataset.
 
     Args:
-        mask_dir (Union[pathlib.Path, str]): Directory that points to parent directory of all segmentation masks to be relabeled.
+        mask_dir (Union[pathlib.Path, str]): Directory that points to parent directory of all
+            segmentation masks to be relabeled.
     """
     mask_dir_path = pathlib.Path(mask_dir)
     io_utils.validate_paths(mask_dir_path)
