@@ -94,7 +94,7 @@ def composite_builder(
         "composite_directory": composite_directory,
         "composite_name": composite_name,
     }
-    log_creator(variables_to_log, log_dir, "composite_log.txt")
+    log_creator(variables_to_log, log_dir, f"{composite_name}_composite_log.txt")
 
     print("Composites built and saved")
 
@@ -123,13 +123,11 @@ def add_to_composite(
     """
 
     filtered_channels: xr.DataArray = data.sel(
-        {"channels": images_to_add}
-    )
+        {"channels": images_to_add}).squeeze().astype(np.int32)
     if len(images_to_add) > 1:
-        filtered_channels = filtered_channels.squeeze()
-    filtered_channels = filtered_channels.astype(np.int32)
-
-    composite_array: np.ndarray = filtered_channels.sum(dim="channels").values
+        composite_array: np.ndarray = filtered_channels.sum(dim="channels").values
+    else:
+        composite_array: np.ndarray = filtered_channels
     if image_type == "pixel_cluster" or composite_method == "binary":
         composite_array = composite_array.clip(min=None, max=1)
 
@@ -159,24 +157,21 @@ def subtract_from_composite(
     Returns:
         np.ndarray: The composite array, either as a binary mask, or as a scaled intensity array.
     """
-    print(composite_array)
 
     filtered_channels: xr.DataArray = data.sel(
-        {"channels": images_to_subtract}
-    )
+        {"channels": images_to_subtract}).squeeze().astype(np.int32)
     if len(images_to_subtract) > 1:
-        filtered_channels = filtered_channels.squeeze()
-    filtered_channels = filtered_channels.astype(np.int32)
+        composite_array2sub: np.ndarray = filtered_channels.sum(dim="channels").values
+    else:
+        composite_array2sub: np.ndarray = filtered_channels
 
-    for channel in images_to_subtract:
-        channel_data = filtered_channels.sel(channels=channel).squeeze().values
+    if image_type == "signal" and composite_method == "binary":
+        mask_2_zero = composite_array2sub > 0
+        composite_array[mask_2_zero] = 0
+        composite_array[composite_array > 1] = 1
 
-        if image_type == "signal" and composite_method == "binary":
-            mask_2_zero = channel_data > 0
-            composite_array[mask_2_zero] = 0
-            composite_array[composite_array > 1] = 1
+    else:
+        composite_array -= composite_array2sub
+        composite_array = composite_array.clip(min=0, max=None)
 
-        else:
-            composite_array -= channel_data
-            composite_array = composite_array.clip(min=0, max=None)
     return composite_array

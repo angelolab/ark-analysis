@@ -3,11 +3,46 @@ from skimage.io import imread
 from alpineer.image_utils import save_image
 from alpineer import io_utils
 import os
+import re
 import shutil
 from tqdm.auto import tqdm
 import numpy as np
 import pathlib
 import pandas as pd
+
+
+def find_and_copy_files(names: List, source_folder: Union[str, List[str]], destination_folder: Union[str, List[str]]):
+    """
+    Creates a new directory of masks for relabeling and cell table generation. Useful if more than one mask type is
+    needed for cell table generation. E.g. merged cells and proteopathy objects.
+
+    Args:
+        names (List):
+            List of mask names to be merged. Can be partial names.
+        source_folder (Union[str, List[str]]):
+            The parent segmentation folder all masks are found in.
+        destination_folder (Union[str, List[str]]):
+            New dir where final masks will be copied to.
+    """
+    # Ensure the destination folder exists, create it if not
+    if not os.path.exists(destination_folder):
+        os.makedirs(destination_folder)
+
+    # Iterate through each name in the list
+    for name in names:
+        # Compile a regex pattern to match files containing the name anywhere in the file name
+        pattern = re.compile(f".*{re.escape(name)}.*", re.IGNORECASE)
+
+        # Search for files associated with the current name in the source folder using regex
+        files_to_copy = []
+        for root, dirs, files in os.walk(source_folder):
+            for file in files:
+                if pattern.match(file):
+                    files_to_copy.append(os.path.join(root, file))
+
+        # Copy the found files to the destination folder
+        for file_path in files_to_copy:
+            shutil.copy(file_path, os.path.join(destination_folder, os.path.basename(file_path)))
 
 
 def renumber_masks(

@@ -7,23 +7,24 @@ import pandas as pd
 from alpineer import misc_utils, load_utils, image_utils, io_utils
 from ark.segmentation.ez_seg.ez_seg_utils import log_creator
 import xarray as xr
+import warnings
 
 
 def create_object_masks(
-    image_data_dir: Union[str, pathlib.Path],
-    img_sub_folder: Optional[str],
-    fov_list: list[str],
-    mask_name: str,
-    channel_to_segment: str,
-    masks_dir: Union[str, pathlib.Path],
-    log_dir: Union[str, pathlib.Path],
-    object_shape_type: str = "blob",
-    sigma: int = 1,
-    thresh: Optional[np.float32] = None,
-    hole_size: Optional[int] = None,
-    fov_dim: int = 400,
-    min_object_area: int = 100,
-    max_object_area: int = 100000,
+        image_data_dir: Union[str, pathlib.Path],
+        img_sub_folder: Optional[str],
+        fov_list: list[str],
+        mask_name: str,
+        channel_to_segment: str,
+        masks_dir: Union[str, pathlib.Path],
+        log_dir: Union[str, pathlib.Path],
+        object_shape_type: str = "blob",
+        sigma: int = 1,
+        thresh: Optional[np.float32] = None,
+        hole_size: Optional[int] = None,
+        fov_dim: int = 400,
+        min_object_area: int = 100,
+        max_object_area: int = 100000,
 ) -> None:
     """
     Calculates a mask for each channel in the FOV for circular or 'blob'-like objects such as: single large cells or amyloid
@@ -110,14 +111,14 @@ def create_object_masks(
 
 
 def _create_object_mask(
-    input_image: xr.DataArray,
-    object_shape_type: Union[Literal["blob"], Literal["projection"]] = "blob",
-    sigma: int = 1,
-    thresh: Union[int, Literal["auto"]] = None,
-    hole_size: Union[int, Literal["auto"]] = "auto",
-    fov_dim: int = 400,
-    min_object_area: int = 10,
-    max_object_area: int = 100000,
+        input_image: xr.DataArray,
+        object_shape_type: Union[Literal["blob"], Literal["projection"]] = "blob",
+        sigma: int = 1,
+        thresh: Union[int, Literal["auto"]] = None,
+        hole_size: Union[int, Literal["auto"]] = "auto",
+        fov_dim: int = 400,
+        min_object_area: int = 10,
+        max_object_area: int = 100000,
 ) -> np.ndarray:
     """
     Calculates a mask for circular or 'blob'-like objects such as: single large cells or amyloid
@@ -145,6 +146,10 @@ def _create_object_mask(
         np.ndarray: The object mask.
     """
 
+    # Do not display any UserWarning msg's about boolean arrays here.
+    warnings.filterwarnings(
+        "ignore", message="Any labeled images will be returned as a boolean array. Did you mean to use a boolean array?")
+
     # Input validation
     misc_utils.verify_in_list(object_shape_type=[object_shape_type], object_shape_options=["blob", "projection"])
 
@@ -153,21 +158,15 @@ def _create_object_mask(
     img2mask_shape: Tuple[int, int] = img2mask.shape
 
     # Blur the input mask using given sigma value
-    img2mask_blur: np.ndarray = np.round(filters.gaussian(
-        img2mask, sigma=sigma, preserve_range=True
-    )).astype(int)
+    if sigma is None:
+        img2mask_blur = img2mask
+    else:
+        img2mask_blur: np.ndarray = filters.gaussian(
+            img2mask, sigma=sigma, preserve_range=True
+        )
 
     # Apply binary thresholding to the blurred image
-    if thresh is None:
-        img2mask_thresh = img2mask_blur
-    elif thresh == "auto":
-        local_thresh_block_size: int = get_block_size(
-            block_type="local_thresh", fov_dim=fov_dim, img_shape=img2mask_shape[0]
-        )
-        img2mask_thresh: np.ndarray = img2mask_blur > filters.threshold_local(
-            img2mask_blur, block_size=local_thresh_block_size
-        )
-    else:
+    if isinstance(thresh, int):
         # Find the threshold value based on the given percentile number
         img_nonzero = img2mask_blur[img2mask_blur != 0]
         thresh_percentile = np.percentile(img_nonzero, thresh)
@@ -175,21 +174,42 @@ def _create_object_mask(
         # Threshold the array where values below the threshold are set to 0
         img2mask_thresh = np.where(img2mask_blur < thresh_percentile, 0, img2mask_blur)
 
+    elif thresh == "auto":
+        local_thresh_block_size: int = get_block_size(
+            block_type="local_thresh", fov_dim=fov_dim, img_shape=img2mask_shape[0]
+        )
+        img2mask_thresh: np.ndarray = img2mask_blur > filters.threshold_local(
+            img2mask_blur, block_size=local_thresh_block_size
+        )
+    elif thresh is None:
+        img2mask_thresh = img2mask_blur
+    else:
+        raise ValueError(
+            f"Invalid `threshold` value: {thresh}. Must be either `auto`, `None` or an integer."
+        )
+
+    # Binarize the image in prep for removing holes.
+    img2mask_thresh_binary = img2mask_thresh > 0
+    img2mask_thresh[img2mask_thresh_binary] = 1
+    img2mask_thresh = img2mask_thresh.astype(int)
+
     # Remove small holes within the objects
     if isinstance(hole_size, int):
         img2mask_rm_holes: np.ndarray = morphology.remove_small_holes(
             img2mask_thresh, area_threshold=hole_size
         )
-    elif hole_size in (None, "auto"):
+    elif hole_size == "auto":
         small_holes_block_size: int = get_block_size(
             block_type="small_holes", fov_dim=fov_dim, img_shape=img2mask_shape[0]
         )
         img2mask_rm_holes: np.ndarray = morphology.remove_small_holes(
             img2mask_thresh, area_threshold=small_holes_block_size
         )
+    elif hole_size is None:
+        img2mask_rm_holes = img2mask_thresh
     else:
         raise ValueError(
-            f"Invalid `hole_size` value: {hole_size}. Must be either `None` or an integer."
+            f"Invalid `hole_size` value: {hole_size}. Must be either `auto`, `None` or an integer."
         )
 
     # Filter projections
@@ -221,7 +241,7 @@ def _create_object_mask(
 
     # zero out objects not meeting size requirements
     keep_labels_bool = (object_masks_df["area"] >= min_object_area) & (
-        object_masks_df["area"] <= max_object_area
+            object_masks_df["area"] <= max_object_area
     )
     all_labels = object_masks_df["label"]
     labels_to_keep = all_labels * keep_labels_bool

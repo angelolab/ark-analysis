@@ -108,7 +108,7 @@ def overlay_mask_outlines(
 
     # Apply Canny edge detection to extract outlines
     edges: np.ndarray = feature.canny(
-        image=mask_image, low_threshold=30, high_threshold=100
+        image=mask_image, low_threshold=0, high_threshold=1
     )
 
     # Set the outline color to red
