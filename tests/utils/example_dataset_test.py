@@ -116,7 +116,15 @@ class TestExampleDataset:
                               "Amyloidbeta142", "Calbindin", "PanApoE2E3E4", "empty139",
                               "CD31", "MCT1", "MBP", "SERT", "PHF1Tau", "VGAT",
                               "VGLUT2", "CD56Lyo", "MFN2"],
-            "composite_names": ["composite_microglia"],
+            "composite_names": [
+                "amyloid",
+                "astrocyte",
+                "composite_microglia",
+                "composite-astrocyte",
+                "microglia",
+                "plaques",
+                "test"
+            ],
             "cell_table_names": [
                 "filtered_whole_cell_table_size_normalized",
                 "filtered_whole_cell_table_arcsinh_transformed",
