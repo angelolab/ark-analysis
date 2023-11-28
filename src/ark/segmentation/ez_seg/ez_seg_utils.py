@@ -38,7 +38,7 @@ def find_and_copy_files(mask_names: List[str], source_folder: Union[str, List[st
         files_to_copy = []
         for root, dirs, files in os.walk(source_folder):
             for file in files:
-                if pattern.match(file) and destination_folder not in root:
+                if pattern.match(file) and str(destination_folder) not in str(root):
                     files_to_copy.append(os.path.join(root, file))
 
         # Copy the found files to the destination folder
