@@ -119,11 +119,7 @@ class TestExampleDataset:
             "composite_names": [
                 "amyloid",
                 "astrocyte",
-                "composite_microglia",
-                "composite-astrocyte",
                 "microglia",
-                "plaques",
-                "test"
             ],
             "cell_table_names": [
                 "filtered_whole_cell_table_size_normalized",
