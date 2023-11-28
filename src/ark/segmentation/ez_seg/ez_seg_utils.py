@@ -11,8 +11,8 @@ import pathlib
 import pandas as pd
 
 
-def find_and_copy_files(mask_names: List[str], source_folder: Union[str, List[str]],
-                        destination_folder: Union[str, List[str]]):
+def find_and_copy_files(mask_names: List[str], source_folder: Union[str, pathlib.Path],
+                        destination_folder: Union[str, pathlib.Path]):
     """
     Creates a new directory of masks for relabeling and cell table generation. Useful if more than
     one mask type is needed for cell table generation. E.g. merged cells and proteopathy objects.
@@ -20,9 +20,9 @@ def find_and_copy_files(mask_names: List[str], source_folder: Union[str, List[st
     Args:
         mask_names (List[str]):
             List of mask names to be merged. Can be partial names.
-        source_folder (Union[str, List[str]]):
+        source_folder (Union[str, pathlib.Path]):
             The parent segmentation folder all masks are found in.
-        destination_folder (Union[str, List[str]]):
+        destination_folder (Union[str, pathlib.Path]):
             New dir where final masks will be copied to.
     """
     # Ensure the destination folder exists, create it if not
