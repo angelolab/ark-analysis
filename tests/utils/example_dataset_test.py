@@ -121,17 +121,33 @@ class TestExampleDataset:
                 "astrocyte",
                 "microglia",
             ],
+            "ez_mask_suffixes": [
+                "amyloid-plaques",
+                "astrocyte-arms",
+                "microglia-arms"
+            ],
             "cell_table_names": [
-                "filtered_whole_cell_table_size_normalized",
-                "filtered_whole_cell_table_arcsinh_transformed",
+                "filtered_amyloid-plaques_table_arcsinh_transformed",
+                "filtered_amyloid-plaques_table_size_normalized",
+                "filtered_astrocyte-arms_merged_table_arcsinh_transformed",
+                "filtered_astrocyte-arms_merged_table_size_normalized",
                 "filtered_microglia-arms_merged_table_size_normalized",
                 "filtered_microglia-arms_merged_table_arcsinh_transformed",
+                "filtered_whole_cell_table_size_normalized",
+                "filtered_whole_cell_table_arcsinh_transformed",
                 "cell_and_objects_table_size_normalized",
                 "cell_and_objects_table_arcsinh_transformed"
             ],
-            "log_names": ["composite_log", "mask_merge_log",
-                          "microglia-arms_segmentation_log",
-                          "object_segmentation_log"]
+            "log_names": [
+                "amyloid-composite_log",
+                "amyloid-plaques_segmentation_log",
+                "astrocyte_composite_log",
+                "astrocyte-arms_segmentation_log",
+                "mask_merge_log",
+                "microglia_composite_log",
+                "microglia-arms_segmentation_log",
+                "test_composite_log"
+            ]
         }
 
         self.dataset_test_fns: dict[str, Callable] = {
@@ -510,16 +526,23 @@ class TestExampleDataset:
         # ezSegmenter masks check
         downloaded_ez = list(ez_masks.glob("*.tiff"))
         downloaded_ez_names = [f.stem for f in downloaded_ez]
-        actual_ez_names = [f"{fov}_microglia-arms" for fov in self._ez_seg_files["fov_names"]]
+        actual_ez_names = [
+            f"{fov}_{ez_suffix}"
+            for fov in self._ez_seg_files["fov_names"]
+            for ez_suffix in self._ez_seg_files["ez_mask_suffixes"]
+        ]
         assert set(actual_ez_names) == set(downloaded_ez_names)
 
         # merged masks check
         downloaded_merged = list(merged_masks.glob("*.tiff"))
         downloaded_merged_names = [f.stem for f in downloaded_merged]
         actual_merged_names = [
-            f"{fov}_final_cells_remaining" for fov in self._ez_seg_files["fov_names"]
+            f"{fov}_{ez_suffix}_merged"
+            for fov in self._ez_seg_files["fov_names"]
+            for ez_suffix in self._ez_seg_files["ez_mask_suffixes"]
+            if ez_suffix != "amyloid-plaques"
         ] + [
-            f"{fov}_microglia-arms_merged" for fov in self._ez_seg_files["fov_names"]
+            f"{fov}_final_cells_remaining" for fov in self._ez_seg_files["fov_names"]
         ]
         assert set(actual_merged_names) == set(downloaded_merged_names)
 
