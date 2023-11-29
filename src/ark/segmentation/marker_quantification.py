@@ -1,5 +1,6 @@
 import copy
 import warnings
+from typing import List
 
 import numpy as np
 import pandas as pd
@@ -124,8 +125,9 @@ def assign_single_compartment_features(marker_counts, compartment, cell_props, c
 
     # add counts of each marker to appropriate column
     # Only include the marker_count features up to the last filtered feature.
-    marker_counts.loc[compartment, cell_id,
-                      marker_counts.features[1]:filtered_regionprops_names[-1]] = cell_features
+    marker_counts.loc[
+        compartment, cell_id, marker_counts.features[1]:filtered_regionprops_names[-1]
+    ] = cell_features
 
     # add cell size to first column
     marker_counts.loc[compartment, cell_id, marker_counts.features[0]] = cell_coords.shape[0]
@@ -399,7 +401,6 @@ def create_marker_count_matrices(segmentation_labels, image_data, nuclear_counts
 
     # define the FOV associated with this segmentation label
     fov = segmentation_labels.fovs.values[0]
-    print("extracting data from {}".format(fov))
 
     # current mask
     label = segmentation_labels.loc[fov, :, :, :]
@@ -528,48 +529,83 @@ def generate_cell_table(segmentation_dir, tiff_dir, img_sub_folder="TIFs",
         whole_cell_file = fov_name + '_whole_cell.tiff'
         nuclear_file = fov_name + '_nuclear.tiff'
 
-        # load the segmentation labels in
-        current_labels_cell = load_utils.load_imgs_from_dir(data_dir=segmentation_dir,
-                                                            files=[whole_cell_file],
-                                                            xr_dim_name='compartments',
-                                                            xr_channel_names=['whole_cell'],
-                                                            trim_suffix='_whole_cell')
+        # for each label given in the argument. read in that mask for the fov, and proceed with label and table appending
+        mask_files = io_utils.list_files(segmentation_dir, substrs=fov_name)
+        mask_types = process_lists(fov_names=fovs, mask_names=mask_files)
 
-        compartments = ['whole_cell']
-        segmentation_labels = current_labels_cell.values
+        for mask_type in mask_types:
+            # load the segmentation labels in
+            fov_mask_name = fov_name + '_' + mask_type + ".tiff"
+            current_labels_cell = load_utils.load_imgs_from_dir(data_dir=segmentation_dir,
+                                                                files=[fov_mask_name],
+                                                                xr_dim_name='compartments',
+                                                                xr_channel_names=[mask_type],
+                                                                trim_suffix='_' + mask_type)
 
-        if nuclear_counts:
-            current_labels_nuc = load_utils.load_imgs_from_dir(data_dir=segmentation_dir,
-                                                               files=[nuclear_file],
-                                                               xr_dim_name='compartments',
-                                                               xr_channel_names=['nuclear'],
-                                                               trim_suffix='_nuclear')
-            compartments = ['whole_cell', 'nuclear']
-            segmentation_labels = np.concatenate((current_labels_cell.values,
-                                                  current_labels_nuc.values), axis=-1)
+            compartments = ['whole_cell']
+            segmentation_labels = current_labels_cell.values
 
-        current_labels = xr.DataArray(segmentation_labels,
-                                      coords=[current_labels_cell.fovs,
-                                              current_labels_cell.rows,
-                                              current_labels_cell.cols,
-                                              compartments],
-                                      dims=current_labels_cell.dims)
+            if nuclear_counts:
+                current_labels_nuc = load_utils.load_imgs_from_dir(data_dir=segmentation_dir,
+                                                                   files=[nuclear_file],
+                                                                   xr_dim_name='compartments',
+                                                                   xr_channel_names=['nuclear'],
+                                                                   trim_suffix='_nuclear')
+                compartments = ['whole_cell', 'nuclear']
+                segmentation_labels = np.concatenate((current_labels_cell.values,
+                                                      current_labels_nuc.values), axis=-1)
 
-        # segment the imaging data
-        cell_table_size_normalized, cell_table_arcsinh_transformed = create_marker_count_matrices(
-            segmentation_labels=current_labels,
-            image_data=image_data,
-            extraction=extraction,
-            nuclear_counts=nuclear_counts,
-            fast_extraction=fast_extraction,
-            **kwargs
-        )
+            current_labels = xr.DataArray(segmentation_labels,
+                                          coords=[current_labels_cell.fovs,
+                                                  current_labels_cell.rows,
+                                                  current_labels_cell.cols,
+                                                  compartments],
+                                          dims=current_labels_cell.dims)
 
-        normalized_tables.append(cell_table_size_normalized)
-        arcsinh_tables.append(cell_table_arcsinh_transformed)
+            # segment the imaging data
+            cell_table_size_normalized, cell_table_arcsinh_transformed = create_marker_count_matrices(
+                segmentation_labels=current_labels,
+                image_data=image_data,
+                extraction=extraction,
+                nuclear_counts=nuclear_counts,
+                fast_extraction=fast_extraction,
+                **kwargs
+            )
+
+            # add mask type column to the data frame
+            if mask_type == "final_cells_remaining":
+                mask_type_str = "whole_cell"
+            else:
+                mask_type_str = mask_type
+            cell_table_size_normalized['mask_type'] = mask_type_str
+            cell_table_arcsinh_transformed['mask_type'] = mask_type_str
+
+            # add to larger dataframe
+            normalized_tables.append(cell_table_size_normalized)
+            arcsinh_tables.append(cell_table_arcsinh_transformed)
 
     # now append to the final dfs to return
     combined_cell_table_size_normalized = pd.concat(normalized_tables)
     combined_cell_table_arcsinh_transformed = pd.concat(arcsinh_tables)
 
     return combined_cell_table_size_normalized, combined_cell_table_arcsinh_transformed
+
+
+def process_lists(fov_names: List[str], mask_names: List[str]) -> List[str]:
+    """
+    Function to strip prefixes from list: fov_names, strip '.tiff' suffix from list: mask names,
+    and remove underscore prefixes, returning unique mask values (i.e. categories of masks).
+
+    Args:
+        fov_names (List[str]): list of fov names. Matching fov names in mask names will be returned without fov prefix.
+        mask_names (List[str]): list of mask names. Mask names will be returned without tif suffix.
+
+    Returns:
+        List[str]: Unique mask names (i.e. categories of masks)
+    """
+    stripped_mask_names = io_utils.remove_file_extensions(mask_names)
+    result = [itemB[len(prefix):] for itemB in stripped_mask_names for prefix in fov_names if itemB.startswith(prefix)]
+    # Remove underscore prefixes and return unique values
+    cleaned_result = [item.lstrip('_') for item in result]
+    unique_result = list(set(cleaned_result))
+    return unique_result
