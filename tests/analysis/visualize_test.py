@@ -57,43 +57,42 @@ def test_draw_heatmap():
 
 def test_draw_boxplot():
     # trim random data so we don't have to visualize as many facets
-    start_time = timeit.default_timer()
-    random_data = test_utils.make_cell_table(100)
+    random_data = test_utils.make_cell_table(n_cells=100, n_markers=5)
     random_data = random_data[random_data[settings.PATIENT_ID].isin(np.arange(1, 5))]
 
     # basic error testing
     with pytest.raises(ValueError):
         # non-existant col_name
-        visualize.draw_boxplot(cell_data=random_data, col_name="AA")
+        visualize.draw_boxplot(cell_data=random_data, col_name="bad_marker")
 
     with pytest.raises(ValueError):
         # split_vals specified but not col_split
-        visualize.draw_boxplot(cell_data=random_data, col_name="A", split_vals=[])
+        visualize.draw_boxplot(cell_data=random_data, col_name="marker_1", split_vals=[])
 
     with pytest.raises(ValueError):
         # non-existant col_split specified
-        visualize.draw_boxplot(cell_data=random_data, col_name="A", col_split="AA")
+        visualize.draw_boxplot(cell_data=random_data, col_name="marker_1", col_split="AA")
 
     with pytest.raises(ValueError):
         # split_vals not found in col_split found
-        visualize.draw_boxplot(cell_data=random_data, col_name="A",
+        visualize.draw_boxplot(cell_data=random_data, col_name="marker_1",
                                col_split=settings.PATIENT_ID, split_vals=[3, 4, 5, 6])
 
     with pytest.raises(FileNotFoundError):
         # trying to save to a non-existant directory
-        visualize.draw_boxplot(cell_data=random_data, col_name="A",
+        visualize.draw_boxplot(cell_data=random_data, col_name="marker_1",
                                save_dir="bad_dir")
 
     # highest level: data, a column name, a split column, and split vals
     with tempfile.TemporaryDirectory() as temp_dir:
-        visualize.draw_boxplot(cell_data=random_data, col_name="A",
+        visualize.draw_boxplot(cell_data=random_data, col_name="marker_1",
                                col_split=settings.PATIENT_ID, split_vals=[1, 2],
                                save_dir=temp_dir, save_file="boxplot_viz.png")
         assert os.path.exists(os.path.join(temp_dir, "boxplot_viz.png"))
 
 
 def test_get_sort_data():
-    random_data = test_utils.make_cell_table(100)
+    random_data = test_utils.make_cell_table(n_cells=100, n_markers=5)
     sorted_data = visualize.get_sorted_data(random_data, settings.PATIENT_ID, settings.CELL_TYPE)
 
     row_sums = [row.sum() for index, row in sorted_data.iterrows()]
@@ -102,7 +101,7 @@ def test_get_sort_data():
 
 def test_plot_barchart():
     # mostly error checking here, test_visualize_cells tests the meat of the functionality
-    random_data = test_utils.make_cell_table(100)
+    random_data = test_utils.make_cell_table(n_cells=100, n_markers=5)
 
     with pytest.raises(FileNotFoundError):
         # trying to save to a non-existant directory
@@ -116,7 +115,7 @@ def test_plot_barchart():
 
 
 def test_visualize_patient_population_distribution():
-    random_data = test_utils.make_cell_table(100)
+    random_data = test_utils.make_cell_table(n_cells=100, n_markers=5)
 
     with tempfile.TemporaryDirectory() as temp_dir:
         # test without a save_dir, check that we do not save the files
@@ -164,7 +163,7 @@ def test_visualize_neighbor_cluster_metrics():
 
 def test_visualize_topic_eda():
     # Create/format/featurize testing cell table
-    cell_table = test_utils.make_cell_table(num_cells=1000)
+    cell_table = test_utils.make_cell_table(n_cells=100, n_markers=5)
     all_clusters = list(np.unique(cell_table[settings.CELL_TYPE]))
     cell_table_format = pros.format_cell_table(cell_table, clusters=all_clusters)
     cell_table_features = pros.featurize_cell_table(cell_table_format)
@@ -203,7 +202,7 @@ def test_visualize_topic_eda():
 
 def test_visualize_fov_stats():
     # Create/format/featurize testing cell table
-    cell_table = test_utils.make_cell_table(num_cells=1000)
+    cell_table = test_utils.make_cell_table(n_cells=100, n_markers=5)
     all_clusters = list(np.unique(cell_table[settings.CELL_TYPE]))
     cell_table_format = pros.format_cell_table(cell_table, clusters=all_clusters)
 
@@ -228,7 +227,7 @@ def test_visualize_fov_stats():
 
 
 def test_visualize_fov_graphs():
-    cell_table = test_utils.make_cell_table(num_cells=1000)
+    cell_table = test_utils.make_cell_table(n_cells=100, n_markers=5)
     all_clusters = list(np.unique(cell_table[settings.CELL_TYPE]))
     cell_table_format = pros.format_cell_table(cell_table, clusters=all_clusters)
     cell_table_features = pros.featurize_cell_table(cell_table_format)

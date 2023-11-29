@@ -3,28 +3,38 @@ import pytest
 from alpineer import misc_utils
 from sklearn.cluster import KMeans
 from test_utils import make_cell_table
-
+from typing import List, Tuple, Callable
+import pandas as pd
 import ark.settings as settings
 import ark.spLDA.processing as pros
 from ark.utils.spatial_lda_utils import within_cluster_sums
 
-# Generate a test cell table
-N_CELLS = 1000
-TEST_CELL_TABLE = make_cell_table(N_CELLS)
+
+@pytest.fixture(scope="module")
+def test_cell_table() -> Callable:
+    def generate_cell_table(n_cells: int, n_markers: int) -> Tuple[pd.DataFrame, List[str]]:
+        n_markers = 10
+        n_cells = 1000
+        cell_table = make_cell_table(n_cells=n_cells, n_markers=n_markers)
+        marker_names = [f"marker_{i}" for i in range(n_markers)]
+        return cell_table, marker_names
+    yield generate_cell_table
 
 
-def test_format_cell_table():
+def test_format_cell_table(test_cell_table: Callable):
     # call formatting function
-    all_clusters = list(np.unique(TEST_CELL_TABLE[settings.CELL_TYPE]))
-    all_markers = ['A', 'B', 'C', 'D', 'E', 'F', 'G']
+    n_markers = 10
+    n_cells = 1000
+    cell_table, all_markers = test_cell_table(n_cells=n_cells, n_markers=n_markers)
+    all_clusters = list(np.unique(cell_table[settings.CELL_TYPE]))
     some_clusters = all_clusters[2:]
     some_markers = all_markers[2:]
 
-    all_clusters_format = pros.format_cell_table(cell_table=TEST_CELL_TABLE, clusters=all_clusters)
-    all_markers_format = pros.format_cell_table(cell_table=TEST_CELL_TABLE, markers=all_markers)
-    some_clusters_format = pros.format_cell_table(cell_table=TEST_CELL_TABLE,
+    all_clusters_format = pros.format_cell_table(cell_table=cell_table, clusters=all_clusters)
+    all_markers_format = pros.format_cell_table(cell_table=cell_table, markers=all_markers)
+    some_clusters_format = pros.format_cell_table(cell_table=cell_table,
                                                   clusters=some_clusters)
-    some_markers_format = pros.format_cell_table(cell_table=TEST_CELL_TABLE, markers=some_markers)
+    some_markers_format = pros.format_cell_table(cell_table=cell_table, markers=some_markers)
 
     # Check that number of FOVS match
     cluster_fovs = [x for x in all_clusters_format.keys() if
@@ -32,9 +42,9 @@ def test_format_cell_table():
     marker_fovs = [x for x in all_markers_format.keys() if
                    x not in ['fovs', 'markers', 'clusters']]
     misc_utils.verify_in_list(
-        fovs1=list(np.unique(TEST_CELL_TABLE[settings.FOV_ID])), fovs2=cluster_fovs)
+        fovs1=list(np.unique(cell_table[settings.FOV_ID])), fovs2=cluster_fovs)
     misc_utils.verify_in_list(
-        fovs1=list(np.unique(TEST_CELL_TABLE[settings.FOV_ID])), fovs2=marker_fovs)
+        fovs1=list(np.unique(cell_table[settings.FOV_ID])), fovs2=marker_fovs)
 
     # Check that columns were retained/renamed
     misc_utils.verify_in_list(
@@ -45,20 +55,21 @@ def test_format_cell_table():
         cols2=list(all_markers_format[1].columns))
 
     # Check that columns were dropped
-    assert len(TEST_CELL_TABLE.columns) > len(all_clusters_format[1].columns)
-    assert len(TEST_CELL_TABLE.columns) > len(all_markers_format[1].columns)
+    assert len(cell_table.columns) > len(all_clusters_format[1].columns)
+    assert len(cell_table.columns) > len(all_markers_format[1].columns)
 
     # check that only specified clusters and markers are kept
     assert not np.isin(all_clusters[:2], np.unique(some_clusters_format[1].cluster)).any()
     assert not np.isin(all_markers[:2], np.unique(some_markers_format[1].columns)).any()
 
 
-def test_featurize_cell_table():
-    # call formatting function
-    all_clusters = list(np.unique(TEST_CELL_TABLE[settings.CELL_TYPE]))
-    all_markers = ['A', 'B', 'C', 'D', 'E', 'F', 'G']
-    cluster_names = list(np.unique(TEST_CELL_TABLE[settings.CELL_TYPE]))
-    cell_table_format = pros.format_cell_table(cell_table=TEST_CELL_TABLE, clusters=all_clusters,
+def test_featurize_cell_table(test_cell_table: Callable):
+    n_markers = 10
+    n_cells = 1000
+    cell_table, all_markers = test_cell_table(n_cells=n_cells, n_markers=n_markers)
+
+    all_clusters = list(np.unique(cell_table[settings.CELL_TYPE]))
+    cell_table_format = pros.format_cell_table(cell_table=cell_table, clusters=all_clusters,
                                                markers=all_markers)
 
     # call featurization on different training fractions
@@ -73,23 +84,26 @@ def test_featurize_cell_table():
                                                train_frac=0.75)
 
     # Check for consistent dimensions and correct column names
-    assert all_clusters_75["featurized_fovs"].shape[0] == TEST_CELL_TABLE.shape[0] == N_CELLS
-    assert all_clusters_50["featurized_fovs"].shape[0] == TEST_CELL_TABLE.shape[0] == N_CELLS
-    assert all_clusters_75["train_features"].shape[0] == 0.75 * N_CELLS
-    assert all_clusters_50["train_features"].shape[0] == 0.5 * N_CELLS
+    assert all_clusters_75["featurized_fovs"].shape[0] == cell_table.shape[0] == n_cells
+    assert all_clusters_50["featurized_fovs"].shape[0] == cell_table.shape[0] == n_cells
+    assert all_clusters_75["train_features"].shape[0] == 0.75 * n_cells
+    assert all_clusters_50["train_features"].shape[0] == 0.5 * n_cells
     misc_utils.verify_in_list(correct=all_markers,
                               actual=list(all_markers_75["featurized_fovs"].columns))
-    misc_utils.verify_in_list(correct=cluster_names,
+    misc_utils.verify_in_list(correct=all_clusters,
                               actual=list(all_clusters_75["featurized_fovs"].columns))
     # check for correct featurization method
     assert all_clusters_75["featurization"] == "cluster"
     assert all_markers_75["featurization"] == "marker"
 
 
-def test_gap_stat():
-    # call formatting & featurization - only test on clusters to avoid repetition
-    all_clusters = list(np.unique(TEST_CELL_TABLE[settings.CELL_TYPE]))
-    all_clusters_format = pros.format_cell_table(cell_table=TEST_CELL_TABLE, clusters=all_clusters)
+def test_gap_stat(test_cell_table: Callable):
+    n_markers = 10
+    n_cells = 1000
+    cell_table, all_markers = test_cell_table(n_cells=n_cells, n_markers=n_markers)
+    all_clusters = list(np.unique(cell_table[settings.CELL_TYPE]))
+
+    all_clusters_format = pros.format_cell_table(cell_table=cell_table, clusters=all_clusters)
     features = pros.featurize_cell_table(cell_table=all_clusters_format, featurization='cluster')
     clust_labs = KMeans(n_clusters=5).fit(features['featurized_fovs']).labels_
     clust_sums = within_cluster_sums(features['featurized_fovs'], clust_labs)
@@ -104,10 +118,13 @@ def test_gap_stat():
     assert gap[0] >= 0 and gap[1] >= 0
 
 
-def test_compute_topic_eda():
-    # Format & featurize cell table. Only test on clusters and 0.75 train frac to avoid repetition
-    all_clusters = list(np.unique(TEST_CELL_TABLE[settings.CELL_TYPE]))
-    all_clusters_format = pros.format_cell_table(cell_table=TEST_CELL_TABLE, clusters=all_clusters)
+def test_compute_topic_eda(test_cell_table: Callable):
+    n_markers = 10
+    n_cells = 1000
+    cell_table, all_markers = test_cell_table(n_cells=n_cells, n_markers=n_markers)
+    all_clusters = list(np.unique(cell_table[settings.CELL_TYPE]))
+
+    all_clusters_format = pros.format_cell_table(cell_table=cell_table, clusters=all_clusters)
     features = pros.featurize_cell_table(cell_table=all_clusters_format, featurization='cluster')
     # at least 25 bootstrap iterations
     with pytest.raises(ValueError, match="Number of bootstrap samples must be at least"):
@@ -127,10 +144,14 @@ def test_compute_topic_eda():
     misc_utils.verify_in_list(eda_correct_keys=settings.EDA_KEYS, eda_actual_keys=list(eda.keys()))
 
 
-def test_create_difference_matrices():
+def test_create_difference_matrices(test_cell_table: Callable):
     # Format & featurize cell table. Only test on clusters and 0.75 train frac to avoid repetition
-    all_clusters = list(np.unique(TEST_CELL_TABLE[settings.CELL_TYPE]))
-    all_clusters_format = pros.format_cell_table(cell_table=TEST_CELL_TABLE, clusters=all_clusters)
+    n_markers = 10
+    n_cells = 1000
+    cell_table, all_markers = test_cell_table(n_cells=n_cells, n_markers=n_markers)
+    all_clusters = list(np.unique(cell_table[settings.CELL_TYPE]))
+
+    all_clusters_format = pros.format_cell_table(cell_table=cell_table, clusters=all_clusters)
     features = pros.featurize_cell_table(cell_table=all_clusters_format, featurization='cluster')
 
     # create difference matrices
@@ -157,10 +178,12 @@ def test_create_difference_matrices():
     assert diff_mat_infer['train_diff_mat'] is None
 
 
-def test_fov_density():
-    # Format cell table
-    all_clusters = list(np.unique(TEST_CELL_TABLE[settings.CELL_TYPE]))
-    all_clusters_format = pros.format_cell_table(cell_table=TEST_CELL_TABLE, clusters=all_clusters)
+def test_fov_density(test_cell_table: Callable):
+    n_markers = 10
+    n_cells = 1000
+    cell_table, all_markers = test_cell_table(n_cells=n_cells, n_markers=n_markers)
+    all_clusters = list(np.unique(cell_table[settings.CELL_TYPE]))
+    all_clusters_format = pros.format_cell_table(cell_table=cell_table, clusters=all_clusters)
     cell_dens = pros.fov_density(all_clusters_format)
 
     # check for correct names

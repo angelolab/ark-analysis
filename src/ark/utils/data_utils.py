@@ -4,6 +4,7 @@ import os
 import pathlib
 import re
 from typing import List, Literal, Union, Sequence
+
 from numpy.typing import ArrayLike, DTypeLike
 from numpy import ma
 import feather
@@ -828,28 +829,31 @@ def _convert_ct_fov_to_adata(fov_dd: dd.DataFrame, var_names: list[str], obs_nam
         The path of the saved `AnnData` object.
     """
     
-    fov_dd = fov_dd.sort_values(by=settings.CELL_LABEL, key=ns.natsort_key).reset_index()
-    fov_name: str = fov_dd[settings.FOV_ID].iloc[0]
-    
+    fov_dd: dd.DataFrame = fov_dd.sort_values(by=settings.CELL_LABEL, key=ns.natsort_key).reset_index()
+    fov_id: str = fov_dd[settings.FOV_ID].iloc[0]
+
+    # Set the index to be the FOV and the segmentation label to create a unique index
+    fov_dd.index = list(map(lambda label: f"{fov_id}_{int(label)}", fov_dd[settings.CELL_LABEL]))
+
     # Extract the X matrix
     X_dd: dd.DataFrame = fov_dd[var_names]
     
     # Extract the obs dataframe and convert the cell label to integer
     obs_dd: dd.DataFrame = fov_dd[obs_names].astype({settings.CELL_LABEL: int, settings.FOV_ID: str})
     obs_dd["cell_meta_cluster"] = pd.Categorical(obs_dd["cell_meta_cluster"].astype(str))
-    obs_dd.index = obs_dd.index.map(str)
-    
-    obsm_dd = obs_dd[[settings.CENTROID_0, settings.CENTROID_1]].rename(columns={settings.CENTROID_0: "centroid_x", settings.CENTROID_1: "centroid_y"})
 
+    # Move centroids from obs to obsm["spatial"]
+    obsm_dd = obs_dd[[settings.CENTROID_0, settings.CENTROID_1]].rename(columns={settings.CENTROID_0: "centroid_x", settings.CENTROID_1: "centroid_y"})
     obs_dd = obs_dd.drop(columns=[settings.CENTROID_0, settings.CENTROID_1])
+
     # Create the AnnData object
     adata: AnnData = AnnData(X=X_dd, obs=obs_dd, obsm={"spatial": obsm_dd})
 
     # Convert any extra string labels to categorical if it's beneficial.
     adata.strings_to_categoricals()
 
-    adata.write_zarr(pathlib.Path(save_dir, f"{fov_name}.zarr"), chunks=(1000,1000))
-    return pathlib.Path(save_dir, f"{fov_name}.zarr").as_posix() 
+    adata.write_zarr(pathlib.Path(save_dir, f"{fov_id}.zarr"), chunks=(1000, 1000))
+    return pathlib.Path(save_dir, f"{fov_id}.zarr").as_posix()
 
 
 class ConvertToAnnData:
@@ -872,66 +876,66 @@ class ConvertToAnnData:
         io_utils.validate_paths(paths=cell_table_path)
         
         
-        # Lazily read in the cell table
+        # Read in the cell table
         self.cell_table: dd.DataFrame = dd.read_csv(cell_table_path)
-        self.ct_columns = self.cell_table.columns
+        ct_columns = self.cell_table.columns
         
         # Get the marker column indices
-        self.marker_index_start: int = self.ct_columns.get_loc(settings.PRE_CHANNEL_COL) + 1
-        self.marker_index_stop: int = self.ct_columns.get_loc(settings.POST_CHANNEL_COL)
-        self.obs_index_start = self.ct_columns.get_loc(settings.POST_CHANNEL_COL) + 1
+        marker_index_start: int = ct_columns.get_loc(settings.PRE_CHANNEL_COL) + 1
+        marker_index_stop: int = ct_columns.get_loc(settings.POST_CHANNEL_COL)
+        obs_index_start: int = ct_columns.get_loc(settings.POST_CHANNEL_COL) + 1
         
         if not markers:
             # Default to all markers based on settings Pre and Post channel column values
-            markers: list[str] = self.ct_columns[self.marker_index_start:self.marker_index_stop].to_list()
+            markers: list[str] = ct_columns[marker_index_start:marker_index_stop].to_list()
         else:
             # Verify that the correct markers exist
             misc_utils.verify_in_list(requested_markers=markers, 
-                                    all_markers=self.ct_columns[self.marker_index_start:self.marker_index_stop].to_list())
-        self.markers = markers
+                                    all_markers=ct_columns[marker_index_start:marker_index_stop].to_list())
+        self.var_names = markers
         
         # Verify extra obs parameters
         if extra_obs_parameters:
             misc_utils.verify_in_list(requested_parameters=extra_obs_parameters, 
-                                    all_parameters=self.ct_columns[self.obs_index_start:].to_list())
+                                    all_parameters=ct_columns[obs_index_start:].to_list())
         else:
             extra_obs_parameters = []
         
-        self.obs_names: list[str] = [settings.CELL_LABEL, *self.ct_columns[self.obs_index_start:].to_list(), *extra_obs_parameters]
+        self.obs_names: list[str] = [settings.CELL_LABEL, settings.CELL_SIZE, *ct_columns[obs_index_start:].to_list(), *extra_obs_parameters]
         
 
     def convert_to_adata(
         self,
-        save_dir: str | os.PathLike,
+        save_dir: os.PathLike,
     ) -> dict[str, str]:
         """Converts the cell table to a FOV-level `AnnData` object, and saves the results as
         a `Zarr` store to disk in the `save_dir`.
 
         Args:
-            save_dir (str | os.PathLike): The directory to save the `AnnData` objects to.
+            save_dir (os.PathLike): The directory to save the `AnnData` objects to.
 
         Returns:
             dict[str, str]: A dictionary containing the names of the FOVs and the paths where
             they were saved.
         """
-        
+
         if not isinstance(save_dir, pathlib.Path):
             save_dir = pathlib.Path(save_dir)
         if not save_dir.exists():
             save_dir.mkdir(parents=True, exist_ok=True)
-            
+
+
         with TqdmCallback(desc="Converting to AnnData"):
             g: pd.Series = (
                 self.cell_table.groupby(by=settings.FOV_ID, sort=True)
                 .apply(
                     _convert_ct_fov_to_adata,
-                    var_names=self.markers,
+                    var_names=self.var_names,
                     obs_names=self.obs_names,
                     save_dir=save_dir,
                     meta=("anndata_save_results", str),
                 )
-                .compute()
-            )
+            ).compute()
 
         return g.to_dict()
 
@@ -948,13 +952,13 @@ class AnnCollectionKwargs(TypedDict):
     indices_strict: bool
 
 
-def load_anndatas(anndata_dir: str | os.PathLike, **anncollection_kwargs: Unpack[AnnCollectionKwargs]) -> AnnCollection:
+def load_anndatas(anndata_dir: os.PathLike, **anncollection_kwargs: Unpack[AnnCollectionKwargs]) -> AnnCollection:
     """Lazily loads a directory of `AnnData` objects into an `AnnCollection`. The concatination happens across the `.obs` axis.
     
     For `AnnCollection` kwargs, see https://anndata.readthedocs.io/en/latest/generated/anndata.experimental.AnnCollection.html
         
     Args:
-        anndata_dir (str | os.PathLike): The directory containing the `AnnData` objects.
+        anndata_dir (os.PathLike): The directory containing the `AnnData` objects.
 
     Returns:
         AnnCollection: The `AnnCollection` containing the `AnnData` objects.
@@ -981,9 +985,9 @@ class AnnDataIterDataPipe(IterDataPipe):
     @fovs.setter
     def fovs(self, value: AnnCollection) -> None:
         self._fovs: AnnCollection = value
-    
+
     def __init__(self, fovs: AnnCollection):
         self.fovs = fovs
-    
+
     def __iter__(self) -> Iterator[AnnData]:
         yield from self.fovs.adatas
