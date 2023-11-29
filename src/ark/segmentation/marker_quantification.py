@@ -125,8 +125,9 @@ def assign_single_compartment_features(marker_counts, compartment, cell_props, c
 
     # add counts of each marker to appropriate column
     # Only include the marker_count features up to the last filtered feature.
-    marker_counts.loc[compartment, cell_id,
-    marker_counts.features[1]:filtered_regionprops_names[-1]] = cell_features
+    marker_counts.loc[
+        compartment, cell_id, marker_counts.features[1]:filtered_regionprops_names[-1]
+    ] = cell_features
 
     # add cell size to first column
     marker_counts.loc[compartment, cell_id, marker_counts.features[0]] = cell_coords.shape[0]
