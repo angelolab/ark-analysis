@@ -884,7 +884,7 @@ def test_load_anndatas(testing_anndatas, tmp_path_factory):
 def test_AnnDataIterDataPipe(testing_anndatas, tmp_path_factory):
     ann_collection_path = tmp_path_factory.mktemp("anndatas")
 
-    fov_names, ann_collection = testing_anndatas(n_fovs=5, save_dir=ann_collection_path)
+    _ = testing_anndatas(n_fovs=5, save_dir=ann_collection_path)
     ac = data_utils.load_anndatas(ann_collection_path, join_obs="inner", join_obsm="inner")
 
     a_idp = data_utils.AnnDataIterDataPipe(fovs=ac)
