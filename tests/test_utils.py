@@ -12,7 +12,7 @@ import xarray as xr
 from ark.utils.data_utils import AnnCollectionKwargs
 
 import ark.settings as settings
-from typing import Tuple, List
+from typing import Tuple, List, Union
 try:
     from typing import Unpack, Literal
 except ImportError:
@@ -684,7 +684,7 @@ def generate_anndata_table(
     rng: np.random.Generator,
     n_obs: int,
     n_vars: int,
-    fov_id: str | int,
+    fov_id: Union[str, int],
     obs_properties: int,
     obs_categorical_properties: int,
 ) -> AnnData:
@@ -702,7 +702,7 @@ def generate_anndata_table(
         rng (np.random.Generator): The random number generator for reproducibility.
         n_obs (int): The number of observations (cells, fiber segments, ezseg objects, etc...)
         n_vars (int): The number of markers (channels).
-        fov_id (str | int): The FOV ID, can be a integer or a string used as a suffix.
+        fov_id (Union[str, int]): The FOV ID, can be a integer or a string used as a suffix.
         `1` would make a FOV named `"fov_1"`, `"test"` would make a FOV named `"fov_test"`.
         obs_properties (int): The number of floating point properties to add to the `obs` table.
         obs_categorical_properties (int): The number of categorical properties to add to the
@@ -758,7 +758,7 @@ def generate_anndata_table(
 
 def generate_anncollection(
     rng: np.random.Generator = np.random.default_rng(),
-    fovs: int | list[str] = 10,
+    fovs: Union[int, list[str]] = 10,
     n_obs: int = 100,
     n_vars: int = 10,
     obs_properties: int = 10,
@@ -771,7 +771,7 @@ def generate_anncollection(
 
     Args:
         rng (np.random.Generator): The random number generator for reproducibility.
-        fovs (int | list[str]): The number of FOVs to generate, or a list of FOV IDs.
+        fovs (Union[int, list[str]]): The number of FOVs to generate, or a list of FOV IDs.
         n_obs (int): The number of observations (cells, fiber segments, ezseg objects, etc...)
         per FOV / AnnData Table.
         n_vars (int): The number of markers (channels).
