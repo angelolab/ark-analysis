@@ -25,7 +25,7 @@ from anndata.experimental import AnnCollection
 from anndata.experimental.multi_files._anncollection import ConvertType
 from tqdm.dask import TqdmCallback
 from torchdata.datapipes.iter import IterDataPipe
-from typing import Iterator
+from typing import Iterator, Optional
 try:
     from typing import TypedDict, Unpack
 except ImportError:
@@ -951,13 +951,13 @@ class ConvertToAnnData:
 
 
 class AnnCollectionKwargs(TypedDict):
-    join_obs: Literal["inner", "outer"] | None
-    join_obsm: Literal["inner"] | None
-    join_vars: Literal["inner"] | None
-    label: str | None
-    keys: Sequence[str] | None
-    index_unique: str | None
-    convert: ConvertType | None
+    join_obs: Optional[Literal["inner", "outer"]]
+    join_obsm: Optional[Literal["inner"]]
+    join_vars: Optional[Literal["inner"]]
+    label: Optional[str]
+    keys: Optional[Sequence[str]]
+    index_unique: Optional[str]
+    convert: Optional[ConvertType]
     harmonize_dtypes: bool
     indices_strict: bool
 
