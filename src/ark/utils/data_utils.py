@@ -863,24 +863,24 @@ class ConvertToAnnData:
     The default parameters stored in `.obs` parameters include
 
     Args:
-        cell_table_path (str | os.PathLike): The path to the cell table.
-        markers (list[str] | None, optional): The markers to extract and store in `.X`. Defaults to None,
+        cell_table_path (os.PathLike): The path to the cell table.
+        markers (list[str], optional): The markers to extract and store in `.X`. Defaults to None,
         which will extract all markers.
-        extra_obs_parameters (list[str] | None, optional): Extra parameters to load in `.obs`. Defaults to None.
+        extra_obs_parameters (list[str], optional): Extra parameters to load in `.obs`. Defaults to None.
     """
 
-    def __init__(self, cell_table_path: str | os.PathLike, 
-                 markers: list[str] | None = None, 
-                 extra_obs_parameters: list[str] | None = None) -> None:
+    def __init__(self, cell_table_path: os.PathLike,
+                 markers: list[str] = None,
+                 extra_obs_parameters: list[str] = None) -> None:
         
         io_utils.validate_paths(paths=cell_table_path)
         
         
         # Read in the cell table
-        self.cell_table: dd.DataFrame = dd.read_csv(cell_table_path)
-        ct_columns = self.cell_table.columns
+        cell_table: dd.DataFrame = dd.read_csv(cell_table_path)
+        ct_columns = cell_table.columns
         
-        # Get the marker column indices
+        # Get te marker column indices
         marker_index_start: int = ct_columns.get_loc(settings.PRE_CHANNEL_COL) + 1
         marker_index_stop: int = ct_columns.get_loc(settings.POST_CHANNEL_COL)
         obs_index_start: int = ct_columns.get_loc(settings.POST_CHANNEL_COL) + 1
@@ -900,8 +900,18 @@ class ConvertToAnnData:
                                     all_parameters=ct_columns[obs_index_start:].to_list())
         else:
             extra_obs_parameters = []
-        
-        self.obs_names: list[str] = [settings.CELL_LABEL, settings.CELL_SIZE, *ct_columns[obs_index_start:].to_list(), *extra_obs_parameters]
+        obs_names = [settings.CELL_LABEL, settings.CELL_SIZE, *ct_columns[obs_index_start:].to_list(), *extra_obs_parameters]
+
+        # Use "area" as the default area id instead of settings.CELL_SIZE to account for
+        # non-cellular observations (ez_seg, fiber, etc...)
+        if ("area" in obs_names) and (settings.CELL_SIZE in obs_names):
+            obs_names.remove(settings.CELL_SIZE)
+        elif ("area" not in obs_names) and (settings.CELL_SIZE in obs_names):
+            cell_table = cell_table.rename(columns={settings.CELL_SIZE: "area"})
+            obs_names.remove(settings.CELL_SIZE)
+            obs_names.append("area")
+        self.obs_names: list[str] = obs_names
+        self.cell_table = cell_table
         
 
     def convert_to_adata(

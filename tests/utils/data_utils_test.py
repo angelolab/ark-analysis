@@ -820,13 +820,12 @@ class TestConvertToAnnData:
         self.adata_dir = tmp_path_factory.mktemp("anndatas")
 
     def test__init__(self):
-        # Test __init__
         cta = data_utils.ConvertToAnnData(self.cell_table_path)
-        pd.testing.assert_index_equal(self.cell_table.columns, cta.cell_table.columns)
+
         assert set(cta.obs_names) == set(
             self.cell_table.drop(
-                columns=[*[f"marker_{i}" for i in range(10)]]
-            ).columns.to_list()
+                columns=[*[f"marker_{i}" for i in range(10)], settings.CELL_SIZE],
+            ).columns.to_list() + ["area"]
         )
         assert set(cta.var_names) == set([f"marker_{i}" for i in range(10)])
 
