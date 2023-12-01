@@ -168,6 +168,30 @@ def nb4_context(
 
 
 @pytest.fixture(scope="class")
+def ez_seg_context(
+    templates_dir, base_dir_generator
+) -> Tuple[Iterator[TestbookNotebookClient], pathlib.Path]:
+    """
+    Creates a testbook context manager for the ezSegmenter notebook.
+
+    Args:
+        templates_dir (pytest.Fixture): The fixture which yields the directory of the notebook
+            templates
+        base_dir_generator (pytest.Fixture): The fixture which yields the temporary directory
+            to store all notebook input / output.
+
+    Yields:
+        Iterator[Tuple[Iterator[TestbookNotebookClient], pathlib.Path]]:
+            The testbook notebook client context manager and the temporary directory where the
+            notebook input / output is stored.
+    """
+    POST_CLUSTERING: pathlib.Path = templates_dir / "ez_segmenter.ipynb"
+    with testbook(POST_CLUSTERING, timeout=6000, execute=False) as nb_context_manager:
+        yield nb_context_manager, base_dir_generator / "ez_seg"
+    shutil.rmtree(base_dir_generator)
+
+
+@pytest.fixture(scope="class")
 def nbfib_seg_context(
     templates_dir, base_dir_generator
 ) -> Tuple[Iterator[TestbookNotebookClient], pathlib.Path]:
@@ -714,6 +738,110 @@ class Test_4_Post_Clustering:
 
     def test_cell_table_threshold(self):
         self.tb.execute_cell("cell_table_threshold")
+
+
+class Test_EZSegmenter:
+    """
+    Tests ezSegmenter notebook for completion.
+    NOTE: When modifying the tests, make sure the test are in the
+    same order as the tagged cells in the notebook.
+    """
+
+    @pytest.fixture(autouse=True, scope="function")
+    def _setup(self, ez_seg_context, dataset_cache_dir: Union[str, None]):
+        """
+        Sets up necessary data and paths to run the notebooks.
+        """
+        self.tb: testbook = ez_seg_context[0]
+        self.dataset: str = "ez_seg_data"
+        self.base_dir: str = ez_seg_context[1].as_posix()
+        self.cache_dir = dataset_cache_dir
+
+    def test_imports(self):
+        self.tb.execute_cell("import")
+
+    def test_base_dir(self):
+        base_dir_inject = f"""
+            base_dir = r"{self.base_dir}"
+        """
+        self.tb.inject(base_dir_inject, "base_dir")
+
+    def test_ex_data_download(self):
+        notebooks_test_utils._ex_dataset_download(dataset=self.dataset, save_dir=self.base_dir,
+                                                  cache_dir=self.cache_dir)
+        base_dir_subpath_inject = f"""
+            base_dir = os.path.join(base_dir, "ez_seg_data")
+        """
+        self.tb.inject(base_dir_subpath_inject, "ex_data_download")
+
+    def test_file_path(self):
+        self.tb.execute_cell("file_path")
+
+    def test_create_dirs(self):
+        self.tb.execute_cell("create_dirs")
+
+    def test_validate_path(self):
+        self.tb.execute_cell("validate_path")
+
+    def test_load_fovs(self):
+        load_fovs_inject = """
+            fovs = ["fov0", "fov1"]
+        """
+        self.tb.inject(load_fovs_inject, "load_fovs")
+
+    def test_composite_set(self):
+        self.tb.execute_cell("composite_set")
+
+    def test_composite_build(self):
+        self.tb.execute_cell("composite_build")
+
+    def test_display_composite(self):
+        self.tb.execute_cell("display_composite")
+
+    def test_display_channel(self):
+        self.tb.execute_cell("display_channel")
+
+    def test_set_ez_seg_params(self):
+        self.tb.execute_cell("set_ez_seg_params")
+
+    def test_gen_obj_masks(self):
+        self.tb.execute_cell("gen_obj_masks")
+
+    def test_view_obj_mask(self):
+        self.tb.execute_cell("view_obj_mask")
+
+    def test_set_mask_dirs(self):
+        self.tb.execute_cell("set_mask_dirs")
+
+    def test_validate_mask_dirs(self):
+        self.tb.execute_cell("validate_mask_dirs")
+
+    def test_merge_seg_cell(self):
+        self.tb.execute_cell("merge_seg_cell")
+
+    def test_view_merged_mask(self):
+        self.tb.execute_cell("view_merged_mask")
+
+    def test_consolidate_mask(self):
+        self.tb.execute_cell("consolidate_mask")
+
+    def test_relabel_mask(self):
+        self.tb.execute_cell("relabel_mask")
+
+    def test_nuc_props_set(self):
+        self.tb.execute_cell("nuc_props_set")
+
+    def test_create_exp_mat(self):
+        self.tb.execute_cell("create_exp_mat")
+
+    def test_save_exp_mat(self):
+        self.tb.execute_cell("save_exp_mat")
+
+    def test_save_mat_by_mask(self):
+        self.tb.execute_cell("save_mat_by_mask")
+
+    def test_mantis_mask(self):
+        self.tb.execute_cell("mantis_mask")
 
 
 class Test_Fiber_Segmentation:

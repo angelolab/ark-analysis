@@ -736,14 +736,14 @@ def test_generate_cell_table_tree_loading():
             nuclear_counts=True)
 
         assert norm_data_nuc.shape[0] == norm_data_fov_sub.shape[0]
-        assert norm_data_nuc.shape[1] == norm_data_fov_sub.shape[1] * 2 + 1
+        assert norm_data_nuc.shape[1] == norm_data_fov_sub.shape[1] * 2
         misc_utils.verify_in_list(
             nuclear_col='nc_ratio',
             nuc_cell_table_cols=norm_data_nuc.columns.values
         )
 
         assert arcsinh_data_nuc.shape[0] == arcsinh_data_fov_sub.shape[0]
-        assert arcsinh_data_nuc.shape[1] == norm_data_fov_sub.shape[1] * 2 + 1
+        assert arcsinh_data_nuc.shape[1] == norm_data_fov_sub.shape[1] * 2
         misc_utils.verify_in_list(
             nuclear_col='nc_ratio',
             nuc_cell_table_cols=norm_data_nuc.columns.values
@@ -823,14 +823,14 @@ def test_generate_cell_table_mibitiff_loading():
             nuclear_counts=True)
 
         assert norm_data_nuc.shape[0] == norm_data_fov_sub.shape[0]
-        assert norm_data_nuc.shape[1] == norm_data_fov_sub.shape[1] * 2 + 1
+        assert norm_data_nuc.shape[1] == norm_data_fov_sub.shape[1] * 2
         misc_utils.verify_in_list(
             nuclear_col='nc_ratio',
             nuc_cell_table_cols=norm_data_nuc.columns.values
         )
 
         assert arcsinh_data_nuc.shape[0] == arcsinh_data_fov_sub.shape[0]
-        assert arcsinh_data_nuc.shape[1] == norm_data_fov_sub.shape[1] * 2 + 1
+        assert arcsinh_data_nuc.shape[1] == norm_data_fov_sub.shape[1] * 2
         misc_utils.verify_in_list(
             nuclear_col='nc_ratio',
             nuc_cell_table_cols=norm_data_nuc.columns.values
@@ -876,11 +876,15 @@ def test_generate_cell_table_extractions():
             img_sub_folder=img_sub_folder, is_mibitiff=False
         )
 
-        # verify total intensity extraction
-        assert np.all(
-            default_norm_data.loc[default_norm_data[settings.CELL_LABEL] == 1][chans].values
-            == np.arange(9).reshape(3, 3)
-        )
+        # verify total intensity extraction, same for whole_cell and nuclear mask types
+        for mask_type in ["whole_cell", "nuclear"]:
+            assert np.all(
+                default_norm_data.loc[
+                    (default_norm_data[settings.CELL_LABEL] == 1) &
+                    (default_norm_data["mask_type"] == mask_type)
+                ][chans].values
+                == np.arange(9).reshape(3, 3)
+            )
 
         # define a specific threshold for positive pixel extraction
         thresh_kwargs = {
@@ -897,20 +901,28 @@ def test_generate_cell_table_extractions():
             extraction='positive_pixel', **thresh_kwargs
         )
 
-        assert np.all(positive_pixel_data.iloc[:4][['chan0', 'chan1']].values == 0)
-        assert np.all(positive_pixel_data.iloc[4:][chans].values == 1)
+        # only applies for whole_cell mask types
+        positive_pixel_data_wc = positive_pixel_data[
+            positive_pixel_data["mask_type"] == "whole_cell"
+        ]
+        assert np.all(positive_pixel_data_wc.iloc[:4][['chan0', 'chan1']].values == 0)
+        assert np.all(positive_pixel_data_wc.iloc[4:][chans].values == 1)
 
         # verify thresh kwarg passes through and nuclear counts True
-        positive_pixel_data_nuc, _ = marker_quantification.generate_cell_table(
+        positive_pixel_data, _ = marker_quantification.generate_cell_table(
             segmentation_dir=temp_dir, tiff_dir=tiff_dir,
             img_sub_folder=img_sub_folder, is_mibitiff=False,
             extraction='positive_pixel', nuclear_counts=True, **thresh_kwargs
         )
 
+        # check explicitly for nuclear mask types
+        positive_pixel_data_nuc = positive_pixel_data[
+            positive_pixel_data["mask_type"] == "nuclear"
+        ]
         assert np.all(positive_pixel_data_nuc.iloc[:4][['chan0', 'chan1']].values == 0)
         assert np.all(positive_pixel_data_nuc.iloc[4:][chans].values == 1)
-        assert positive_pixel_data_nuc.shape[0] == positive_pixel_data.shape[0]
-        assert positive_pixel_data_nuc.shape[1] == positive_pixel_data.shape[1] * 2 + 1
+        assert positive_pixel_data_nuc.shape[0] == positive_pixel_data.shape[0] / 2
+        assert positive_pixel_data_nuc.shape[1] == positive_pixel_data.shape[1]
         misc_utils.verify_in_list(
             nuclear_col='nc_ratio',
             nuc_cell_table_cols=positive_pixel_data_nuc.columns.values
