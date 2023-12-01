@@ -85,7 +85,6 @@ def test_create_mantis_project(tmp_path):
         fov_col=settings.FOV_ID,
         label_col=settings.CELL_LABEL,
         seg_suffix_name="_whole_cell_test.tiff",
-        cluster_type="cell",
     )
 
     # make sure that the mask found in each mantis directory is correct
