@@ -59,8 +59,8 @@ def create_composite_image(img_dir, fov, channels):
     return composite_arr
 
 
-def generate_img_masks(img_dir, mask_dir, channels, mask_name, intensity_thresh=350, sigma=2,
-                       min_mask_size=5000, max_hole_size=1000):
+def generate_signal_masks(img_dir, mask_dir, channels, mask_name, intensity_thresh=350, sigma=2,
+                          min_mask_size=5000, max_hole_size=1000):
     """Creates a single signal mask for each FOV when given the channels to aggregate.
 
     Args:
