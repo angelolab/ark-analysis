@@ -175,3 +175,24 @@ def create_mantis_project(
         img_sub_folder="",
         seg_suffix_name=seg_suffix_name,
     )
+
+
+def generate_new_cluster_resolution(cell_table, cluster_col, cluster_mapping, new_cluster_col,
+                                    save_path):
+
+    # validation checks
+    misc_utils.verify_in_list(cluster_col=[cluster_col], cell_table_columns=cell_table.columns)
+    if new_cluster_col in cell_table.columns:
+        raise ValueError(f"The column {new_cluster_col} already exists in the cell table. "
+                         f"Please specify a different name for the new column.")
+    misc_utils.verify_in_list(specified_cell_clusters=list(cluster_mapping.values()),
+                              cell_clusters_in_table=list(np.unique(cell_table.cluster_col)))
+
+    for new_cluster in cluster_mapping:
+        pops = cluster_mapping[new_cluster]
+        idx = np.isin(cell_table[cluster_col].values, pops)
+        cell_table.loc[idx, new_cluster_col] = new_cluster
+
+    # save updated cell table
+    cell_table.to_csv(os.path.join(save_path), index=False)
+

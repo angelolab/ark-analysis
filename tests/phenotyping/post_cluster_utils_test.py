@@ -4,10 +4,12 @@ import numpy as np
 import pandas as pd
 import pytest
 import skimage.io as io
-from alpineer import image_utils, test_utils
-from ark import settings
+import test_utils as ark_test_utils
 
+from ark import settings
+from alpineer import image_utils, test_utils
 from ark.phenotyping import post_cluster_utils
+
 
 
 def test_plot_hist_thresholds():
@@ -97,3 +99,6 @@ def test_create_mantis_project(tmp_path):
         # mask should be non-zero in the same places as original
         seg = io.imread(os.path.join(seg_dir, fov + "_whole_cell_test.tiff"))
         assert np.array_equal(mask > 0, seg > 0)
+
+
+def test_generate_new_cluster_resolution():
