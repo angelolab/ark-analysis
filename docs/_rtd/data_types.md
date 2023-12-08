@@ -99,7 +99,7 @@ Created by: [ConvertToAnnData](https://ark-analysis.readthedocs.io/en/latest/_ma
 Used by: [anndata_conversion.ipynb](https://github.com/angelolab/ark-analysis/blob/main/templates/anndata_conversion.ipynb)
 
 <p align="center">
-  <img width="50%" src="../_images/Anndata_Schema.svg" alt="AnnData Schema"/>
+  <img width="50%" src="../_images/anndata_schema.png" alt="AnnData Schema"/>
 </p>
 
 
