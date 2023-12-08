@@ -40,8 +40,9 @@ For each cell, the following morphology features calculated from `skimage.measur
 * `perimeter`: perimeter of object which approximates the contour as a line through the centers of border pixels using a 4-connectivity.
 * `convex_area`: the area of the convex hull.
 * `equivalent_diameter`: the diameter of the circle with the same area as the cell.
-* `centroid-0`: the $x$-coordinate of the centroid.
-* `centroid-1`: the $y$-coordinate of the centroid.
+* Centroids: Note that all the arrays are NumPy arrays, therefore the origin $(0,0)$ is in the "top-left corner" of the image / array.
+  * `centroid-0`: the $y$-coordinate of the centroid.
+  * `centroid-1`: the $x$-coordinate of the centroid.
 * `fov`: The FOV from which the cell originates from.
 
 The base `regionprops` metric often don't provide enough morphological information about each cell on their own. We add the following derived metrics to provide more complete information about the segmented cells:
@@ -49,7 +50,7 @@ The base `regionprops` metric often don't provide enough morphological informati
 * `perim_square_over_area`: the square of the perimeter divided by the area. 
 * `major_axis_equiv_diam_ratio`: the major axis length divided by the equivalent diameter.
 * `convex_hull_resid`: the difference between the convex area and the area divided by the convex area.
-* `centroid_dif`: the normalized euclidian distance between the cell centroid and the corresponding convex hull centroid.
+* `centroid_dif`: the normalized euclidean distance between the cell centroid and the corresponding convex hull centroid.
 * `num_concavities`: the number of concavities of the region.
 * `nc_ratio`: for nuclear segmentation only. The nuclear area divided by the total area.
 
