@@ -808,7 +808,7 @@ def stitch_images_by_shape(data_dir, stitched_dir, img_sub_folder=None, channels
 
 
 @delayed
-def _convert_ct_fov_to_adata(fov_dd: dd.DataFrame, var_names: list[str], obs_names: list[str], save_dir=None) -> str:
+def _convert_ct_fov_to_adata(fov_dd: dd.DataFrame, var_names: list[str], obs_names: list[str], save_dir: os.PathLike) -> str:
     """Converts the cell table for a single FOV to an `AnnData` object and saves it to disk as a
     `Zarr` store.
 
@@ -820,7 +820,7 @@ def _convert_ct_fov_to_adata(fov_dd: dd.DataFrame, var_names: list[str], obs_nam
         The marker names to extract from the cell table.
     obs_names: list[str]
         The cell-level measurements and properties to extract from the cell table.
-    save_dir: str | os.PathLike
+    save_dir: os.PathLike
         The directory to save the `AnnData` object to.
 
     Returns
@@ -843,7 +843,7 @@ def _convert_ct_fov_to_adata(fov_dd: dd.DataFrame, var_names: list[str], obs_nam
     obs_dd["cell_meta_cluster"] = pd.Categorical(obs_dd["cell_meta_cluster"].astype(str))
 
     # Move centroids from obs to obsm["spatial"]
-    obsm_dd = obs_dd[[settings.CENTROID_0, settings.CENTROID_1]].rename(columns={settings.CENTROID_0: "centroid_x", settings.CENTROID_1: "centroid_y"})
+    obsm_dd = obs_dd[[settings.CENTROID_0, settings.CENTROID_1]].rename(columns={settings.CENTROID_0: "centroid_y", settings.CENTROID_1: "centroid_x"})
     obs_dd = obs_dd.drop(columns=[settings.CENTROID_0, settings.CENTROID_1])
 
     # Create the AnnData object
@@ -860,17 +860,32 @@ class ConvertToAnnData:
     """ A class which converts the Cell Table `.csv` file to a series of `AnnData` objects,
     one object per FOV.
     
-    The default parameters stored in `.obs` parameters include
+    The default parameters stored in the `.obs` slot include:
+        - `area`
+        - `cell_meta_cluster`
+        - `centroid_dif`
+        - `convex_area`
+        - `convex_hull_resid`
+        - `cell_meta_cluster`
+        - `eccentricity`
+        - `fov`
+        - `major_axis_equiv_diam_ratio`
+    Visit the Data Types document to see the full list of parameters.
+
+    The default parameters stored in the `.obs` slot include:       
+        - `centroid_x`
+        - `centroid_y`
+
 
     Args:
         cell_table_path (os.PathLike): The path to the cell table.
-        markers (list[str], optional): The markers to extract and store in `.X`. Defaults to None,
+        markers (list[str], "auto"): The markers to extract and store in `.X`. Defaults to "auto",
         which will extract all markers.
         extra_obs_parameters (list[str], optional): Extra parameters to load in `.obs`. Defaults to None.
     """
 
     def __init__(self, cell_table_path: os.PathLike,
-                 markers: list[str] = None,
+                 markers: Union[list[str], Literal["auto"]] = "auto",
                  extra_obs_parameters: list[str] = None) -> None:
         
         io_utils.validate_paths(paths=cell_table_path)
@@ -885,7 +900,7 @@ class ConvertToAnnData:
         marker_index_stop: int = ct_columns.get_loc(settings.POST_CHANNEL_COL)
         obs_index_start: int = ct_columns.get_loc(settings.POST_CHANNEL_COL) + 1
         
-        if not markers:
+        if markers == "auto":
             # Default to all markers based on settings Pre and Post channel column values
             markers: list[str] = ct_columns[marker_index_start:marker_index_stop].to_list()
         else:
@@ -904,12 +919,12 @@ class ConvertToAnnData:
 
         # Use "area" as the default area id instead of settings.CELL_SIZE to account for
         # non-cellular observations (ez_seg, fiber, etc...)
-        if ("area" in obs_names) and (settings.CELL_SIZE in obs_names):
+        if settings.CELL_SIZE in obs_names:
             obs_names.remove(settings.CELL_SIZE)
-        elif ("area" not in obs_names) and (settings.CELL_SIZE in obs_names):
-            cell_table = cell_table.rename(columns={settings.CELL_SIZE: "area"})
-            obs_names.remove(settings.CELL_SIZE)
-            obs_names.append("area")
+            if "area" not in obs_names:
+                cell_table = cell_table.rename(columns={settings.CELL_SIZE: "area"})
+                obs_names.append("area")
+        
         self.obs_names: list[str] = obs_names
         self.cell_table = cell_table
         

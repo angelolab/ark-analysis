@@ -830,7 +830,9 @@ class TestConvertToAnnData:
         assert set(cta.var_names) == set([f"marker_{i}" for i in range(10)])
 
     def test_convert_to_adata(self):
-        cta = data_utils.ConvertToAnnData(self.cell_table_path)
+        cta = data_utils.ConvertToAnnData(cell_table_path=self.cell_table_path,
+                                          markers="auto",
+                                          extra_obs_parameters=None)
 
         adata_fov_paths = cta.convert_to_adata(self.adata_dir)
 
