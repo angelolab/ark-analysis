@@ -117,55 +117,43 @@ A `AnnData` object is composed of the following components:
 
 Each of these components have specific use cases and will be described below:
 
-#### 1. **X**, **var**, **obs**
+#### 1. X, var, obs
 
 <p align="center">
-<img width="50%" alt="image" src="https://github.com/angelolab/ark-analysis/assets/8909315/a5011077-d350-4aab-b8f8-609b11087bba">
+  <img width="50%" alt="image" src="https://github.com/angelolab/ark-analysis/assets/8909315/a5011077-d350-4aab-b8f8-609b11087bba">
 </p>
 
-**`X`** is a matrix of shape `(n_obs, n_vars)` where `n_obs` is the number of observations and `n_vars` is the number of variables. 
+- `X` is a matrix of shape `(n_obs, n_vars)` where `n_obs` is the number of observations and `n_vars` is the number of variables. 
+- `var` is a `DataFrame` of shape `(n_var_features, n_vars)`, where the index is `var_names`. This `DataFrame` contains attributes of each variable.
+- `obs` is a `DataFrame` of shape `(n_obs, n_obs_features)`, where the index is `obs_names`. This `DataFrame` contains information about each observation, such as numeric metrics from `regionprops` or categorical data such as cell phenotype, or patient-level information.
+- `n_obs` is the number of segmented regions or objects of interest. These can be cell segmentations, or more complex objects such as nuclei masks, or object masks. Whatever it is, it should be the smallest, most atomic unit of analysis.
+- `obs_names` is a `Pandas` Index where each value is a unique identifier for each observation. These are the names of the segmented regions, and should be unique.
+- `n_vars` is the number of variables, and in this case it is the number of channels. Each channel is a variable, and each observation has a value for each channel.
+- `var_names` is a `Pandas` Index where each value is a unique identifier for each variable. These are the names of the channels and should be unique.
 
-`n_obs` is the number of segmented regions or objects of interest. These can be cell segmentations, or more complex objects such as nuclei masks, or object masks. Whatever it is, it should be the smallest, most atomic unit of analysis.
-
-`obs_names` is a `Pandas` Index where each value is a unique identifier for each observation. These are the names of the segmented regions, and should be unique.
-
-`n_vars` is the number of variables, and in this case it is the number of channels. Each channel is a variable, and each observation has a value for each channel.
-
-`var_names` is a `Pandas` Index where each value is a unique identifier for each variable. These are the names of the channels and should be unique.
-
-**`var`** is a `DataFrame` of shape `(n_var_features, n_vars)`, where the index is `var_names`. This `DataFrame` contains attributes of each variable.
-
-**`obs`** is a `DataFrame` of shape `(n_obs, n_obs_features)`, where the index is `obs_names`. This `DataFrame` contains information about each observation, such as numeric metrics from `regionprops` or categorical data such as cell phenotype, or patient-level information.
-
-
-#### 2. **obsm**, **varm**
+#### 2. obsm, varm
 
 <p align="center">
-<img width="50%" alt="image" src="https://github.com/angelolab/ark-analysis/assets/8909315/8ea1c794-f80b-49a3-b814-3357d2718f7b">
+  <img width="50%" alt="image" src="https://github.com/angelolab/ark-analysis/assets/8909315/8ea1c794-f80b-49a3-b814-3357d2718f7b">
 </p>
 
-**`obsm`** is a Matrix of shape `(n_obs, a)`, where `a` is an integer. This contains observation level matrices, and we use a mapping `str -> NDArray` to store them. For example, `X_umap`
+- `obsm` is a Matrix of shape `(n_obs, a)`, where `a` is an integer. This contains observation level matrices, and we use a mapping `str -> NDArray` to store them. For example, `X_umap`
 would store the UMAP embedding of the sparse matrix `X`, and `X_pca` would store the PCA embedding of `X`.
+- `varm` is a Matrix of shape `(n_vars, b)`, where `b` is an integer. This contains variable level matrices, and we use a mapping `str -> NDArray` to store them. For example, `Marker_umap` would store the UMAP embedding of the matrix `var`.
 
-**`varm`** is a Matrix of shape `(n_vars, b)`, where `b` is an integer. This contains variable level matrices, and we use a mapping `str -> NDArray` to store them. For example, `Marker_umap` would store the UMAP embedding of the matrix `var`.
 
-
-#### 3. **obsp**, **varp**
+#### 3. obsp, varp
 
 <p align="center">
-<img width="50%" alt="image" src="https://github.com/angelolab/ark-analysis/assets/8909315/2201f36d-3a7c-4154-8ab6-e875e9811eb4">
+  <img width="50%" alt="image" src="https://github.com/angelolab/ark-analysis/assets/8909315/2201f36d-3a7c-4154-8ab6-e875e9811eb4">
 </p>
 
-**`obsp`** is a square matrix of shape `(n_obs, n_obs)`, and its purpose is to store pairwise computations between observations.
-
-**`varp`** is a square matrix of shape `(n_vars, n_vars)`, and its purpose is to store pairwise computations between variables.
-
+- `obsp` is a square matrix of shape `(n_obs, n_obs)`, and its purpose is to store pairwise computations between observations.
+- `varp` is a square matrix of shape `(n_vars, n_vars)`, and its purpose is to store pairwise computations between variables.
 #### 4. **uns**
 
 <p align="center">
-<img width="303" alt="image" src="https://github.com/angelolab/ark-analysis/assets/8909315/881a2c63-3ea4-4874-b6d6-b0bc2532f283">
+  <img width="303" alt="image" src="https://github.com/angelolab/ark-analysis/assets/8909315/881a2c63-3ea4-4874-b6d6-b0bc2532f283">
 </p>
 
-**`uns`** is a free slot for storing *almost* anything. It's a mapping from a string label to anything.
-
----
+- `uns` is a free slot for storing *almost* anything. It's a mapping from a string label to anything.

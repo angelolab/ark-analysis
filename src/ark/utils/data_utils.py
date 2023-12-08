@@ -861,27 +861,27 @@ class ConvertToAnnData:
     one object per FOV.
     
     The default parameters stored in the `.obs` slot include:
-        - `area`
-        - `cell_meta_cluster`
-        - `centroid_dif`
-        - `convex_area`
-        - `convex_hull_resid`
-        - `cell_meta_cluster`
-        - `eccentricity`
-        - `fov`
-        - `major_axis_equiv_diam_ratio`
+    - `area`
+    - `cell_meta_cluster`
+    - `centroid_dif`
+    - `convex_area`
+    - `convex_hull_resid`
+    - `cell_meta_cluster`
+    - `eccentricity`
+    - `fov`
+    - `major_axis_equiv_diam_ratio`
+
     Visit the Data Types document to see the full list of parameters.
-
     The default parameters stored in the `.obs` slot include:       
-        - `centroid_x`
-        - `centroid_y`
-
+    - `centroid_x`
+    - `centroid_y`
 
     Args:
         cell_table_path (os.PathLike): The path to the cell table.
         markers (list[str], "auto"): The markers to extract and store in `.X`. Defaults to "auto",
         which will extract all markers.
-        extra_obs_parameters (list[str], optional): Extra parameters to load in `.obs`. Defaults to None.
+        extra_obs_parameters (list[str], optional): Extra parameters to load in `.obs`. Defaults
+        to None.
     """
 
     def __init__(self, cell_table_path: os.PathLike,
@@ -915,7 +915,13 @@ class ConvertToAnnData:
                                     all_parameters=ct_columns[obs_index_start:].to_list())
         else:
             extra_obs_parameters = []
-        obs_names = [settings.CELL_LABEL, settings.CELL_SIZE, *ct_columns[obs_index_start:].to_list(), *extra_obs_parameters]
+
+        obs_names = [
+            settings.CELL_LABEL,
+            settings.CELL_SIZE,
+            *ct_columns[obs_index_start:].to_list(),
+            *extra_obs_parameters
+        ]
 
         # Use "area" as the default area id instead of settings.CELL_SIZE to account for
         # non-cellular observations (ez_seg, fiber, etc...)
@@ -927,7 +933,6 @@ class ConvertToAnnData:
         
         self.obs_names: list[str] = obs_names
         self.cell_table = cell_table
-        
 
     def convert_to_adata(
         self,
