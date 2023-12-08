@@ -370,15 +370,24 @@ class Test_2_Pixel_Clustering:
     def test_imports(self):
         self.tb.execute_cell("import")
 
+    def test_use_example_dataset(self):
+        self.tb.execute_cell("use_example_dataset")
+
     def test_base_dir(self):
         base_dir_inject = f"""
-            base_dir = r"{self.base_dir}"
+            fc.path_vars["base_dir"] = r"{self.base_dir}"
         """
         self.tb.inject(base_dir_inject, "base_dir")
 
     def test_ex_data_download(self):
         notebooks_test_utils._ex_dataset_download(dataset=self.dataset, save_dir=self.base_dir,
                                                   cache_dir=self.cache_dir)
+
+    def test_set_tiff_dir(self):
+        self.tb.execute_cell("tiff_dir_set")
+
+    def test_set_pixie_dir(self):
+        self.tb.execute_cell("pixie_seg_dir_set")
 
     def test_file_path(self):
         self.tb.execute_cell("file_path")
@@ -488,9 +497,12 @@ class Test_3_Cell_Clustering:
     def test_imports(self):
         self.tb.execute_cell("import")
 
+    def test_use_example_dataset(self):
+        self.tb.execute_cell("use_example_dataset")
+
     def test_base_dir(self):
         base_dir_inject = f"""
-            base_dir = r"{self.base_dir}"
+            fc.path_vars["base_dir"] = r"{self.base_dir}"
         """
         self.tb.inject(base_dir_inject, "base_dir")
 
@@ -498,11 +510,14 @@ class Test_3_Cell_Clustering:
         notebooks_test_utils._ex_dataset_download(dataset=self.dataset, save_dir=self.base_dir,
                                                   cache_dir=self.cache_dir)
 
-    def test_dir_set(self):
-        self.tb.execute_cell("dir_set")
+    def test_cell_cluster_params_set(self):
+        self.tb.execute_cell("pixel_output_dir_set")
 
     def test_param_load(self):
         self.tb.execute_cell("param_load")
+
+    def test_cell_table_set(self):
+        self.tb.execute_cell("cell_table_set")
 
     def test_cluster_prefix(self):
         cell_prefix_inject = f"""
