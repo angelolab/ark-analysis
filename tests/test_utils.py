@@ -658,6 +658,7 @@ def generate_sample_fovs_list(fov_coords, fov_names):
 
     return sample_fovs_list
 
+
 def generate_anndata_table(
     rng: np.random.Generator,
     n_obs: int,
