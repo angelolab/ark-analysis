@@ -66,7 +66,6 @@ def create_mantis_project(
     fov_col: str = settings.FOV_ID,
     label_col: str = settings.CELL_LABEL,
     seg_suffix_name: str = "_whole_cell.tiff",
-    cluster_type: str = "pixel",
 ) -> None:
     """Creates a complete Mantis Project for viewing cell labels.
 
@@ -94,14 +93,7 @@ def create_mantis_project(
         seg_suffix_name (str, optional):
             The suffix of the segmentation file and it's file extension. Defaults to
             `"_whole_cell.tiff"`.
-        cluster_type (str, optional):
-            The type of clustering being done. Defaults to `"pixel"`.
     """
-
-    # verify the type of clustering provided is valid
-    misc_utils.verify_in_list(
-        provided_cluster_type=[cluster_type], valid_cluster_types=["pixel", "cell"]
-    )
 
     # Validate image extension input.
     seg_suffix_ext: str = seg_suffix_name.split(".")[-1]
@@ -156,8 +148,8 @@ def create_mantis_project(
     # rename the columns of small_table
     mantis_df: pd.DataFrame = small_table.rename(
         {
-            "pop_vals": f"{cluster_type}_meta_cluster",
-            pop_col: f"{cluster_type}_meta_cluster_rename",
+            "pop_vals": "cluster_id",
+            pop_col: f"cell_meta_cluster_rename",
         },
         axis=1,
     )
@@ -171,7 +163,7 @@ def create_mantis_project(
         mask_suffix="_post_clustering_cell_mask",
         mapping=mantis_df,
         seg_dir=seg_dir,
-        cluster_type=cluster_type,
+        cluster_type="cell",
         img_sub_folder="",
         seg_suffix_name=seg_suffix_name,
     )

@@ -348,12 +348,19 @@ def test_generate_and_save_cell_cluster_masks(tmp_path: pathlib.Path, sub_dir, n
 
         consensus_data_meta = pd.concat([consensus_data_meta, meta_data_fov])
 
+    # create the cluster mapping file
+    mapping_file_path = os.path.join(tmp_path, 'cluster_mapping.csv')
+    cluster_mapping = consensus_data_meta.filter(['cell_som_cluster', 'cell_meta_cluster']).\
+        drop_duplicates().sort_values(by="cell_som_cluster")
+    cluster_mapping.to_csv(os.path.join(tmp_path, 'cluster_mapping.csv'), index=False)
+
     # test various batch_sizes, no sub_dir, name_suffix = ''.
     data_utils.generate_and_save_cell_cluster_masks(
         fovs=fovs,
         save_dir=os.path.join(tmp_path, 'cell_masks'),
         seg_dir=tmp_path,
         cell_data=consensus_data_som,
+        cluster_id_to_name_path=mapping_file_path,
         fov_col=settings.FOV_ID,
         label_col=settings.CELL_LABEL,
         cell_cluster_col='cell_som_cluster',
@@ -372,6 +379,9 @@ def test_generate_and_save_cell_cluster_masks(tmp_path: pathlib.Path, sub_dir, n
         actual_img_dims = (40, 40) if i < fov_size_split else (20, 20)
         assert cell_mask.shape == actual_img_dims
         assert np.all(cell_mask <= 5)
+
+    new_cluster_mapping = pd.read_csv(mapping_file_path)
+    assert "cluster_id" in new_cluster_mapping.columns
 
 
 def test_generate_pixel_cluster_mask():

@@ -591,15 +591,18 @@ def test_create_mantis_dir(
             new_mapping_df = pd.read_csv(
                 os.path.join(output_path, f"population{mask_suff}.csv"))
 
-            # 3.a. Assert that metacluster col equals the region_id col
-            metacluster_col = original_mapping_df[[f"{cluster_type}_meta_cluster"]]
+            # 3.a. Assert that appropratiate cluster col equals the region_id col
+            cluster_col = "cluster_id" if cluster_type == "cell"\
+                else f"{cluster_type}_meta_cluster"
+            metacluster_col = original_mapping_df[[cluster_col]].drop_duplicates()
             region_id_col = new_mapping_df[["region_id"]]
-            metacluster_col.eq(region_id_col)
+            assert np.equal(metacluster_col.values, region_id_col.values).all()
 
             # 3.b. Assert that mc_name col equals the region_name col
-            mc_name_col = original_mapping_df[[f"{cluster_type}_meta_cluster_rename"]]
+            mc_name_col = original_mapping_df[[f"{cluster_type}_meta_cluster_rename"]].\
+                drop_duplicates()
             region_name = new_mapping_df[["region_name"]]
-            mc_name_col.eq(region_name)
+            assert np.equal(mc_name_col.values, region_name.values).all()
 
             mantis_fov_channels = natsort.natsorted(
                 list(Path(output_path).glob("chan*.tiff"))
@@ -659,10 +662,14 @@ def cluster_id_to_name_mapping(
             f"{cluster_type}_som_cluster": np.arange(20),
             f"{cluster_type}_meta_cluster": np.repeat(np.arange(n_metaclusters), 4),
             f"{cluster_type}_meta_cluster_rename": [
-                "meta" + str(i) for i in np.repeat(np.arange(n_metaclusters), 4)
-            ],
+                "meta" + str(i) for i in np.repeat(np.arange(n_metaclusters), 4)],
         }
     )
+
+    # add cluster_id for cell file
+    if cluster_type == "cell":
+        df["cluster_id"] = np.repeat(np.arange(n_metaclusters)+1, 4)
+
     df.to_csv(mapping_path, index=False)
 
     yield mapping_path
