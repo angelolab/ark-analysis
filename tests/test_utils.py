@@ -12,13 +12,15 @@ import ark.settings as settings
 TEST_MARKERS = list('ABCDEFG')
 
 
-def make_cell_table(num_cells, extra_cols=None):
-    """ Generate a cell table with default column names for testing purposes.
+def make_cell_table(n_cells: int, n_markers: int, extra_cols: Mapping = None):
+    """Generate a cell table with default column names for testing purposes.
 
     Args:
-        num_cells (int):
+        n_cells (int):
             Number of rows (cells) in the cell table
-        extra_cols (dict):
+        n_markers (int):
+            Number of markers / channels in the cell table.
+        extra_cols (Mapping):
             Extra columns to add in the format ``{'Column_Name' : data_1D, ...}``
 
     Returns:
@@ -28,36 +30,63 @@ def make_cell_table(num_cells, extra_cols=None):
 
     """
     # columns from regionprops extraction
-    region_cols = [x for x in settings.REGIONPROPS_BASE if
-                   x not in ['label', 'area', 'centroid']] + settings.REGIONPROPS_SINGLE_COMP
-    region_cols += settings.REGIONPROPS_MULTI_COMP
-    # consistent ordering of column names
-    column_names = [settings.FOV_ID,
-                    settings.PATIENT_ID,
-                    settings.CELL_LABEL,
-                    settings.CELL_TYPE,
-                    settings.CELL_SIZE] + TEST_MARKERS + region_cols + ['centroid-0', 'centroid-1']
+    region_cols = [
+        x for x in settings.REGIONPROPS_BASE if x not in ("label", "area", "centroid")
+    ]
+    post_marker_columns = [
+        settings.CELL_LABEL,
+        *region_cols,
+        *settings.REGIONPROPS_SINGLE_COMP,
+        *settings.REGIONPROPS_MULTI_COMP,
+        settings.FOV_ID,
+        settings.PATIENT_ID,
+        settings.CENTROID_0,
+        settings.CENTROID_1,
+        settings.CELL_TYPE,
+    ]
+
+    test_markers = [f"marker_{i}" for i in range(n_markers)]
+
+    cell_table_column_names = [settings.CELL_SIZE, *test_markers, *post_marker_columns]
 
     if extra_cols is not None:
-        column_names += list(extra_cols.values())
+        cell_table_column_names += list(extra_cols.keys())
 
-    # random filler data
-    cell_data = pd.DataFrame(np.random.random(size=(num_cells, len(column_names))),
-                             columns=column_names)
-    # not-so-random filler data
-    centroids = pd.DataFrame(np.array([(x, y) for x in range(1024) for y in range(1024)]))
-    centroid_loc = np.random.choice(range(1024 ** 2), size=num_cells, replace=False)
-    fields = [(settings.FOV_ID, choices(range(1, 5), k=num_cells)),
-              (settings.PATIENT_ID, choices(range(1, 10), k=num_cells)),
-              (settings.CELL_LABEL, list(range(num_cells))),
-              (settings.CELL_TYPE, choices(ascii_lowercase, k=num_cells)),
-              (settings.CELL_SIZE, np.random.uniform(100, 300, size=num_cells)),
-              (settings.CENTROID_0, np.array(centroids.iloc[centroid_loc, 0])),
-              (settings.CENTROID_1, np.array(centroids.iloc[centroid_loc, 1]))
-              ]
+    cell_data = pd.DataFrame(
+        data=np.empty((n_cells, len(cell_table_column_names))),
+        columns=cell_table_column_names,
+    )
 
-    for name, col in fields:
-        cell_data[name] = col
+    rng = np.random.default_rng()
+
+    cell_data[settings.CELL_SIZE] = rng.integers(low=90, high=2000, size=n_cells)
+    cell_data[test_markers] = rng.random(size=(n_cells, n_markers))
+    cell_data[settings.CELL_LABEL] = np.arange(n_cells)
+
+    # Region Columns
+    for rc in region_cols:
+        cell_data[rc] = rng.random(size=n_cells)
+
+    # Region props single component
+    for rc in settings.REGIONPROPS_SINGLE_COMP:
+        cell_data[rc] = rng.random(size=n_cells)
+
+    # Region props multi component
+    for rc in settings.REGIONPROPS_MULTI_COMP:
+        cell_data[rc] = rng.random(size=n_cells)
+
+    # FOV ID
+    cell_data[settings.FOV_ID] = rng.integers(low=0, high=10, size=n_cells)
+
+    # Patient ID
+    cell_data[settings.PATIENT_ID] = rng.integers(low=0, high=5, size=n_cells)
+
+    # Centroid
+    cell_data[settings.CENTROID_0] = rng.integers(low=0, high=1024, size=n_cells)
+    cell_data[settings.CENTROID_1] = rng.integers(low=0, high=1024, size=n_cells)
+
+    # Cell Type
+    cell_data[settings.CELL_TYPE] = rng.choice(a=["A", "B", "C"], size=n_cells)
 
     return cell_data
 

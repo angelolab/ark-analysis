@@ -1,15 +1,15 @@
 import os
+import pytest
+import tempfile
 
 import numpy as np
 import pandas as pd
-import pytest
 import skimage.io as io
-import test_utils as ark_test_utils
 
 from ark import settings
-from alpineer import image_utils, test_utils
+from test_utils import make_cell_table
+from alpineer import image_utils, test_utils, misc_utils
 from ark.phenotyping import post_cluster_utils
-
 
 
 def test_plot_hist_thresholds():
@@ -101,3 +101,38 @@ def test_create_mantis_project(tmp_path):
 
 
 def test_generate_new_cluster_resolution():
+    with tempfile.TemporaryDirectory() as temp_dir:
+        cell_table = make_cell_table(n_cells=20, n_markers=0)
+        cluster_assignments = {'AB': ['A', 'B'], 'C': ['C']}
+        new_path = os.path.join(temp_dir, 'new_table.csv')
+
+        # generate and save a new cell table with new cell cluster resolution
+        post_cluster_utils.generate_new_cluster_resolution(
+            cell_table, cluster_col=settings.CELL_TYPE, new_cluster_col="new_clusters",
+            cluster_mapping=cluster_assignments, save_path=new_path)
+
+        new_table = pd.read_csv(new_path)
+
+        # check new column exists
+        assert "new_clusters" in new_table.columns
+
+        # check for new cell cluster names
+        assert misc_utils.verify_same_elements(
+            inteded_clusters=list(cluster_assignments.keys()),
+            table_clusters=list(np.unique(new_table.new_clusters)))
+
+        # check no cells were dropped
+        assert len(cell_table[settings.CELL_LABEL]) == len(new_table[settings.CELL_LABEL])
+
+        # check error raise when new_cluster_col already exists
+        with pytest.raises(ValueError):
+            post_cluster_utils.generate_new_cluster_resolution(
+                cell_table, cluster_col=settings.CELL_TYPE, new_cluster_col="new_clusters",
+                cluster_mapping=cluster_assignments, save_path=new_path)
+
+        # check error raise when cell types missing from assignment dict
+        with pytest.raises(ValueError):
+            missing_assignments = {'A': ['A'], 'C': ['C']}
+            post_cluster_utils.generate_new_cluster_resolution(
+                cell_table, cluster_col=settings.CELL_TYPE, new_cluster_col="new_clusters_bad",
+                cluster_mapping=missing_assignments, save_path=new_path)
