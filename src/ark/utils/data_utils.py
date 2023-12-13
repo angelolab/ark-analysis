@@ -895,7 +895,7 @@ class ConvertToAnnData:
         cell_table: dd.DataFrame = dd.read_csv(cell_table_path)
         ct_columns = cell_table.columns
         
-        # Get te marker column indices
+        # Get the marker column indices
         marker_index_start: int = ct_columns.get_loc(settings.PRE_CHANNEL_COL) + 1
         marker_index_stop: int = ct_columns.get_loc(settings.POST_CHANNEL_COL)
         obs_index_start: int = ct_columns.get_loc(settings.POST_CHANNEL_COL) + 1
