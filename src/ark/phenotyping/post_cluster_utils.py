@@ -191,8 +191,9 @@ def generate_new_cluster_resolution(cell_table, cluster_col, new_cluster_col, cl
 
     cluster_mapping_values = list(cluster_mapping.values())
     cluster_list = list(itertools.chain.from_iterable(cluster_mapping_values))
-    misc_utils.verify_same_elements(specified_cell_clusters=cluster_list,
-                                    cell_clusters_in_table=list(np.unique(cell_table.cluster_col)))
+    misc_utils.verify_same_elements(
+        specified_cell_clusters=cluster_list,
+        cell_clusters_in_table=list(np.unique(cell_table[cluster_col])))
 
     # assign each cell to new cluster
     for new_cluster in cluster_mapping:
