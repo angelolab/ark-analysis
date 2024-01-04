@@ -137,6 +137,7 @@ def multiple_mask_display(
     mask_name: str,
     object_mask_dir: Union[str, os.PathLike],
     cell_mask_dir: Union[str, os.PathLike],
+    cell_mask_suffix: str,
     merged_mask_dir: Union[str, os.PathLike],
 ) -> None:
     """
@@ -147,6 +148,7 @@ def multiple_mask_display(
         mask_name (str): Name of mask to view
         object_mask_dir (Union[str, os.PathLike]): Directory where the object masks are stored.
         cell_mask_dir (Union[str, os.PathLike]): Directory where the cell masks are stored.
+        cell_mask_suffix (str): Suffix name of the cell mask files.
         merged_mask_dir (Union[str, os.PathLike]): Directory where the merged masks are stored.
     """
     if isinstance(object_mask_dir, str):
@@ -158,7 +160,7 @@ def multiple_mask_display(
     io_utils.validate_paths([object_mask_dir, cell_mask_dir, merged_mask_dir])
 
     modified_overlay_mask: np.ndarray = create_overlap_and_merge_visual(
-        fov, mask_name, object_mask_dir, cell_mask_dir, merged_mask_dir
+        fov, mask_name, object_mask_dir, cell_mask_dir, cell_mask_suffix, merged_mask_dir
     )
 
     # Create a new figure
@@ -177,6 +179,7 @@ def create_overlap_and_merge_visual(
     mask_name: str,
     object_mask_dir: pathlib.Path,
     cell_mask_dir: pathlib.Path,
+    cell_mask_suffix: str,
     merged_mask_dir: pathlib.Path,
 ) -> np.ndarray:
     """
@@ -187,6 +190,7 @@ def create_overlap_and_merge_visual(
         mask_name (str): Name of mask to view
         object_mask_dir (pathlib.Path): Directory where the object masks are stored.
         cell_mask_dir (pathlib.Path): Directory where the cell masks are stored.
+        cell_mask_suffix (str): Suffix name of the cell mask files.
         merged_mask_dir (pathlib.Path): Directory where the merged masks are stored.
 
     Returns:
@@ -196,7 +200,7 @@ def create_overlap_and_merge_visual(
     # read in masks
     object_mask: np.ndarray = imread(object_mask_dir / f"{fov}_{mask_name}.tiff")
     cell_mask: np.ndarray = imread(
-        cell_mask_dir / f"{fov}_whole_cell.tiff", as_gray=True
+        cell_mask_dir / f"{fov}_{cell_mask_suffix}.tiff", as_gray=True
     )
     merged_mask: np.ndarray = imread(
         merged_mask_dir / f"{fov}_{mask_name}_merged.tiff", as_gray=True

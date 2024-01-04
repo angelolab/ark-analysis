@@ -80,7 +80,7 @@ def composite_builder(
         # Save the composite image
         image_utils.save_image(
             fname=composite_directory / fov / f"{composite_name}.tiff",
-            data=composite_array.astype(np.uint32)
+            data=composite_array.astype(np.float32)
         )
 
     # Write a log saving composite builder info
@@ -123,7 +123,7 @@ def add_to_composite(
     """
 
     filtered_channels: xr.DataArray = data.sel(
-        {"channels": images_to_add}).squeeze().astype(np.int32)
+        {"channels": images_to_add}).squeeze().astype(np.float32)
     if len(images_to_add) > 1:
         composite_array: np.ndarray = filtered_channels.sum(dim="channels").values
     else:
@@ -159,7 +159,7 @@ def subtract_from_composite(
     """
 
     filtered_channels: xr.DataArray = data.sel(
-        {"channels": images_to_subtract}).squeeze().astype(np.int32)
+        {"channels": images_to_subtract}).squeeze().astype(np.float32)
     if len(images_to_subtract) > 1:
         composite_array2sub: np.ndarray = filtered_channels.sum(dim="channels").values
     else:
