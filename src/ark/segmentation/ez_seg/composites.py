@@ -63,7 +63,7 @@ def composite_builder(
             composite_directory.mkdir(parents=True, exist_ok=True)
 
         # Initialize composite array, and add & subtract channels
-        composite_array = np.zeros(shape=image_shape)
+        composite_array = np.zeros(shape=image_shape, dtype=np.float32)
         if images_to_add:
             composite_array = add_to_composite(
                 fov_data, composite_array, images_to_add, image_type, composite_method
