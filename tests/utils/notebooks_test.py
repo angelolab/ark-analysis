@@ -13,7 +13,7 @@ from . import notebooks_test_utils
 
 # Sets a shared notebook testing temporary directory. Saves all notebook related files in a
 # temporary directory.
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="class")
 def base_dir_generator(tmp_path_factory) -> Iterator[pathlib.Path]:
     """
     A Fixture which creates the directory where the all notebook test inputs and outputs are
@@ -32,7 +32,7 @@ def base_dir_generator(tmp_path_factory) -> Iterator[pathlib.Path]:
     yield notebook_test_output_dir
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="class")
 def templates_dir() -> Iterator[pathlib.Path]:
     """
     A Fixture which gathers the `templates` directory from `ark-analysis`.
