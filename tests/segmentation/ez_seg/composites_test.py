@@ -20,13 +20,13 @@ def image_dir(tmpdir_factory: pytest.TempPathFactory) -> pathlib.Path:
          [1] * 4,
          [2] * 4,
          [3] * 4]
-    )
+    ).astype(np.float32)
     example_img_1 = np.array(
         [[0, 0, 1, 1],
          [1, 1, 2, 2],
          [2, 2, 3, 3],
          [3, 3, 4, 4]]
-    )
+    ).astype(np.float32)
     example_imgs = [example_img_0, example_img_1]
 
     for fov in fovs:
@@ -52,7 +52,7 @@ def composite_array_add() -> np.ndarray:
          [1] * 4,
          [2] * 4,
          [3] * 4]
-    )
+    ).astype(np.float32)
 
 
 @pytest.fixture(scope="session")
@@ -62,7 +62,7 @@ def composite_array_subtract() -> np.ndarray:
          [2] * 4,
          [1] * 4,
          [0] * 4]
-    )
+    ).astype(np.float32)
 
 
 def test_add_to_composite_signal(image_data: xr.DataArray, composite_array_add: np.ndarray):
@@ -79,7 +79,7 @@ def test_add_to_composite_signal(image_data: xr.DataArray, composite_array_add: 
          [2, 2, 3, 3],
          [4, 4, 5, 5],
          [6, 6, 7, 7]]
-    )
+    ).astype(np.float32)
     assert np.all(composite_array_added == result)
 
 
@@ -97,7 +97,7 @@ def test_add_to_composite_signal_binary(image_data: xr.DataArray, composite_arra
          [1, 1, 1, 1],
          [1, 1, 1, 1],
          [1, 1, 1, 1]]
-    )
+    ).astype(np.float32)
     assert np.all(composite_array_added == result)
 
 
@@ -115,7 +115,7 @@ def test_add_to_composite_pixel_cluster(image_data: xr.DataArray, composite_arra
          [1, 1, 1, 1],
          [1, 1, 1, 1],
          [1, 1, 1, 1]]
-    )
+    ).astype(np.float32)
     assert np.all(composite_array_added == result)
 
 
@@ -135,7 +135,7 @@ def test_subtract_from_composite_signal_binary(
          [0, 0, 0, 0],
          [0, 0, 0, 0],
          [0, 0, 0, 0]]
-    )
+    ).astype(np.float32)
     assert np.all(composite_array_subtracted == result)
 
 
@@ -156,5 +156,5 @@ def test_subtract_from_composite_general(
          [1, 1, 0, 0],
          [0, 0, 0, 0],
          [0, 0, 0, 0]]
-    )
+    ).astype(np.float32)
     assert np.all(composite_array_subtracted == result)
