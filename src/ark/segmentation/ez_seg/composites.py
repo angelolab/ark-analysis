@@ -125,9 +125,9 @@ def add_to_composite(
     filtered_channels: xr.DataArray = data.sel(
         {"channels": images_to_add}).squeeze().astype(np.float32)
     if len(images_to_add) > 1:
-        composite_array += filtered_channels.sum(dim="channels").values()
+        composite_array = filtered_channels.sum(dim="channels").values
     else:
-        composite_array += filtered_channels
+        composite_array = filtered_channels
     if image_type == "pixel_cluster" or composite_method == "binary":
         composite_array = composite_array.clip(min=None, max=1)
 
