@@ -96,7 +96,7 @@ def test_check_featurize_cell_table_args():
 
 
 def test_within_cluster_sums():
-    cell_table = make_cell_table(num_cells=1000)
+    cell_table = make_cell_table(n_cells=1000, n_markers=10)
     all_clusters = list(np.unique(cell_table[settings.CELL_TYPE]))
     formatted_table = pros.format_cell_table(cell_table, clusters=all_clusters)
     featurized_table = pros.featurize_cell_table(formatted_table)
@@ -127,7 +127,7 @@ def test_plot_fovs_with_topics():
 
 
 def test_save_spatial_lda_data():
-    cell_table = make_cell_table(num_cells=1000)
+    cell_table = make_cell_table(n_cells=1000, n_markers=10)
     all_clusters = list(np.unique(cell_table[settings.CELL_TYPE]))
     cell_table_format = pros.format_cell_table(cell_table, clusters=all_clusters)
     # test for non-existent directory
