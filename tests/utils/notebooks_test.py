@@ -13,7 +13,7 @@ from . import notebooks_test_utils
 
 # Sets a shared notebook testing temporary directory. Saves all notebook related files in a
 # temporary directory.
-@pytest.fixture(scope="class")
+@pytest.fixture(scope="session")
 def base_dir_generator(tmp_path_factory) -> Iterator[pathlib.Path]:
     """
     A Fixture which creates the directory where the all notebook test inputs and outputs are
@@ -32,7 +32,7 @@ def base_dir_generator(tmp_path_factory) -> Iterator[pathlib.Path]:
     yield notebook_test_output_dir
 
 
-@pytest.fixture(scope="class")
+@pytest.fixture(scope="session")
 def templates_dir() -> Iterator[pathlib.Path]:
     """
     A Fixture which gathers the `templates` directory from `ark-analysis`.
@@ -64,9 +64,12 @@ def nb1_context(
     """
 
     SEGMENT_IMAGE_DATA_PATH: pathlib.Path = templates_dir / "1_Segment_Image_Data.ipynb"
+    print(f"What is base_dir_generator before nb1_context: {base_dir_generator}")
     with testbook(SEGMENT_IMAGE_DATA_PATH, timeout=6000, execute=False) as nb_context_manager:
         yield nb_context_manager, base_dir_generator / "nb1"
     print("after init class")
+    print(f"What is base_dir_generator after nb1_context: {base_dir_generator}")
+    print(os.path.exists(base_dir_generator))
     shutil.rmtree(base_dir_generator)
 
 
@@ -90,8 +93,11 @@ def nb2_context(
     """
 
     CLUSTER_PIXELS: pathlib.Path = templates_dir / "2_Pixie_Cluster_Pixels.ipynb"
+    print(f"What is base_dir_generator before nb2_context: {base_dir_generator}")
     with testbook(CLUSTER_PIXELS, timeout=6000, execute=False) as nb_context_manager:
         yield nb_context_manager, base_dir_generator / "nb2"
+    print(f"What is base_dir_generator after nb2_context: {base_dir_generator}")
+    print(os.path.exists(base_dir_generator))
     shutil.rmtree(base_dir_generator)
 
 
@@ -114,8 +120,11 @@ def nb3_context(
             notebook input / output is stored.
     """
     CLUSTER_CELLS: pathlib.Path = templates_dir / "3_Pixie_Cluster_Cells.ipynb"
+    print(f"What is base_dir_generator before nb3_context: {base_dir_generator}")
     with testbook(CLUSTER_CELLS, timeout=6000, execute=False) as nb_context_manager:
         yield nb_context_manager, base_dir_generator / "nb3"
+    print(f"What is base_dir_generator after nb3_context: {base_dir_generator}")
+    print(os.path.exists(base_dir_generator))
     shutil.rmtree(base_dir_generator)
 
 
@@ -138,8 +147,11 @@ def nb3b_context(
             notebook input / output is stored.
     """
     CLUSTER_CELLS: pathlib.Path = templates_dir / "generic_cell_clustering.ipynb"
+    print(f"What is base_dir_generator before nb3b_context: {base_dir_generator}")
     with testbook(CLUSTER_CELLS, timeout=6000, execute=False) as nb_context_manager:
         yield nb_context_manager, base_dir_generator / "nb3b"
+    print(f"What is base_dir_generator after nb3b_context: {base_dir_generator}")
+    print(os.path.exists(base_dir_generator))
     shutil.rmtree(base_dir_generator)
 
 
@@ -162,8 +174,11 @@ def nb4_context(
             notebook input / output is stored.
     """
     POST_CLUSTERING: pathlib.Path = templates_dir / "4_Post_Clustering.ipynb"
+    print(f"What is base_dir_generator before nb4_context: {base_dir_generator}")
     with testbook(POST_CLUSTERING, timeout=6000, execute=False) as nb_context_manager:
         yield nb_context_manager, base_dir_generator / "nb4"
+    print(f"What is base_dir_generator after nb4_context: {base_dir_generator}")
+    print(os.path.exists(base_dir_generator))
     shutil.rmtree(base_dir_generator)
 
 
@@ -186,8 +201,11 @@ def ez_seg_context(
             notebook input / output is stored.
     """
     POST_CLUSTERING: pathlib.Path = templates_dir / "ez_segmenter.ipynb"
+    print(f"What is base_dir_generator before ez_seg_context: {base_dir_generator}")
     with testbook(POST_CLUSTERING, timeout=6000, execute=False) as nb_context_manager:
         yield nb_context_manager, base_dir_generator / "ez_seg"
+    print(f"What is base_dir_generator after ez_seg_context: {base_dir_generator}")
+    print(os.path.exists(base_dir_generator))
     shutil.rmtree(base_dir_generator)
 
 
@@ -212,8 +230,11 @@ def nbfib_seg_context(
     EXAMPLE_FIBER_SEGMENTATION: pathlib.Path = (
         templates_dir / "example_fiber_segmentation.ipynb"
     )
+    print(f"What is base_dir_generator before nbfib_seg_context: {base_dir_generator}")
     with testbook(EXAMPLE_FIBER_SEGMENTATION, timeout=6000, execute=False) as nb_context_manager:
         yield nb_context_manager, base_dir_generator / "efs"
+    print(f"What is base_dir_generator after nbfib_seg_context: {base_dir_generator}")
+    print(os.path.exists(base_dir_generator))
     shutil.rmtree(base_dir_generator)
 
 
@@ -236,8 +257,11 @@ def nbmixing_context(
             notebook input / output is stored.
     """
     EXAMPLE_MIXING: pathlib.Path = templates_dir / "Calculate_Mixing_Scores.ipynb"
+    print(f"What is base_dir_generator before nbmixing_context: {base_dir_generator}")
     with testbook(EXAMPLE_MIXING, timeout=6000, execute=False) as nb_context_manager:
         yield nb_context_manager, base_dir_generator / "cms"
+    print(f"What is base_dir_generator after nbfib_seg_context: {base_dir_generator}")
+    print(os.path.exists(base_dir_generator))
     shutil.rmtree(base_dir_generator)
 
 
@@ -260,8 +284,11 @@ def nbcell_neighbors_context(
             notebook input / output is stored.
     """
     EXAMPLE_CELL_NEIGHBORS: pathlib.Path = templates_dir / "cell_neighbors_analysis.ipynb"
+    print(f"What is base_dir_generator before nbcell_neighbors_context: {base_dir_generator}")
     with testbook(EXAMPLE_CELL_NEIGHBORS, timeout=6000, execute=False) as nb_context_manager:
         yield nb_context_manager, base_dir_generator / "cna"
+    print(f"What is base_dir_generator after nbcell_neighbors_context: {base_dir_generator}")
+    print(os.path.exists(base_dir_generator))
     shutil.rmtree(base_dir_generator)
 
 
