@@ -33,6 +33,7 @@ def dataset_download(request, dataset_cache_dir) -> Iterator[ExampleDataset]:
     Yields:
         Iterator[ExampleDataset]: The iterable Example Dataset.
     """
+    print(f"What is dataset_cache_dir set to: {dataset_cache_dir}")
 
     # Set up ExampleDataset class
     example_dataset: ExampleDataset = ExampleDataset(
