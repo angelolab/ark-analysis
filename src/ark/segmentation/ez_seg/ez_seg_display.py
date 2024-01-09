@@ -48,7 +48,6 @@ def display_channel_image(
 
     # convert image to presentable RGB
     base_image = base_image / 255
-    base_image_scaled = img_as_ubyte(base_image)
 
     # Plot
     fig: Figure = plt.figure(dpi=300, figsize=(6, 6))
