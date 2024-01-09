@@ -1,6 +1,7 @@
 import copy
 import warnings
 from typing import List
+import re
 
 import numpy as np
 import pandas as pd
@@ -604,7 +605,16 @@ def process_lists(fov_names: List[str], mask_names: List[str]) -> List[str]:
         List[str]: Unique mask names (i.e. categories of masks)
     """
     stripped_mask_names = io_utils.remove_file_extensions(mask_names)
-    result = [itemB[len(prefix):] for itemB in stripped_mask_names for prefix in fov_names if itemB.startswith(prefix)]
+
+    # break fov names into tokens, compare against mask names and return only those mask names that also contain the fov
+    result = []
+    for prefix in fov_names:
+        prefix_tokens = list(filter(bool, re.split("[^a-zA-Z0-9]", prefix)))
+        for itemB in stripped_mask_names:
+            itemB_tokens = list(filter(bool, re.split("[^a-zA-Z0-9]", itemB)))
+            if set(prefix_tokens).issubset(itemB_tokens):
+                result.append(itemB[len(prefix):])
+
     # Remove underscore prefixes and return unique values
     cleaned_result = [item.lstrip('_') for item in result]
     unique_result = list(set(cleaned_result))
