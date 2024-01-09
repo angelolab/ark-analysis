@@ -47,8 +47,7 @@ def display_channel_image(
     base_image: np.ndarray = imread(image_path, as_gray=True)
 
     # convert image to presentable RGB
-    base_image = base_image / 255
-    base_image_scaled = img_as_ubyte(base_image)
+    base_image_scaled = base_image / 255
 
     # Plot
     fig: Figure = plt.figure(dpi=300, figsize=(6, 6))
