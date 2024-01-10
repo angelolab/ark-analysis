@@ -194,6 +194,12 @@ class TestExampleDataset:
             print(f"Testing download of: {ds_n}")
             dataset_cache_path = pathlib.Path(
                 dataset_download.dataset_paths[dataset_download.dataset][ds_n][0])
+            dataset_path_test = pathlib.Path(dataset_cache_path)
+            while not os.path.exists(dataset_path_test):
+                print(f"The path {dataset_path_test} does not exists")
+                dataset_path_test = dataset_path_test.parents[0]
+                print(f"The new path to test is: {dataset_path_test}")
+
             print(f"The path to test is: {dataset_cache_path / ds_n}")
             print(os.listdir(dataset_cache_path))
             print(os.path.exists(dataset_cache_path / ds_n))
