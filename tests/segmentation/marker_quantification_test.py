@@ -927,3 +927,13 @@ def test_generate_cell_table_extractions():
             nuclear_col='nc_ratio',
             nuc_cell_table_cols=positive_pixel_data_nuc.columns.values
         )
+
+
+def test_process_lists():
+    fov_names = ["fov1", "fov2"]
+    mask_names = ["fov1_type1.tiff", "fov1_type2.tiff", "fov10_type3.tiff", "fov10_type4.tiff",
+                  "fov2_type5.tiff", "fov20_type6.tiff"]
+
+    # test stripping suffix
+    processed_names = marker_quantification.process_lists(fov_names, mask_names)
+    assert sorted(processed_names) == ["type1", "type2", "type5"]

@@ -599,7 +599,7 @@ def process_lists(fov_names: List[str], mask_names: List[str]) -> List[str]:
 
     Args:
         fov_names (List[str]): list of fov names. Matching fov names in mask names will be returned without fov prefix.
-        mask_names (List[str]): list of mask names. Mask names will be returned without tif suffix.
+        mask_names (List[str]): list of mask names. Mask names will be returned without tiff suffix.
 
     Returns:
         List[str]: Unique mask names (i.e. categories of masks)
