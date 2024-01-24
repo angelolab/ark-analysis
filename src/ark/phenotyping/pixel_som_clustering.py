@@ -81,6 +81,8 @@ def train_pixel_som(fovs, channels, base_dir,
         num_passes=num_passes, xdim=xdim, ydim=ydim, lr_start=lr_start, lr_end=lr_end,
         seed=seed
     )
+    print("Norm data read into pixel_pysom")
+    print(pixel_pysom.norm_data)
 
     # train the SOM weights
     # NOTE: seed has to be set in cyFlowSOM.pyx, done by passing flag in PixieSOMCluster

@@ -203,6 +203,9 @@ class PixelSOMCluster(PixieSOMCluster):
 
         # load the normalization values in
         self.norm_data = feather.read_dataframe(norm_vals_path)
+        print("Norm data read in is:")
+        print(self.norm_data)
+        print(self.norm_data.columns.values)
 
         # define the fovs used
         self.fovs = fovs
@@ -216,6 +219,9 @@ class PixelSOMCluster(PixieSOMCluster):
 
         # we can just normalize train_data now since that's what we'll be training on
         self.train_data = self.normalize_data(self.train_data)
+        print("Norm data after init:")
+        print(self.norm_data)
+        print(self.norm_data.columns.values)
 
     def normalize_data(self, external_data: pd.DataFrame) -> pd.DataFrame:
         """Uses `norm_data` to normalize a dataset

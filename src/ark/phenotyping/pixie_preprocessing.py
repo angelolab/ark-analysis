@@ -450,6 +450,7 @@ def create_pixel_matrix(fovs, channels, base_dir, tiff_dir, seg_dir,
     # assert np.all(np.sort(mean_quant.index.values) == np.sort(fov_full_pixel_data.columns.values))
 
     # save 99.9% normalization values
+    print("Saving norm data")
     feather.write_dataframe(mean_quant.T,
                             os.path.join(base_dir, norm_vals_name_post_rownorm),
                             compression='uncompressed')
