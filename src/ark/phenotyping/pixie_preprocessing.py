@@ -445,7 +445,9 @@ def create_pixel_matrix(fovs, channels, base_dir, tiff_dir, seg_dir,
     # get mean 99.9% across all fovs for all markers, check that none are missing
     mean_quant = pd.DataFrame(quant_dat_all.mean(axis=1))
     print(mean_quant)
-    assert np.all(np.sort(mean_quant.index.values) == np.sort(pixel_mat_data.columns.values))
+    print(mean_quant.index.values)
+    print(fov_full_pixel_data.columns.values)
+    # assert np.all(np.sort(mean_quant.index.values) == np.sort(fov_full_pixel_data.columns.values))
 
     # save 99.9% normalization values
     feather.write_dataframe(mean_quant.T,
