@@ -282,6 +282,7 @@ class Test_1_Segment_Image_Data:
         self.dataset: str = "segment_image_data"
         self.base_dir: str = nb1_context[1].as_posix()
         self.cache_dir = dataset_cache_dir
+        print(f"Does self.cache_dir exist: {os.path.exists(self.cache_dir)}")
 
     def test_imports(self):
         self.tb.execute_cell("import")
@@ -363,6 +364,7 @@ class Test_2_Pixel_Clustering:
         self.dataset: str = "cluster_pixels"
         self.base_dir: str = nb2_context[1].as_posix()
         self.cache_dir = dataset_cache_dir
+        print(f"Does self.cache_dir exist: {os.path.exists(self.cache_dir)}")
 
         # Variables
         self.pixel_prefix = "test"
@@ -497,6 +499,7 @@ class Test_3_Cell_Clustering:
         self.dataset: str = "cluster_cells"
         self.base_dir: str = nb3_context[1].as_posix()
         self.cache_dir = dataset_cache_dir
+        print(f"Does self.cache_dir exist: {os.path.exists(self.cache_dir)}")
 
         # Variables
         self.cell_prefix = "test"
@@ -604,6 +607,7 @@ class Test_3b_Generic_Cell_Clustering:
         self.dataset: str = "cluster_cells"
         self.base_dir: str = nb3b_context[1].as_posix()
         self.cache_dir = dataset_cache_dir
+        print(f"Does self.cache_dir exist: {os.path.exists(self.cache_dir)}")
 
         # Variables
         self.cell_prefix = "test"
@@ -702,6 +706,7 @@ class Test_4_Post_Clustering:
         self.dataset: str = "post_clustering"
         self.base_dir: str = nb4_context[1].as_posix()
         self.cache_dir = dataset_cache_dir
+        print(f"Does self.cache_dir exist: {os.path.exists(self.cache_dir)}")
 
         # Variables
         self.cell_prefix = "test"
@@ -772,6 +777,7 @@ class Test_EZSegmenter:
         self.dataset: str = "ez_seg_data"
         self.base_dir: str = ez_seg_context[1].as_posix()
         self.cache_dir = dataset_cache_dir
+        print(f"Does self.cache_dir exist: {os.path.exists(self.cache_dir)}")
 
     def test_imports(self):
         self.tb.execute_cell("import")
@@ -876,6 +882,7 @@ class Test_Fiber_Segmentation:
         self.dataset: str = "fiber_segmentation"
         self.base_dir: str = nbfib_seg_context[1].as_posix()
         self.cache_dir = dataset_cache_dir
+        print(f"Does self.cache_dir exist: {os.path.exists(self.cache_dir)}")
 
     def test_imports(self):
         self.tb.execute_cell("import")
@@ -919,6 +926,7 @@ class Test_Mixing_Score:
         self.dataset: str = "post_clustering"
         self.base_dir: str = nbmixing_context[1].as_posix()
         self.cache_dir = dataset_cache_dir
+        print(f"Does self.cache_dir exist: {os.path.exists(self.cache_dir)}")
 
     def test_imports(self):
         self.tb.execute_cell("import")
@@ -979,6 +987,7 @@ class Test_Cell_Neighbors():
         self.dataset: str = "post_clustering"
         self.base_dir: str = nbcell_neighbors_context[1].as_posix()
         self.cache_dir = dataset_cache_dir
+        print(f"Does self.cache_dir exist: {os.path.exists(self.cache_dir)}")
 
     def test_imports(self):
         self.tb.execute_cell("import")
