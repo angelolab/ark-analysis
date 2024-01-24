@@ -191,6 +191,10 @@ class TestExampleDataset:
         for ds_n in dataset_names:
             dataset_cache_path = pathlib.Path(
                 dataset_download.dataset_paths[dataset_download.dataset][ds_n][0])
+            print(dataset_cache_path)
+            print(os.path.exists(dataset_cache_path))
+            print(ds_n)
+            print(os.path.exists(dataset_cache_path / ds_n))
             self.dataset_test_fns[ds_n](dir_p=dataset_cache_path / ds_n)
 
     @pytest.mark.parametrize("_overwrite_existing", [True, False])
