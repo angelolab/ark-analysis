@@ -185,6 +185,7 @@ class TestExampleDataset:
             partition (`segment_image_data`, `cluster_pixels`, `cluster_cells`,
             `post_clustering`).
         """
+        import os
         dataset_names = list(
             dataset_download.dataset_paths[dataset_download.dataset].features.keys())
 
