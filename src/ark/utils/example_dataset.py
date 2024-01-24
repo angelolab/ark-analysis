@@ -163,6 +163,7 @@ def get_example_dataset(dataset: str, save_dir: Union[str, pathlib.Path],
                 * `"LDA_training_inference"`
                 * `"neighborhood_analysis"`
                 * `"pairwise_spatial_enrichment"`
+                * `"ez_seg_data"`
         save_dir (Union[str, pathlib.Path]): The path to save the dataset files in.
         overwrite_existing (bool): The option to overwrite existing configs of the `dataset`
             downloaded. Defaults to True.

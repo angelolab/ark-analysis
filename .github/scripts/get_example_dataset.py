@@ -15,6 +15,7 @@ valid_datasets = [
     "neighborhood_analysis",
     "pairwise_spatial_enrichment",
     "ome_tiff",
+    "ez_seg_data",
 ]
 
 def load_dataset(cache_dir: pathlib.Path, name: str):
