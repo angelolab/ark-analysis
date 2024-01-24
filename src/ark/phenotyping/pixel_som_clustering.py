@@ -196,6 +196,8 @@ def cluster_pixels(fovs, channels, base_dir, pixel_pysom, data_dir='pixel_mat_da
         break
 
     # for verification purposes, drop the metadata columns
+    print(sample_fov.columns.values)
+    print(pixel_pysom.norm_data.columns.values)
     cols_to_drop = ['fov', 'row_index', 'column_index']
     for col in ['label', 'pixel_som_cluster',
                 'pixel_meta_cluster', 'pixel_meta_cluster_rename']:
