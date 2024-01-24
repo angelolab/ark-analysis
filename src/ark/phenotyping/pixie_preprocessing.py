@@ -250,7 +250,8 @@ def create_pixel_matrix(fovs, channels, base_dir, tiff_dir, seg_dir,
         batch_size (int):
             The number of FOVs to process in parallel, ignored if `multiprocess` is `False`
     """
-
+    print("Original list of channels passed in: ")
+    print(channels)
     # if the subset_proportion specified is out of range
     if subset_proportion <= 0 or subset_proportion > 1:
         raise ValueError('Invalid subset percentage entered: must be in (0, 1]')
@@ -428,6 +429,8 @@ def create_pixel_matrix(fovs, channels, base_dir, tiff_dir, seg_dir,
                 q=channel_percentile_post_rownorm, axis=0).rename(fov)
             quant_dat_fov.index.name = "channel"
             print(quant_dat_fov)
+            print("New list of channels passed in")
+            print(channels)
             assert np.all(quant_dat_fov.index.values == np.array(channels))
             # assert np.all(np.sort(quant_dat_fov.index.values) == np.sort(fov_full_pixel_data.columns.values))
 
