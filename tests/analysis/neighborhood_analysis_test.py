@@ -6,9 +6,11 @@ import numpy as np
 import pandas as pd
 import pytest
 import test_utils
+from anndata import read_zarr
 
 import ark.settings as settings
 from ark.analysis import neighborhood_analysis
+from ark.utils.data_utils import ConvertToAnnData
 
 
 def test_create_neighborhood_matrix():
@@ -16,23 +18,41 @@ def test_create_neighborhood_matrix():
     all_data_pos, dist_mat_pos = test_utils._make_dist_exp_mats_spatial_test(
         enrichment_type="positive", dist_lim=51)
 
-    with tempfile.TemporaryDirectory() as dist_mat_dir:
-        for fov in dist_mat_pos:
-            dist_mat_pos[fov].to_netcdf(
-                os.path.join(dist_mat_dir, fov + '_dist_mat.xr'),
-                format='NETCDF3_64BIT'
-            )
+    # add centroids
+    all_data_pos[settings.CENTROID_0], all_data_pos[settings.CENTROID_1] = np.nan, np.nan
+
+    with tempfile.TemporaryDirectory() as base_dir:
+        anndata_dir = os.path.join(base_dir, "anndata")
+
+
+        cell_table_path = os.path.join(base_dir, 'table.csv')
+        all_data_pos.to_csv(cell_table_path, index=False)
+        convert_to_anndata = ConvertToAnnData(
+            cell_table_path, markers="auto", extra_obs_parameters=None)
+        _ = convert_to_anndata.convert_to_adata(save_dir=anndata_dir)
+
+        # generate test data
+        for fov in np.unique(all_data_pos.fov):
+            adata = read_zarr(os.path.join(anndata_dir, fov + ".zarr"))
+
+            # sort dist mat by index and save to AnnData
+            dist_mat = dist_mat_pos[fov]
+            dist_mat = dist_mat.loc[{'dim_0': sorted(dist_mat.coords['dim_0'].values)}]
+            dist_mat = dist_mat.loc[{'dim_1': sorted(dist_mat.coords['dim_1'].values)}]
+            adata.obsp["distances"] = dist_mat.values
+
+            adata.write_zarr(os.path.join(anndata_dir, fov + ".zarr"))
 
         # error checking
         with pytest.raises(ValueError):
             # attempt to include fovs that do not exist
             counts, freqs = neighborhood_analysis.create_neighborhood_matrix(
-                all_data_pos, dist_mat_dir, included_fovs=[1, 100000], distlim=51
+                anndata_dir, included_fovs=['fov8', 'bad_fov'], distlim=51
             )
 
         # test if self_neighbor is False (default)
         counts, freqs = neighborhood_analysis.create_neighborhood_matrix(
-            all_data_pos, dist_mat_dir, distlim=51
+            anndata_dir, distlim=51
         )
 
         # test the counts values
@@ -46,6 +66,7 @@ def test_create_neighborhood_matrix():
                        (counts[settings.CELL_LABEL].isin(range(1, 11)))]["Pheno3"] == 2).all()
         assert (counts[(counts[settings.FOV_ID] == "fov9") &
                        (counts[settings.CELL_LABEL].isin(range(11, 21)))]["Pheno1"] == 0).all()
+
         # test that cells with only itself as neighbor were removed from the table
         assert (len(counts[(counts[settings.FOV_ID] == "fov8") &
                            (counts[settings.CELL_LABEL].isin(range(21, 80)))]) == 0)
@@ -55,7 +76,7 @@ def test_create_neighborhood_matrix():
 
         # test if self_neighbor is True
         counts, freqs = neighborhood_analysis.create_neighborhood_matrix(
-            all_data_pos, dist_mat_dir, distlim=51, self_neighbor=True
+            anndata_dir, distlim=51, self_neighbor=True
         )
 
         # test the counts values
@@ -66,27 +87,41 @@ def test_create_neighborhood_matrix():
         assert (counts[(counts[settings.FOV_ID] == "fov9") &
                        (counts[settings.CELL_LABEL].isin(range(11, 19)))]["Pheno1"] == 1).all()
 
-        # test on a non-continuous index
-        all_data_pos_sub = all_data_pos.iloc[np.r_[0:60, 80:140], :]
+    with tempfile.TemporaryDirectory() as base_dir:
+        anndata_dir = os.path.join(base_dir, "anndata")
+
+        # test on a non-continuous index (cell labels)
         dist_mat_pos_sub = {}
         dist_mat_pos_sub['fov8'] = dist_mat_pos['fov8'][0:60, 0:60]
         dist_mat_pos_sub['fov9'] = dist_mat_pos['fov9'][0:60, 0:60]
 
-        for fov in dist_mat_pos:
-            dist_mat_pos[fov].to_netcdf(
-                os.path.join(dist_mat_dir, fov + '_dist_mat.xr'),
-                format='NETCDF3_64BIT'
-            )
+        all_data_sub = all_data_pos[
+            all_data_pos.label.isin(np.array(dist_mat_pos_sub['fov8'].dim_0))]
 
-        counts, freqs = neighborhood_analysis.create_neighborhood_matrix(
-            all_data_pos, dist_mat_dir
-        )
+        cell_table_path = os.path.join(base_dir, 'table.csv')
+        all_data_sub.to_csv(cell_table_path, index=False)
+        convert_to_anndata = ConvertToAnnData(
+            cell_table_path, markers="auto", extra_obs_parameters=None)
+        _ = convert_to_anndata.convert_to_adata(save_dir=anndata_dir)
+
+        for fov in np.unique(all_data_pos.fov):
+            adata = read_zarr(os.path.join(anndata_dir, fov + ".zarr"))
+
+            # sort dist mat by index and save to AnnData
+            dist_mat = dist_mat_pos_sub[fov]
+            dist_mat = dist_mat.loc[{'dim_0': sorted(dist_mat.coords['dim_0'].values)}]
+            dist_mat = dist_mat.loc[{'dim_1': sorted(dist_mat.coords['dim_1'].values)}]
+            adata.obsp["distances"] = dist_mat.values
+
+            adata.write_zarr(os.path.join(anndata_dir, fov + ".zarr"))
+
+        counts, freqs = neighborhood_analysis.create_neighborhood_matrix(anndata_dir)
 
         # test the counts values
         assert (counts[(counts[settings.FOV_ID] == "fov8") &
                        (counts[settings.CELL_LABEL].isin(range(1, 9)))]["Pheno1"] == 0).all()
         assert (counts[(counts[settings.FOV_ID] == "fov9") &
-                       (counts[settings.CELL_LABEL].isin(range(1, 9)))]["Pheno3"] == 2).all()
+                       (counts[settings.CELL_LABEL].isin(range(1, 9)))]["Pheno3"] == 1).all()
         assert (counts[(counts[settings.FOV_ID] == "fov9") &
                        (counts[settings.CELL_LABEL].isin(range(11, 19)))]["Pheno1"] == 0).all()
 

@@ -6,24 +6,24 @@ import numpy as np
 import pandas as pd
 import seaborn as sns
 import xarray as xr
+import anndata
 from tqdm.notebook import tqdm
-from alpineer import misc_utils
+from alpineer import misc_utils, io_utils
 
 import ark.settings as settings
 from ark.analysis import spatial_analysis_utils
+from ark.utils.data_utils import load_anndatas
 
 
-def create_neighborhood_matrix(all_data, dist_mat_dir, included_fovs=None, distlim=50,
+def create_neighborhood_matrix(anndata_dir, included_fovs=None, distlim=50,
                                self_neighbor=False, fov_col=settings.FOV_ID,
                                cell_label_col=settings.CELL_LABEL,
                                cell_type_col=settings.CELL_TYPE):
     """Calculates the number of neighbor phenotypes for each cell.
 
     Args:
-        all_data (pandas.DataFrame):
-            data for all fovs. Includes the columns for fov, label, and cell phenotype.
-        dist_mat_dir (str):
-            directory containing the distance matrices
+        anndata_dir (str):
+            path where the AnnData objects are stored.
         included_fovs (list):
             fovs to include in analysis. If argument is none, default is all fovs used.
         distlim (int):
@@ -45,33 +45,32 @@ def create_neighborhood_matrix(all_data, dist_mat_dir, included_fovs=None, distl
 
     # Set up input and parameters
     if included_fovs is None:
-        included_fovs = all_data[fov_col].unique()
+        included_fovs = io_utils.list_folders(anndata_dir, substrs=".zarr")
+    else:
+        included_fovs = [fov + '.zarr' for fov in included_fovs]
 
     # Check if included fovs found in fov_col
-    misc_utils.verify_in_list(fov_names=included_fovs,
-                              unique_fovs=all_data[fov_col].unique())
+    misc_utils.verify_in_list(
+        fov_names=included_fovs, unique_fovs=io_utils.list_folders(anndata_dir, substrs=".zarr"))
 
-    # Subset just the fov, label, and cell phenotype columns
-    all_neighborhood_data = all_data[
-        [fov_col, cell_label_col, cell_type_col]
-    ].reset_index(drop=True)
-    # Extract the cell phenotypes
-    cluster_names = all_neighborhood_data[cell_type_col].drop_duplicates()
+    # Load AnnData Collection and extract unique cell phenotypes
+    fovs_ac = load_anndatas(anndata_dir=anndata_dir, join_obs="inner", join_obsm="inner")
+
     # Get the total number of phenotypes
+    cluster_names = fovs_ac.obs[cell_type_col].unique()
     cluster_num = len(cluster_names)
 
     included_columns = [fov_col, cell_label_col, cell_type_col]
 
     # Initialize empty matrices for cell neighborhood data
     cell_neighbor_counts = pd.DataFrame(
-        np.zeros((all_neighborhood_data.shape[0], cluster_num + len(included_columns)))
+        np.zeros((fovs_ac.obs.shape[0], cluster_num + len(included_columns)))
     )
-    # Replace the first, second (possibly third) columns of cell_neighbor_counts
-    cell_neighbor_counts[list(range(len(included_columns)))] = \
-        all_neighborhood_data[included_columns]
-    cols = included_columns + list(cluster_names)
+    cell_neighbor_counts.index = fovs_ac.obs.index
 
-    # Rename the columns to match cell phenotypes
+    # Replace the first three columns of cell_neighbor_counts and rename cols
+    cell_neighbor_counts[list(range(len(included_columns)))] = fovs_ac.obs[included_columns]
+    cols = included_columns + list(cluster_names)
     cell_neighbor_counts.columns = cols
 
     cell_neighbor_freqs = cell_neighbor_counts.copy(deep=True)
@@ -81,26 +80,32 @@ def create_neighborhood_matrix(all_data, dist_mat_dir, included_fovs=None, distl
         for fov in included_fovs:
             neighbor_mat_progress.set_postfix(FOV=fov)
 
-            # Subsetting expression matrix to only include patients with correct fov label
-            current_fov_idx = all_neighborhood_data.loc[:, fov_col] == fov
-            current_fov_neighborhood_data = all_neighborhood_data[current_fov_idx]
+            # load in fov AnnData table
+            fov_adata = anndata.read_zarr(
+                os.path.join(anndata_dir, fov))
+            fov_table = fov_adata.obs[included_columns]
 
             # Get the subset of phenotypes included in the current fov
-            fov_cluster_names = current_fov_neighborhood_data[cell_type_col].drop_duplicates()
+            fov_cluster_names = fov_adata.obs[cell_type_col].unique()
 
-            # Retrieve fov-specific distance matrix from distance matrix dictionary
-            dist_matrix = xr.load_dataarray(os.path.join(dist_mat_dir, str(fov) + '_dist_mat.xr'))
+            # Retrieve fov-specific distance matrix from AnnData table
+            centroid_labels = list(fov_table.label)
+            dist_matrix = fov_adata.obsp["distances"]
+            dist_matrix = xr.DataArray(dist_matrix, coords=[centroid_labels, centroid_labels])
 
             # Get cell_neighbor_counts and cell_neighbor_freqs for fovs
             counts, freqs = spatial_analysis_utils.compute_neighbor_counts(
-                current_fov_neighborhood_data, dist_matrix, distlim, self_neighbor,
+                fov_table, dist_matrix, distlim, self_neighbor,
                 cell_label_col=cell_label_col, cluster_name_col=cell_type_col)
 
             # Add to neighbor counts+freqs for only matching phenos between fov and whole dataset
-            cell_neighbor_counts.loc[current_fov_neighborhood_data.index, fov_cluster_names] \
-                = counts
-            cell_neighbor_freqs.loc[current_fov_neighborhood_data.index, fov_cluster_names]\
-                = freqs
+            cell_neighbor_counts.loc[fov_table.index, fov_cluster_names] = counts
+            cell_neighbor_freqs.loc[fov_table.index, fov_cluster_names] = freqs
+
+            # save neighbors matrix to fov AnnData table
+            fov_adata.obsm["neighbors_counts"] = cell_neighbor_counts.loc[fov_table.index]
+            fov_adata.obsm["neighbors_freqs"] = cell_neighbor_freqs.loc[fov_table.index]
+            fov_adata.write_zarr(os.path.join(anndata_dir, fov), chunks=(1000, 1000))
 
             neighbor_mat_progress.update(1)
 
@@ -109,6 +114,7 @@ def create_neighborhood_matrix(all_data, dist_mat_dir, included_fovs=None, distl
     keep_cells = cell_neighbor_counts.drop(included_columns, axis=1).sum(axis=1) != 0
     cell_neighbor_counts = cell_neighbor_counts.loc[keep_cells].reset_index(drop=True)
     cell_neighbor_freqs = cell_neighbor_freqs.loc[keep_cells].reset_index(drop=True)
+
     # issue warning if more than 5% of cells are dropped
     if (cell_neighbor_counts.shape[0] / total_cell_count) < 0.95:
         warnings.warn(UserWarning("More than 5% of cells have no neighbor within the provided "
