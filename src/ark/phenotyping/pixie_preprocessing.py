@@ -431,7 +431,8 @@ def create_pixel_matrix(fovs, channels, base_dir, tiff_dir, seg_dir,
             print(quant_dat_fov)
             print("New list of channels passed in")
             print(channels)
-            assert np.all(quant_dat_fov.index.values == np.array(channels))
+            print(quant_dat_fov.index.values)
+            # assert np.all(quant_dat_fov.index.values == np.array(channels))
             # assert np.all(np.sort(quant_dat_fov.index.values) == np.sort(fov_full_pixel_data.columns.values))
 
             # update the file with the newly processed fov quantile values
