@@ -31,6 +31,17 @@ def calc_dist_matrix(anndata_dir):
     with tqdm(total=len(fov_names), desc="Distance Matrix Generation", unit="FOVs") \
             as dist_mat_progress:
         for fov in fov_names:
+
+            # check for previously generated distance matrices
+            if os.path.exists(os.path.join(anndata_dir, fov, "obsp", "distances")):
+                dist_mat_progress.set_postfix(FOV=fov, status="Already Computed")
+                dist_mat_progress.update(1)
+                continue
+            else:
+                dist_mat_progress.set_postfix(FOV=fov, status="Computing")
+                dist_mat_progress.update(1)
+
+            # extract cell spatial information
             fov_adata = anndata.read_zarr(os.path.join(anndata_dir, fov))
             centroids = fov_adata.obsm["spatial"]
             centroid_list = list(centroids.itertuples(index=False, name=None))
@@ -43,8 +54,6 @@ def calc_dist_matrix(anndata_dir):
             # save distances to AnnData table
             fov_adata.obsp["distances"] = dist_mat_xarr.data
             fov_adata.write_zarr(os.path.join(anndata_dir, fov), chunks=(1000, 1000))
-
-            dist_mat_progress.update(1)
 
 
 def append_distance_features_to_dataset(fov, dist_matrix, cell_table, distance_columns):

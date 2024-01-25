@@ -24,7 +24,6 @@ def test_create_neighborhood_matrix():
     with tempfile.TemporaryDirectory() as base_dir:
         anndata_dir = os.path.join(base_dir, "anndata")
 
-
         cell_table_path = os.path.join(base_dir, 'table.csv')
         all_data_pos.to_csv(cell_table_path, index=False)
         convert_to_anndata = ConvertToAnnData(
@@ -132,18 +131,34 @@ def test_generate_cluster_matrix_results():
     all_data_pos, dist_mat_pos = test_utils._make_dist_exp_mats_spatial_test(
         enrichment_type="positive", dist_lim=50
     )
+    # add centroids
+    all_data_pos[settings.CENTROID_0], all_data_pos[settings.CENTROID_1] = np.nan, np.nan
 
     # we need corresponding dimensions, so use this method to generate
     # the neighborhood matrix
-    with tempfile.TemporaryDirectory() as dist_mat_dir:
-        for fov in dist_mat_pos:
-            dist_mat_pos[fov].to_netcdf(
-                os.path.join(dist_mat_dir, fov + '_dist_mat.xr'),
-                format='NETCDF3_64BIT'
-            )
+    with tempfile.TemporaryDirectory() as base_dir:
+        anndata_dir = os.path.join(base_dir, "anndata")
+
+        cell_table_path = os.path.join(base_dir, 'table.csv')
+        all_data_pos.to_csv(cell_table_path, index=False)
+        convert_to_anndata = ConvertToAnnData(
+            cell_table_path, markers="auto", extra_obs_parameters=None)
+        _ = convert_to_anndata.convert_to_adata(save_dir=anndata_dir)
+
+        # generate test data
+        for fov in np.unique(all_data_pos.fov):
+            adata = read_zarr(os.path.join(anndata_dir, fov + ".zarr"))
+
+            # sort dist mat by index and save to AnnData
+            dist_mat = dist_mat_pos[fov]
+            dist_mat = dist_mat.loc[{'dim_0': sorted(dist_mat.coords['dim_0'].values)}]
+            dist_mat = dist_mat.loc[{'dim_1': sorted(dist_mat.coords['dim_1'].values)}]
+            adata.obsp["distances"] = dist_mat.values
+
+            adata.write_zarr(os.path.join(anndata_dir, fov + ".zarr"))
 
         neighbor_counts, neighbor_freqs = neighborhood_analysis.create_neighborhood_matrix(
-            all_data_pos, dist_mat_dir, distlim=51
+            anndata_dir, distlim=51
         )
 
     # error checking

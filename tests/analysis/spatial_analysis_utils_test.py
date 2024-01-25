@@ -4,11 +4,11 @@ import tempfile
 import numpy as np
 import pandas as pd
 import pytest
+import test_utils
 from anndata import read_zarr
 
 import ark.settings as settings
 from ark.analysis import spatial_analysis_utils
-from test_utils import generate_anndata_table
 
 
 def test_calc_dist_matrix():
@@ -20,9 +20,9 @@ def test_calc_dist_matrix():
         centroids_8 = [(0, 0), (3, 4), (6, 0), (6, 8)]
         centroids_9 = [(6, 8), (0, 16), (0, 0), (12, 0)]
         for fov_num in [8, 9]:
-            adata = generate_anndata_table(rng=np.random.default_rng(), n_obs=4, n_vars=2,
-                                           fov_id=fov_num, obs_properties=0,
-                                           obs_categorical_properties=0)
+            adata = test_utils.generate_anndata_table(rng=np.random.default_rng(), n_obs=4,
+                                                      n_vars=2, fov_id=fov_num, obs_properties=0,
+                                                      obs_categorical_properties=0)
             centroid_list = centroids_8 if fov_num == 8 else centroids_9
 
             for i in adata.obs.label:

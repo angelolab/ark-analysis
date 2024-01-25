@@ -103,8 +103,10 @@ def create_neighborhood_matrix(anndata_dir, included_fovs=None, distlim=50,
             cell_neighbor_freqs.loc[fov_table.index, fov_cluster_names] = freqs
 
             # save neighbors matrix to fov AnnData table
-            fov_adata.obsm["neighbors_counts"] = cell_neighbor_counts.loc[fov_table.index]
-            fov_adata.obsm["neighbors_freqs"] = cell_neighbor_freqs.loc[fov_table.index]
+            fov_adata.obsm[f"neighbors_counts_{cell_type_col}_{distlim}"] = \
+                cell_neighbor_counts.loc[fov_table.index]
+            fov_adata.obsm[f"neighbors_freqs_{cell_type_col}_{distlim}"] = \
+                cell_neighbor_freqs.loc[fov_table.index]
             fov_adata.write_zarr(os.path.join(anndata_dir, fov), chunks=(1000, 1000))
 
             neighbor_mat_progress.update(1)
