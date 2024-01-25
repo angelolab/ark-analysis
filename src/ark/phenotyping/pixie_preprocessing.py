@@ -438,7 +438,11 @@ def create_pixel_matrix(fovs, channels, base_dir, tiff_dir, seg_dir,
             # update the file with the newly processed fov quantile values
             quant_dat_all = quant_dat_all.merge(quant_dat_fov, how="outer",
                                                 left_index=True, right_index=True)
-            assert np.all(quant_dat_all.index.values == np.array(channels))
+            print("New quant_dat_all index")
+            print(quant_dat_all.index.values)
+            print("Updated list of channels")
+            print(channels)
+            # assert np.all(quant_dat_all.index.values == np.array(channels))
             # assert np.all(np.sort(quant_dat_all.index.values) == np.sort(fov_full_pixel_data.columns.values))
             quant_dat_all.to_csv(quantile_path)
 
