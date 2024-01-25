@@ -5,10 +5,11 @@ import numpy as np
 import pandas as pd
 import pytest
 import xarray as xr
-from pytest_mock import MockerFixture
+from anndata import read_zarr
 
 import ark.settings as settings
 from ark.analysis import cell_neighborhood_stats
+from ark.utils.data_utils import ConvertToAnnData
 
 
 def test_shannon_diversity():
@@ -104,13 +105,16 @@ def test_generate_neighborhood_diversity_analysis():
 def generate_test_celldf(fov_name='fov1'):
     # create cell data frame
     celldf = pd.DataFrame({
+        settings.PRE_CHANNEL_COL: [1] * 5,
         'ECAD': [0.01, 0.003, 0.009, 0.001, 0.01],
         'CD45': [0.001, 0.01, 0.01, 0.01, 0.004],
         'CD20': [0.002, 0.003, 0.003, 0.009, 0.001],
         'FOXP3': [0.001, 0.002, 0.01, 0.001, 0.003],
-        settings.CELL_TYPE: ['Cancer', 'Immune', 'Immune', 'Immune', 'Cancer'],
         settings.CELL_LABEL: range(5),
-        settings.FOV_ID: [fov_name] * 5
+        settings.CELL_TYPE: ['Cancer', 'Immune', 'Immune', 'Immune', 'Cancer'],
+        settings.FOV_ID: [fov_name] * 5,
+        settings.CENTROID_0: [0] * 5,
+        settings.CENTROID_1: [0] * 5
     })
     return celldf
 
@@ -173,16 +177,34 @@ def test_calculate_mean_distance_to_all_cell_types():
     assert pd.testing.assert_frame_equal(cancer_dist, actual_dist, check_exact=False) is None
 
 
-def test_generate_cell_distance_analysis(mocker: MockerFixture, ):
-    mocker.patch('xarray.load_dataarray', return_value=generate_test_distance_matrix())
-
+def test_generate_cell_distance_analysis():
+    dist_mat = generate_test_distance_matrix()
     cell_table = pd.concat([generate_test_celldf('fov1'), generate_test_celldf('fov2')])
 
     with tempfile.TemporaryDirectory() as temp_dir:
-        save_path = os.path.join(temp_dir, 'neighbor_distances.csv')
+        cell_table_path = os.path.join(temp_dir, 'table.csv')
+        cell_table.to_csv(cell_table_path, index=False)
 
+        anndata_dir = os.path.join(temp_dir, 'anndata')
+        convert_to_anndata = ConvertToAnnData(cell_table_path, markers="auto",
+                                              extra_obs_parameters=None)
+        _ = convert_to_anndata.convert_to_adata(save_dir=anndata_dir)
+        dist_mats = {'fov1': dist_mat, 'fov2': dist_mat}
+
+        for fov in np.unique(cell_table.fov):
+            adata = read_zarr(os.path.join(anndata_dir, fov + ".zarr"))
+
+            # sort dist mat by index and save to AnnData
+            dist_mat = dist_mats[fov]
+            dist_mat = dist_mat.loc[{'dim_0': sorted(dist_mat.coords['dim_0'].values)}]
+            dist_mat = dist_mat.loc[{'dim_1': sorted(dist_mat.coords['dim_1'].values)}]
+            adata.obsp["distances"] = dist_mat.values
+
+            adata.write_zarr(os.path.join(anndata_dir, fov + ".zarr"))
+
+        save_path = os.path.join(temp_dir, 'neighbor_distances.csv')
         cell_dists = cell_neighborhood_stats.generate_cell_distance_analysis(
-            cell_table, temp_dir, save_path, k=2)
+            anndata_dir, save_path, k=2)
 
         # check all cells in dataframe
         assert cell_dists.shape[0] == cell_table.shape[0]
