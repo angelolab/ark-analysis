@@ -29,6 +29,7 @@ class ExampleDataset():
                     * `"neighborhood_analysis"`
                     * `"pairwise_spatial_enrichment"`
                     * `"ome_tiff"`
+                    * `"ez_seg_data"`
             overwrite_existing (bool): A flag to overwrite existing data. Defaults to `True`.
             cache_dir (str, optional): The directory to save the cache dir. Defaults to `None`,
                 which internally in Hugging Face defaults to `~/.cache/huggingface/datasets`.
