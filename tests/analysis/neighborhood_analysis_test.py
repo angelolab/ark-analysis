@@ -10,14 +10,13 @@ from anndata import read_zarr
 
 import ark.settings as settings
 from ark.analysis import neighborhood_analysis
-from ark.utils.data_utils import ConvertToAnnData
+from ark.utils.data_utils import ConvertToAnnData, load_anndatas
 
 
 def test_create_neighborhood_matrix():
     # get positive expression and distance matrices
     all_data_pos, dist_mat_pos = test_utils._make_dist_exp_mats_spatial_test(
         enrichment_type="positive", dist_lim=51)
-
     # add centroids
     all_data_pos[settings.CENTROID_0], all_data_pos[settings.CENTROID_1] = np.nan, np.nan
 
@@ -160,30 +159,35 @@ def test_generate_cluster_matrix_results():
         neighbor_counts, neighbor_freqs = neighborhood_analysis.create_neighborhood_matrix(
             anndata_dir, distlim=51
         )
+        anndata_table = load_anndatas(
+            anndata_dir=anndata_dir, collection=False, join_obs="inner", join_obsm="inner")
+        # combine cell table and marker expression into single df
+        all_data = anndata_table.to_df().merge(
+            anndata_table.obs, left_index=True, right_index=True)
 
     # error checking
     with pytest.raises(ValueError):
         # pass bad columns
         neighborhood_analysis.generate_cluster_matrix_results(
-            all_data_pos, neighbor_counts, cluster_num=2, excluded_channels=["bad_col"]
+            all_data, neighbor_counts, cluster_num=2, excluded_channels=["bad_col"]
         )
 
     with pytest.raises(ValueError):
         # include bad fovs
         neighborhood_analysis.generate_cluster_matrix_results(
-            all_data_pos, neighbor_counts, cluster_num=2, excluded_channels=excluded_channels,
+            all_data, neighbor_counts, cluster_num=2, excluded_channels=excluded_channels,
             included_fovs=[1000]
         )
 
     with pytest.raises(ValueError):
         # specify bad k for clustering
         neighborhood_analysis.generate_cluster_matrix_results(
-            all_data_pos, neighbor_counts, cluster_num=1, excluded_channels=excluded_channels
+            all_data, neighbor_counts, cluster_num=1, excluded_channels=excluded_channels
         )
 
     all_data_markers_clusters, num_cell_type_per_cluster, mean_marker_exp_per_cluster = \
         neighborhood_analysis.generate_cluster_matrix_results(
-            all_data_pos, neighbor_counts, cluster_num=2, excluded_channels=excluded_channels
+            all_data, neighbor_counts, cluster_num=2, excluded_channels=excluded_channels
         )
 
     # make sure we created a cluster_labels column
@@ -198,12 +202,12 @@ def test_generate_cluster_matrix_results():
     assert mean_marker_exp_per_cluster.shape == (2, 20)
     assert list(mean_marker_exp_per_cluster.index.values) == ["Cluster1", "Cluster2"]
     assert list(mean_marker_exp_per_cluster.columns.values) == \
-        list(np.arange(2, 14)) + list(np.arange(15, 23))
+           [str(num) for num in list(np.arange(2, 14)) + list(np.arange(15, 23))]
 
     # test excluded_channels=None
     all_data_markers_clusters, num_cell_type_per_cluster, mean_marker_exp_per_cluster = \
         neighborhood_analysis.generate_cluster_matrix_results(
-            all_data_pos, neighbor_counts, cluster_num=2, excluded_channels=None
+            all_data, neighbor_counts, cluster_num=2, excluded_channels=None
         )
     assert all(x in mean_marker_exp_per_cluster.columns.values for x in excluded_channels)
 

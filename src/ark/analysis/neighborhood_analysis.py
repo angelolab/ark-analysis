@@ -177,7 +177,6 @@ def generate_cluster_matrix_results(all_data, neighbor_mat, cluster_num, seed=42
           cluster ids indexed row-wise and markers indexed column-wise,
           indicates the mean marker expression for each cluster id
     """
-
     # get fovs
     if included_fovs is None:
         included_fovs = neighbor_mat[fov_col].unique()
@@ -224,7 +223,7 @@ def generate_cluster_matrix_results(all_data, neighbor_mat, cluster_num, seed=42
                                        for c in num_cell_type_per_cluster.index]
 
     # subsets the expression matrix to only have channel columns
-    channel_start = np.where(all_data_clusters.columns == pre_channel_col)[0][0] + 1
+    channel_start = 0
     channel_end = np.where(all_data_clusters.columns == post_channel_col)[0][0]
     cluster_label_colnum = np.where(all_data_clusters.columns == cluster_label_col)[0][0]
 
