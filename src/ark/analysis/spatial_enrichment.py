@@ -11,7 +11,6 @@ import ark.settings as settings
 from ark.analysis import spatial_analysis_utils
 
 
-@pytest.mark.skip(reason="out of date with AnnData compatibility")
 def generate_channel_spatial_enrichment_stats(label_dir, dist_mat_dir, marker_thresholds, all_data,
                                               suffix='_whole_cell',
                                               xr_channel_name='label', **kwargs):
@@ -101,7 +100,6 @@ def generate_channel_spatial_enrichment_stats(label_dir, dist_mat_dir, marker_th
     return values, stats
 
 
-@pytest.mark.skip(reason="out of date with AnnData compatibility")
 def calculate_channel_spatial_enrichment(fov, dist_matrix, marker_thresholds, all_data,
                                          excluded_channels=None,
                                          dist_lim=100, bootstrap_num=100,
@@ -243,7 +241,6 @@ def calculate_channel_spatial_enrichment(fov, dist_matrix, marker_thresholds, al
     return values, stats
 
 
-@pytest.mark.skip(reason="out of date with AnnData compatibility")
 def generate_cluster_spatial_enrichment_stats(label_dir, dist_mat_dir, all_data,
                                               suffix='_whole_cell',
                                               xr_channel_name='label', **kwargs):
@@ -326,7 +323,6 @@ def generate_cluster_spatial_enrichment_stats(label_dir, dist_mat_dir, all_data,
     return values, stats
 
 
-@pytest.mark.skip(reason="out of date with AnnData compatibility")
 def calculate_cluster_spatial_enrichment(fov, all_data, dist_matrix, included_fovs=None,
                                          bootstrap_num=100, dist_lim=100, fov_col=settings.FOV_ID,
                                          cluster_name_col=settings.CELL_TYPE,
