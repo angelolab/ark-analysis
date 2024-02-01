@@ -6,7 +6,6 @@ import numpy as np
 import pandas as pd
 import pytest
 import test_utils
-from anndata import read_zarr
 
 import ark.settings as settings
 from ark.analysis import neighborhood_analysis
@@ -21,25 +20,11 @@ def test_create_neighborhood_matrix():
     all_data_pos[settings.CENTROID_0], all_data_pos[settings.CENTROID_1] = np.nan, np.nan
 
     with tempfile.TemporaryDirectory() as base_dir:
+        # generate test data
         anndata_dir = os.path.join(base_dir, "anndata")
-
         cell_table_path = os.path.join(base_dir, 'table.csv')
         all_data_pos.to_csv(cell_table_path, index=False)
-        convert_to_anndata = ConvertToAnnData(
-            cell_table_path, markers="auto", extra_obs_parameters=None)
-        _ = convert_to_anndata.convert_to_adata(save_dir=anndata_dir)
-
-        # generate test data
-        for fov in np.unique(all_data_pos.fov):
-            adata = read_zarr(os.path.join(anndata_dir, fov + ".zarr"))
-
-            # sort dist mat by index and save to AnnData
-            dist_mat = dist_mat_pos[fov]
-            dist_mat = dist_mat.loc[{'dim_0': sorted(dist_mat.coords['dim_0'].values)}]
-            dist_mat = dist_mat.loc[{'dim_1': sorted(dist_mat.coords['dim_1'].values)}]
-            adata.obsp["distances"] = dist_mat.values
-
-            adata.write_zarr(os.path.join(anndata_dir, fov + ".zarr"))
+        test_utils.convert_to_anndata_table(anndata_dir, cell_table_path, dist_mat_pos)
 
         # error checking
         with pytest.raises(ValueError):
@@ -96,22 +81,10 @@ def test_create_neighborhood_matrix():
         all_data_sub = all_data_pos[
             all_data_pos.label.isin(np.array(dist_mat_pos_sub['fov8'].dim_0))]
 
+        # generate test data
         cell_table_path = os.path.join(base_dir, 'table.csv')
         all_data_sub.to_csv(cell_table_path, index=False)
-        convert_to_anndata = ConvertToAnnData(
-            cell_table_path, markers="auto", extra_obs_parameters=None)
-        _ = convert_to_anndata.convert_to_adata(save_dir=anndata_dir)
-
-        for fov in np.unique(all_data_pos.fov):
-            adata = read_zarr(os.path.join(anndata_dir, fov + ".zarr"))
-
-            # sort dist mat by index and save to AnnData
-            dist_mat = dist_mat_pos_sub[fov]
-            dist_mat = dist_mat.loc[{'dim_0': sorted(dist_mat.coords['dim_0'].values)}]
-            dist_mat = dist_mat.loc[{'dim_1': sorted(dist_mat.coords['dim_1'].values)}]
-            adata.obsp["distances"] = dist_mat.values
-
-            adata.write_zarr(os.path.join(anndata_dir, fov + ".zarr"))
+        test_utils.convert_to_anndata_table(anndata_dir, cell_table_path, dist_mat_pos_sub)
 
         counts, freqs = neighborhood_analysis.create_neighborhood_matrix(anndata_dir)
 
@@ -140,21 +113,7 @@ def test_generate_cluster_matrix_results():
 
         cell_table_path = os.path.join(base_dir, 'table.csv')
         all_data_pos.to_csv(cell_table_path, index=False)
-        convert_to_anndata = ConvertToAnnData(
-            cell_table_path, markers="auto", extra_obs_parameters=None)
-        _ = convert_to_anndata.convert_to_adata(save_dir=anndata_dir)
-
-        # generate test data
-        for fov in np.unique(all_data_pos.fov):
-            adata = read_zarr(os.path.join(anndata_dir, fov + ".zarr"))
-
-            # sort dist mat by index and save to AnnData
-            dist_mat = dist_mat_pos[fov]
-            dist_mat = dist_mat.loc[{'dim_0': sorted(dist_mat.coords['dim_0'].values)}]
-            dist_mat = dist_mat.loc[{'dim_1': sorted(dist_mat.coords['dim_1'].values)}]
-            adata.obsp["distances"] = dist_mat.values
-
-            adata.write_zarr(os.path.join(anndata_dir, fov + ".zarr"))
+        test_utils.convert_to_anndata_table(anndata_dir, cell_table_path, dist_mat_pos)
 
         neighbor_counts, neighbor_freqs = neighborhood_analysis.create_neighborhood_matrix(
             anndata_dir, distlim=51

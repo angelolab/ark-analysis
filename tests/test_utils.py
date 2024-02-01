@@ -1,15 +1,16 @@
+import os
 from collections.abc import Mapping
 from copy import deepcopy
 from functools import partial
-from random import choices
-from string import ascii_lowercase
+from anndata import read_zarr
 from anndata import AnnData
 from anndata.experimental import AnnCollection
 import numpy as np
 import pandas as pd
 import synthetic_spatial_datagen
 import xarray as xr
-from ark.utils.data_utils import AnnCollectionKwargs
+from ark.utils.data_utils import AnnCollectionKwargs, ConvertToAnnData
+from alpineer import io_utils
 
 import ark.settings as settings
 from typing import Tuple, List, Union
@@ -788,4 +789,33 @@ def generate_anncollection(
             fov_adata = gen_ct_adata_func(n_obs=n_obs, fov_id=fov)
         adatas[fov] = fov_adata
 
-    return (fovs, AnnCollection(adatas=adatas, **anncollection_kwargs))
+    return fovs, AnnCollection(adatas=adatas, **anncollection_kwargs)
+
+
+def convert_to_anndata_table(anndata_dir, cell_table_path, dist_mats):
+    """Generate AnnData from a cell table and pre-defined distance matrices.
+
+        Args:
+            anndata_dir (str):
+                Path where the AnnData objects will be stored
+            cell_table_path (str):
+                Path to where cell table is saved
+            dist_mats (dict):
+                Dictionary where keys are the fov names and values are np.array distance matrices
+    """
+    # convert to AnnData
+    convert_to_anndata = ConvertToAnnData(cell_table_path, markers="auto",
+                                          extra_obs_parameters=None)
+    _ = convert_to_anndata.convert_to_adata(save_dir=anndata_dir)
+
+    # write distance matrices
+    for fov in io_utils.list_folders(anndata_dir, substrs='fov'):
+        adata = read_zarr(os.path.join(anndata_dir, fov))
+
+        # sort dist mat by index and save to AnnData
+        dist_mat = dist_mats[os.path.splitext(fov)[0]]
+        dist_mat = dist_mat.loc[{'dim_0': sorted(dist_mat.coords['dim_0'].values)}]
+        dist_mat = dist_mat.loc[{'dim_1': sorted(dist_mat.coords['dim_1'].values)}]
+        adata.obsp["distances"] = dist_mat.values
+
+        adata.write_zarr(os.path.join(anndata_dir, fov))

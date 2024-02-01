@@ -5,11 +5,10 @@ import numpy as np
 import pandas as pd
 import pytest
 import xarray as xr
-from anndata import read_zarr
 
 import ark.settings as settings
 from ark.analysis import cell_neighborhood_stats
-from ark.utils.data_utils import ConvertToAnnData
+from test_utils import convert_to_anndata_table
 
 
 def test_shannon_diversity():
@@ -179,29 +178,18 @@ def test_calculate_mean_distance_to_all_cell_types():
 
 def test_generate_cell_distance_analysis():
     dist_mat = generate_test_distance_matrix()
+    dist_mats = {'fov1': dist_mat, 'fov2': dist_mat}
     cell_table = pd.concat([generate_test_celldf('fov1'), generate_test_celldf('fov2')])
 
     with tempfile.TemporaryDirectory() as temp_dir:
         cell_table_path = os.path.join(temp_dir, 'table.csv')
         cell_table.to_csv(cell_table_path, index=False)
 
+        # generate test data
         anndata_dir = os.path.join(temp_dir, 'anndata')
-        convert_to_anndata = ConvertToAnnData(cell_table_path, markers="auto",
-                                              extra_obs_parameters=None)
-        _ = convert_to_anndata.convert_to_adata(save_dir=anndata_dir)
-        dist_mats = {'fov1': dist_mat, 'fov2': dist_mat}
+        convert_to_anndata_table(anndata_dir, cell_table_path, dist_mats)
 
-        for fov in np.unique(cell_table.fov):
-            adata = read_zarr(os.path.join(anndata_dir, fov + ".zarr"))
-
-            # sort dist mat by index and save to AnnData
-            dist_mat = dist_mats[fov]
-            dist_mat = dist_mat.loc[{'dim_0': sorted(dist_mat.coords['dim_0'].values)}]
-            dist_mat = dist_mat.loc[{'dim_1': sorted(dist_mat.coords['dim_1'].values)}]
-            adata.obsp["distances"] = dist_mat.values
-
-            adata.write_zarr(os.path.join(anndata_dir, fov + ".zarr"))
-
+        # run cell distance analysis
         save_path = os.path.join(temp_dir, 'neighbor_distances.csv')
         cell_dists = cell_neighborhood_stats.generate_cell_distance_analysis(
             anndata_dir, save_path, k=2)
