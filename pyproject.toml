@@ -1,9 +1,9 @@
 [build-system]
 requires = [
     "setuptools",
-    "Cython>=0.29,<1",
+    "Cython>=3",
     "numpy>=1.20,<1.24",
-    "setuptools_scm[toml]>=6.2",
+    "setuptools_scm[toml]>=8",
 ]
 build-backend = "setuptools.build_meta"
 
@@ -11,7 +11,7 @@ build-backend = "setuptools.build_meta"
 dependencies = [
     "alpineer==0.1.10",
     "anndata",
-    "Cython>=0.29,<1",
+    "Cython>=3",
     "dask[distributed]",
     "datasets>=2.6,<3.0",
     "dill>=0.3.5,<0.4",
@@ -111,7 +111,6 @@ skip = [
     "*_s390x",        # IBM System/390, "mainframe"
     "*-win32",        # 32bit Windows Wheels
     "*_ppc64le",      # PowerPC
-    "cp39-win_arm64", # Windows ARM64 Python 3.9 wheels do not build.
 ]
 
 build-frontend = "build"
@@ -137,9 +136,8 @@ repair-wheel-command = "delocate-wheel --require-archs {delocate_archs} -w {dest
 # Build for Windows x86_64, and ARM 64
 [tool.cibuildwheel.windows]
 archs = ["AMD64", "ARM64"]
-# might not need to repair with delvewheel?
-# before-build = "pip install delvewheel"                          # Use delvewheel on windows
-# repair-wheel-command = "delvewheel repair -w {dest_dir} {wheel}"
+before-build = "pip install delvewheel"                          # Use delvewheel on windows
+repair-wheel-command = "delvewheel repair -w {dest_dir} {wheel}"
 
 # Coverage
 [tool.coverage.paths]
