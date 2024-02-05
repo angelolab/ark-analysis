@@ -99,6 +99,7 @@ version_scheme = "release-branch-semver"
 local_scheme = "no-local-version"
 
 [tool.cibuildwheel]
+before-all = "uname -a"
 build = ["cp39-*", "cp310-*", "cp311-*"]
 skip = [
     "cp36-*",         # Python 3.6
@@ -114,14 +115,6 @@ skip = [
 ]
 
 build-frontend = "build"
-
-# Avoid testing on emulated architectures
-test-skip = [
-    "*-win_arm64",               # Skip testing emulated arm64 biulds on Windows
-    "*-*linux_aarch64",          # Skip testing emulated Linux builds
-    "*-macosx_arm64",            # Skip testing emulated arm64 builds on Intel Macs
-    "*-macosx_universal2:arm64", # Skip testing emulated arm64 portion of universal2 builds
-]
 
 # "manylinux" versioning
 # PEP 600: https://peps.python.org/pep-0600/

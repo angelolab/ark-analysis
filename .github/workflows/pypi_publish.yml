@@ -35,7 +35,7 @@ jobs:
     needs: [test, build_wheels_sdist]
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/download-artifact@v3
+      - uses: actions/download-artifact@v4
         with:
           name: distributions
           path: dist
@@ -57,15 +57,15 @@ jobs:
     if: github.event_name == 'release' && github.event.action == 'published'
     steps:
       - name: Download Artifact
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: distributions
           path: dist
 
       - name: PYPI Publish
-        uses: pypa/gh-action-pypi-publish@release/v1.6
+        uses: pypa/gh-action-pypi-publish@release/v1.8
         with:
           user: __token__
           password: ${{ secrets.PYPI_API_TOKEN }}
-          packages_dir: dist/
+          packages-dir: dist/
           verbose: true
