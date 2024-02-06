@@ -38,7 +38,7 @@ jobs:
       - name: Store Wheel Artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: distributions
+          name: dist-${{ matrix.os }}
           path: wheelhouse/*.whl
 
   build_sdist:
@@ -57,5 +57,5 @@ jobs:
       - name: Store sdist Artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: distributions
+          name: dist-sdist
           path: dist/*.tar.gz

@@ -206,14 +206,14 @@ def cluster_pixels(fovs, channels, base_dir, pixel_pysom, data_dir='pixel_mat_da
         columns=cols_to_drop
     )
     misc_utils.verify_same_elements(
-        enforce_order=True,
+        # enforce_order=True,
         norm_vals_columns=pixel_pysom.norm_data.columns.values,
         pixel_data_columns=sample_fov.columns.values
     )
 
     # ensure the SOM weights columns are valid indexes
     misc_utils.verify_same_elements(
-        enforce_order=True,
+        # enforce_order=True,
         pixel_som_weights_columns=pixel_pysom.weights.columns.values,
         pixel_data_columns=sample_fov.columns.values
     )

@@ -59,7 +59,8 @@ jobs:
       - name: Download Artifact
         uses: actions/download-artifact@v4
         with:
-          name: distributions
+          pattern: dist-*
+          merge-multiple: true
           path: dist
 
       - name: PYPI Publish
