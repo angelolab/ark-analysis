@@ -2,7 +2,7 @@ import multiprocessing
 import os
 from functools import partial
 from shutil import rmtree
-
+import natsort as ns
 import feather
 import numpy as np
 import pandas as pd
@@ -438,7 +438,8 @@ def create_pixel_matrix(fovs, channels, base_dir, tiff_dir, seg_dir,
 
     # get mean 99.9% across all fovs for all markers, check that none are missing
     mean_quant = pd.DataFrame(quant_dat_all.mean(axis=1))
-
+    mean_quant.reindex(labels=ns.natsorted(mean_quant.columns), axis="columns")
+    
     # save 99.9% normalization values
     feather.write_dataframe(mean_quant.T,
                             os.path.join(base_dir, norm_vals_name_post_rownorm),

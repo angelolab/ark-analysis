@@ -5,7 +5,7 @@ import warnings
 from abc import ABC, abstractmethod
 from itertools import combinations
 from typing import List, Literal, Protocol, runtime_checkable
-
+import natsort as ns
 import feather
 import numpy as np
 import pandas as pd

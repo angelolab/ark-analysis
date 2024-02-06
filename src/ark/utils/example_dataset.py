@@ -73,7 +73,8 @@ class ExampleDataset():
                                                    revision=self.revision,
                                                    name=self.dataset,
                                                    cache_dir=self.cache_dir,
-                                                   use_auth_token=False)
+                                                   token=False,
+                                                   trust_remote_code=True)
 
     def check_empty_dst(self, dst_path: pathlib.Path) -> bool:
         """

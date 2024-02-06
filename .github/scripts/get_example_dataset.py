@@ -23,8 +23,9 @@ def load_dataset(cache_dir: pathlib.Path, name: str):
         path="angelolab/ark_example",
         cache_dir=cache_dir,
         name=name,
-        use_auth_token=False,
-        revision="main"
+        token=False,
+        revision="main",
+        trust_remote_code=True,
     )
 
 # Make the cache directory if it doesn't exist.

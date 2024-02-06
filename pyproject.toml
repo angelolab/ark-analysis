@@ -1,15 +1,15 @@
 [build-system]
 requires = [
     "setuptools",
-    "Cython>=3",
+    "Cython>=0.2,<3",
     "numpy>=1.20,<1.24",
-    "setuptools_scm[toml]>=8",
+    "setuptools_scm[toml]>=6",
 ]
 build-backend = "setuptools.build_meta"
 
 [project]
 dependencies = [
-    "alpineer==0.1.10",
+    "alpineer==0.1.12",
     "anndata",
     "Cython>=3",
     "dask[distributed]",
@@ -27,7 +27,7 @@ dependencies = [
     "palettable>=3.3.0,<4",
     "pandas>=2",
     "pillow>=9,<10",
-    "pyFlowSOM>=0.1.15",
+    "pyFlowSOM>=0.1.16",
     "requests>=2.20,<3",
     "scikit-image<=0.19.3",
     "scikit-learn>=1.1,<2",
