@@ -12,7 +12,7 @@ def dataset_cache_dir() -> Iterator[Union[str, None]]:
     print(f"CI ENV Variable: {os.environ.get("CI", None)}")
     
     if os.environ.get("CI", None):
-        cache_dir = pathlib.Path("~./data/cache/").expanduser()
+        cache_dir = pathlib.Path("./data/cache/")
         print(f"CACHE DIR: {cache_dir}")
     else:
         cache_dir = None
