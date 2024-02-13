@@ -9,8 +9,11 @@ import pytest
 @pytest.fixture(scope="session")
 def dataset_cache_dir() -> Iterator[Union[str, None]]:
     # Change cache directory if running on CI
+    print(f"CI ENV Variable: {os.environ.get("CI", None)}")
+    
     if os.environ.get("CI", None):
-        cache_dir = pathlib.Path("./data/cache/")
+        cache_dir = pathlib.Path("~./data/cache/").expanduser()
+        print(f"CACHE DIR: {cache_dir}")
     else:
         cache_dir = None
     yield cache_dir
