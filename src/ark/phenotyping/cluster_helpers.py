@@ -413,12 +413,10 @@ class CellSOMCluster(PixieSOMCluster):
 # define a template class for type hinting cluster param in ConsensusCluster constructor
 @runtime_checkable
 class ClusterClassTemplate(Protocol):
-    def fit_predict(self) -> None:
-        ...
+    def fit_predict(self) -> None: ...
 
     @property
-    def n_clusters(self) -> int:
-        return n_cluster
+    def n_clusters(self) -> int: ...
 
 ###############################################
 # Copyright Žiga Sajovic, XLAB 2019           #
