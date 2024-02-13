@@ -24,13 +24,13 @@ jobs:
 
       - name: Download Example Dataset Cache
         uses: actions/cache/restore@v4
-        id: dataset-cache
         env:
           cache-name: dataset
         with:
-          path: ./data/cache
-          key: huggingface-${{ env.cache-name }}
+          path: ./data/cache/
+          key: huggingface-${{env.cache-name}}
           enableCrossOsArchive: true
+          fail-on-cache-miss: true
       
       - name: DEBUG -- LIST DIRECTORY CONTENTS
         run: |
