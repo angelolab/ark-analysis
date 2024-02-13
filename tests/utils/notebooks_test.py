@@ -66,8 +66,7 @@ def nb1_context(
     SEGMENT_IMAGE_DATA_PATH: pathlib.Path = templates_dir / "1_Segment_Image_Data.ipynb"
     with testbook(SEGMENT_IMAGE_DATA_PATH, timeout=6000, execute=False) as nb_context_manager:
         yield nb_context_manager, base_dir_generator / "nb1"
-    print("after init class")
-    shutil.rmtree(base_dir_generator)
+    shutil.rmtree(base_dir_generator / "nb1")
 
 
 @pytest.fixture(scope="class")
@@ -92,7 +91,7 @@ def nb2_context(
     CLUSTER_PIXELS: pathlib.Path = templates_dir / "2_Pixie_Cluster_Pixels.ipynb"
     with testbook(CLUSTER_PIXELS, timeout=6000, execute=False) as nb_context_manager:
         yield nb_context_manager, base_dir_generator / "nb2"
-    shutil.rmtree(base_dir_generator)
+    shutil.rmtree(base_dir_generator / "nb2")
 
 
 @pytest.fixture(scope="class")
@@ -116,7 +115,7 @@ def nb3_context(
     CLUSTER_CELLS: pathlib.Path = templates_dir / "3_Pixie_Cluster_Cells.ipynb"
     with testbook(CLUSTER_CELLS, timeout=6000, execute=False) as nb_context_manager:
         yield nb_context_manager, base_dir_generator / "nb3"
-    shutil.rmtree(base_dir_generator)
+    shutil.rmtree(base_dir_generator / "nb3")
 
 
 @pytest.fixture(scope="class")
@@ -140,7 +139,7 @@ def nb3b_context(
     CLUSTER_CELLS: pathlib.Path = templates_dir / "generic_cell_clustering.ipynb"
     with testbook(CLUSTER_CELLS, timeout=6000, execute=False) as nb_context_manager:
         yield nb_context_manager, base_dir_generator / "nb3b"
-    shutil.rmtree(base_dir_generator)
+    shutil.rmtree(base_dir_generator / "nb3b")
 
 
 @pytest.fixture(scope="class")
@@ -164,7 +163,7 @@ def nb4_context(
     POST_CLUSTERING: pathlib.Path = templates_dir / "4_Post_Clustering.ipynb"
     with testbook(POST_CLUSTERING, timeout=6000, execute=False) as nb_context_manager:
         yield nb_context_manager, base_dir_generator / "nb4"
-    shutil.rmtree(base_dir_generator)
+    shutil.rmtree(base_dir_generator / "nb4")
 
 
 @pytest.fixture(scope="class")
@@ -188,7 +187,7 @@ def ez_seg_context(
     POST_CLUSTERING: pathlib.Path = templates_dir / "ez_segmenter.ipynb"
     with testbook(POST_CLUSTERING, timeout=6000, execute=False) as nb_context_manager:
         yield nb_context_manager, base_dir_generator / "ez_seg"
-    shutil.rmtree(base_dir_generator)
+    shutil.rmtree(base_dir_generator / "ez_seg")
 
 
 @pytest.fixture(scope="class")
@@ -214,7 +213,7 @@ def nbfib_seg_context(
     )
     with testbook(EXAMPLE_FIBER_SEGMENTATION, timeout=6000, execute=False) as nb_context_manager:
         yield nb_context_manager, base_dir_generator / "efs"
-    shutil.rmtree(base_dir_generator)
+    shutil.rmtree(base_dir_generator / "efs")
 
 
 @pytest.fixture(scope="class")
@@ -238,7 +237,7 @@ def nbmixing_context(
     EXAMPLE_MIXING: pathlib.Path = templates_dir / "Calculate_Mixing_Scores.ipynb"
     with testbook(EXAMPLE_MIXING, timeout=6000, execute=False) as nb_context_manager:
         yield nb_context_manager, base_dir_generator / "cms"
-    shutil.rmtree(base_dir_generator)
+    shutil.rmtree(base_dir_generator / "cms")
 
 
 @pytest.fixture(scope="class")
@@ -262,7 +261,7 @@ def nbcell_neighbors_context(
     EXAMPLE_CELL_NEIGHBORS: pathlib.Path = templates_dir / "cell_neighbors_analysis.ipynb"
     with testbook(EXAMPLE_CELL_NEIGHBORS, timeout=6000, execute=False) as nb_context_manager:
         yield nb_context_manager, base_dir_generator / "cna"
-    shutil.rmtree(base_dir_generator)
+    shutil.rmtree(base_dir_generator / "cna")
 
 
 class Test_1_Segment_Image_Data:

@@ -31,12 +31,12 @@ jobs:
           key: huggingface-${{env.cache-name}}
           enableCrossOsArchive: true
           fail-on-cache-miss: true
-      
-      - name: DEBUG -- LIST DIRECTORY CONTENTS
+
+        - name: DEBUG -- LIST DIRECTORY CONTENTS
         if: matrix.os == 'ubuntu-latest' || matrix.os == 'macos-13'
         run: |
-          ls -la ./data/
-
+          ls -la ./data/cache
+      
       - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v5
         with:
