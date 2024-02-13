@@ -32,7 +32,7 @@ jobs:
           enableCrossOsArchive: true
           fail-on-cache-miss: true
 
-        - name: DEBUG -- LIST DIRECTORY CONTENTS
+      - name: DEBUG -- LIST DIRECTORY CONTENTS
         if: matrix.os == 'ubuntu-latest' || matrix.os == 'macos-13'
         run: |
           ls -la ./data/cache
