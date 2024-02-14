@@ -114,8 +114,8 @@ def merge_masks_single(
         raise ValueError("Both masks must have the same shape")
 
     # Relabel cell, object masks
-    cell_labels, num_cell_labels = label(cell_mask)
-    object_labels, num_object_labels = label(object_mask)
+    cell_labels, num_cell_labels = label(cell_mask, return_num=True)
+    object_labels, num_object_labels = label(object_mask, return_num=True)
 
     # Instantiate new array for merging
     merged_mask = object_labels.copy()
