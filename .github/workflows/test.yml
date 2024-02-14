@@ -32,13 +32,6 @@ jobs:
           enableCrossOsArchive: true
           fail-on-cache-miss: true
 
-      - name: DEBUG -- LIST DIRECTORY CONTENTS
-        if: matrix.os == 'macos-13'
-        run: |
-          brew install tree
-          pwd
-          tree ./data/cache
-      
       - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v5
         with:
