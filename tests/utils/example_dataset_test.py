@@ -326,6 +326,7 @@ class TestExampleDataset:
         """
         # Check to make sure all the FOVs exist
         downloaded_fovs = list(dir_p.glob("*"))
+        print(f"IMAGE DATA EXISTS?: {dir_p.exists()}")
         downloaded_fov_names = [f.stem for f in downloaded_fovs]
         assert set(self.fov_names) == set(downloaded_fov_names)
 
