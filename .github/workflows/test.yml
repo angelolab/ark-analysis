@@ -31,6 +31,12 @@ jobs:
           key: huggingface-${{env.cache-name}}
           enableCrossOsArchive: true
           fail-on-cache-miss: true
+      
+      - name: Check Cache
+        if: matrix.os == 'macos-13'
+        run: |
+          brew install tree
+          tree -d -L 5 ./data/cache/
 
       - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v5

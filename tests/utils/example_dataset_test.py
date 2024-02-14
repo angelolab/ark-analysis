@@ -191,8 +191,8 @@ class TestExampleDataset:
         for ds_n in dataset_names:
             dataset_cache_path = pathlib.Path(
                 dataset_download.dataset_paths[dataset_download.dataset][ds_n][0])
-            print(f"DATASET SUBDIRS: {list(dataset_cache_path.glob('*'))}")
             print(f"DATASET CACHE PATH Exists: {(dataset_cache_path / ds_n).exists()}")
+            print(f"DATASET SUBDIRS: {list(dataset_cache_path.rglob('*'))}")
             self.dataset_test_fns[ds_n](dir_p=dataset_cache_path / ds_n)
 
     @pytest.mark.parametrize("_overwrite_existing", [True, False])
@@ -321,7 +321,6 @@ class TestExampleDataset:
             dir (pathlib.Path): The directory to check.
         """
         # Check to make sure all the FOVs exist
-        print(f"IMAGE DATA EXISTS: {dir_p.exists()} in Image Data Check")
         downloaded_fovs = list(dir_p.glob("*"))
         downloaded_fov_names = [f.stem for f in downloaded_fovs]
         assert set(self.fov_names) == set(downloaded_fov_names)
