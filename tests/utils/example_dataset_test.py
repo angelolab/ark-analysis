@@ -9,7 +9,7 @@ from ark.settings import EXAMPLE_DATASET_REVISION
 from ark.utils.example_dataset import ExampleDataset, get_example_dataset
 
 
-@pytest.fixture(scope="session", params=["segment_image_data",
+@pytest.fixture(scope="class", params=["segment_image_data",
                                          "cluster_pixels",
                                          "cluster_cells",
                                          "post_clustering",
