@@ -14,7 +14,6 @@ def dataset_cache_dir() -> Iterator[Union[str, None]]:
     
     if os.environ.get("CI", None):
         cache_dir = pathlib.Path("./data/cache/")
-        print(f"CACHE DIR: {cache_dir}")
     else:
         cache_dir = None
     yield cache_dir
