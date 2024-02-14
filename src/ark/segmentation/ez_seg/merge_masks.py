@@ -4,7 +4,7 @@ import xarray as xr
 import numpy as np
 import os
 from skimage.io import imread
-from scipy.ndimage import label
+from skimage.morphology import label
 from alpineer import load_utils, image_utils
 from ark.segmentation.ez_seg.ez_seg_utils import log_creator
 
