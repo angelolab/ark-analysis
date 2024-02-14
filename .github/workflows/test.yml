@@ -33,8 +33,9 @@ jobs:
           fail-on-cache-miss: true
 
       - name: DEBUG -- LIST DIRECTORY CONTENTS
-        if: matrix.os == 'ubuntu-latest' || matrix.os == 'macos-13'
+        if: matrix.os == 'macos-13'
         run: |
+          brew install tree
           tree ./data/cache
       
       - name: Set up Python ${{ matrix.python-version }}
