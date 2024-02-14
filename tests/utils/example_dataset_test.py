@@ -32,6 +32,7 @@ def dataset_download(request, dataset_cache_dir) -> Iterator[ExampleDataset]:
     Yields:
         Iterator[ExampleDataset]: The iterable Example Dataset.
     """
+    print(f"DATASET CACHE DIR Exists - Fixture: {dataset_cache_dir.exists()}")
 
     # Set up ExampleDataset class
     example_dataset: ExampleDataset = ExampleDataset(
