@@ -35,8 +35,8 @@ jobs:
       - name: Check Cache
         if: matrix.os == 'macos-13'
         run: |
-          brew install tree
-          tree -d -L 5 ./data/cache/
+          brew install lsd
+          lsd --tree ./data/cache/
 
       - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v5
