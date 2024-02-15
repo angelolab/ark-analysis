@@ -9,7 +9,7 @@ on:
     inputs:
       debug_enabled:
         type: boolean
-        description: 'Run the build with tmate debugging enabled (https://github.com/marketplace/actions/debugging-with-tmate)'
+        description: 'Run with tmate debugging enabled for testing'
         required: false
         default: false
   merge_group:
