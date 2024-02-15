@@ -22,6 +22,9 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Setup upterm session
+        uses: lhotari/action-upterm@v1
+          
       - name: Download Example Dataset Cache
         uses: actions/cache/restore@v4
         env:
