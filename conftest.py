@@ -6,7 +6,7 @@ import numpy as np
 import pytest
 
 
-@pytest.fixture(scope="function")
+@pytest.fixture(scope="session")
 def dataset_cache_dir() -> Iterator[Union[str, None]]:
     # Change cache directory if running on CI
     if os.environ.get("CI", None):
