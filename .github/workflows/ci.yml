@@ -63,7 +63,7 @@ jobs:
     secrets: inherit
     uses: ./.github/workflows/test.yml
     with:
-      inputs: ${{ inputs.debug_enabled}}
+      debug_enabled: ${{ inputs.debug_enabled }}
   
   build:
     name: Build
