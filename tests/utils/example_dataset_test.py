@@ -9,7 +9,7 @@ from ark.settings import EXAMPLE_DATASET_REVISION
 from ark.utils.example_dataset import ExampleDataset, get_example_dataset
 
 
-@pytest.fixture(scope="class", params=["segment_image_data",
+@pytest.fixture(scope="function", params=["segment_image_data",
                                          "cluster_pixels",
                                          "cluster_cells",
                                          "post_clustering",
@@ -32,8 +32,6 @@ def dataset_download(request, dataset_cache_dir) -> Iterator[ExampleDataset]:
     Yields:
         Iterator[ExampleDataset]: The iterable Example Dataset.
     """
-    print(f"DATASET CACHE DIR Exists - Fixture: {dataset_cache_dir.exists()}")
-
     # Set up ExampleDataset class
     example_dataset: ExampleDataset = ExampleDataset(
         dataset=request.param,
@@ -151,6 +149,7 @@ class TestExampleDataset:
             ]
         }
 
+        # Mapping the datasets to their respective test functions.
         self.dataset_test_fns: dict[str, Callable] = {
             "image_data": self._image_data_check,
             "cell_table": self._cell_table_check,
@@ -163,7 +162,6 @@ class TestExampleDataset:
             "ez_seg_data": self._ez_seg_data_check
         }
 
-        # Mapping the datasets to their respective test functions.
         # Should be the same as `example_dataset.ExampleDataset.path_suffixes`
         self.move_path_suffixes = {
             "image_data": "image_data",
@@ -191,8 +189,8 @@ class TestExampleDataset:
         for ds_n in dataset_names:
             dataset_cache_path = pathlib.Path(
                 dataset_download.dataset_paths[dataset_download.dataset][ds_n][0])
-            print(f"DATASET CACHE PATH Exists: {(dataset_cache_path / ds_n).exists()}")
-            print(f"DATASET SUBDIRS: {list(dataset_cache_path.rglob('*'))}")
+            
+            print(f"\nDATASET CACHE PATH: {(dataset_cache_path / ds_n)}")
             self.dataset_test_fns[ds_n](dir_p=dataset_cache_path / ds_n)
 
     @pytest.mark.parametrize("_overwrite_existing", [True, False])
