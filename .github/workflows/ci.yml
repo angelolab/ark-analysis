@@ -6,6 +6,12 @@ on:
   pull_request:
     types: [labeled, opened, synchronize, reopened]
   workflow_dispatch:
+    inputs:
+      debug_enabled:
+        type: boolean
+        description: 'Run the build with tmate debugging enabled (https://github.com/marketplace/actions/debugging-with-tmate)'
+        required: false
+        default: false
   merge_group:
     types: [checks_requested]
 
@@ -56,6 +62,8 @@ jobs:
       pull-requests: write
     secrets: inherit
     uses: ./.github/workflows/test.yml
+    with:
+      inputs: ${{ inputs.debug_enabled}}
   
   build:
     name: Build

@@ -2,14 +2,12 @@ name: Test
 
 on:
   workflow_call:
-  workflow_dispatch:
     inputs:
       debug_enabled:
         type: boolean
-        description: "Run the build with tmate debugging enabled"
+        description: 'Run the build with tmate debugging enabled (https://github.com/marketplace/actions/debugging-with-tmate)'
         required: false
         default: false
-
 
 permissions:
   contents: read # to fetch code (actions/checkout)
@@ -27,16 +25,13 @@ jobs:
     steps:
       - name: Setup tmate session
         uses: mxschmitt/action-tmate@v3
-        if: ${{ github.event_name == 'workflow_dispatch' && inputs.debug_enabled }}
+        if: ${{ inputs.debug_enabled }}
 
       - name: Checkout ${{ github.repository }}
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      # - name: Setup upterm session
-      #   uses: lhotari/action-upterm@v1
-          
       - name: Download Example Dataset Cache
         uses: actions/cache/restore@v4
         env:
