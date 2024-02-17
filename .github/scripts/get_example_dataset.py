@@ -4,23 +4,13 @@ import datasets
 
 datasets.disable_progress_bar()
 
-valid_datasets = [
-    "segment_image_data",
-    "cluster_pixels",
-    "cluster_cells",
-    "post_clustering",
-    "fiber_segmentation",
-    "LDA_preprocessing",
-    "LDA_training_inference",
-    "neighborhood_analysis",
-    "pairwise_spatial_enrichment",
-    "ome_tiff",
-    "ez_seg_data",
-]
+DATASET_PATH = "angelolab/ark_example"
+
+valid_configs = datasets.get_dataset_config_names(DATASET_PATH)
 
 def load_dataset(cache_dir: pathlib.Path, name: str):
     _ = datasets.load_dataset(
-        path="angelolab/ark_example",
+        path=DATASET_PATH,
         cache_dir=cache_dir,
         name=name,
         token=False,
@@ -31,5 +21,5 @@ def load_dataset(cache_dir: pathlib.Path, name: str):
 # Make the cache directory if it doesn't exist.
 cache_dir = pathlib.Path("./data/cache/")
 cache_dir.mkdir(parents=True, exist_ok=True)
-for dataset_config in valid_datasets:
+for dataset_config in valid_configs:
     load_dataset(cache_dir=cache_dir.as_posix(), name=dataset_config)
