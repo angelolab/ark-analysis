@@ -41,7 +41,7 @@ jobs:
         run: |
           pwd
           brew install lsd
-          lsd --tree ./data/cache/
+          lsd --tree ~/.cache/huggingface/datasets
 
       - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v5
