@@ -47,7 +47,7 @@ def display_channel_image(
     base_image: np.ndarray = imread(image_path, as_gray=True)
 
     # convert image to presentable RGB
-    base_image = base_image / 255
+    base_image_scaled = base_image / 255
 
     # Plot
     fig: Figure = plt.figure(dpi=300, figsize=(6, 6))
@@ -104,8 +104,8 @@ def overlay_mask_outlines(
     channel_image: np.ndarray = imread(channel_image_path, as_gray=True)
     mask_image: np.ndarray = imread(mask_image_path, as_gray=True)
 
-    # Auto-scale the base image
-    channel_image_scaled = img_as_ubyte(channel_image)
+    # convert image to presentable RGB
+    channel_image_scaled = channel_image / 255
 
     # Apply Canny edge detection to extract outlines
     edges: np.ndarray = feature.canny(
