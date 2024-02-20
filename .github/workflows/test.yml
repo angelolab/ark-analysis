@@ -5,7 +5,7 @@ on:
     inputs:
       debug_enabled:
         type: boolean
-        required: true
+        required: false
 
 permissions:
   contents: read # to fetch code (actions/checkout)
@@ -35,13 +35,7 @@ jobs:
           key: huggingface-${{env.cache-name}}
           enableCrossOsArchive: true
           fail-on-cache-miss: true
-      
-      - name: Check Cache
-        if: matrix.os == 'macos-13'
-        run: |
-          pwd
-          brew install lsd
-          lsd --tree ~/.cache/huggingface/datasets
+
 
       - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v5
