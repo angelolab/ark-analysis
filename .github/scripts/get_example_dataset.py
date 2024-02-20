@@ -19,7 +19,7 @@ def load_dataset(cache_dir: pathlib.Path, name: str):
     )
 
 # Make the cache directory if it doesn't exist.
-cache_dir = pathlib.Path("./data/cache/")
+cache_dir = pathlib.Path("~/.cache/huggingface/datasets")
 cache_dir.mkdir(parents=True, exist_ok=True)
 for dataset_config in valid_configs:
     load_dataset(cache_dir=cache_dir.as_posix(), name=dataset_config)
