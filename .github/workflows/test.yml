@@ -6,6 +6,7 @@ on:
       debug_enabled:
         type: boolean
         required: false
+        default: false
 
 permissions:
   contents: read # to fetch code (actions/checkout)
@@ -19,6 +20,8 @@ jobs:
       matrix:
         python-version: ["3.9", "3.10", "3.11"]
         os: [ubuntu-latest, macos-13, windows-latest]
+    env:
+      GITHUB_WORKSPACE: ${{ github.workspace }}
 
     steps:
       - name: Checkout ${{ github.repository }}
