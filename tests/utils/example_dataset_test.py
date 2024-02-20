@@ -38,10 +38,10 @@ def dataset_download(request, dataset_cache_dir) -> Iterator[ExampleDataset]:
         cache_dir=dataset_cache_dir,
         revision=EXAMPLE_DATASET_REVISION
     )
+    
     # Download example data for a particular notebook
     example_dataset.download_example_dataset()
     yield example_dataset
-
 
 @pytest.fixture(scope="function")
 def cleanable_tmp_path(tmp_path_factory: pytest.TempPathFactory) -> Iterator[pathlib.Path]:
@@ -187,11 +187,10 @@ class TestExampleDataset:
         dataset_names = list(
             dataset_download.dataset_paths[dataset_download.dataset].features.keys())
         for ds_n in dataset_names:
+            print(dataset_download.dataset_paths[dataset_download.dataset][ds_n][0])
             dataset_cache_path = pathlib.Path(
                 dataset_download.dataset_paths[dataset_download.dataset][ds_n][0])
             
-            print(f"\nDATASET CACHE PATH: {(dataset_cache_path / ds_n)}")
-            print(f"DATASET EXISTS: {(dataset_cache_path / ds_n).exists()}")
             self.dataset_test_fns[ds_n](dir_p=dataset_cache_path / ds_n)
 
     @pytest.mark.parametrize("_overwrite_existing", [True, False])

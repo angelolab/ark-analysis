@@ -75,6 +75,8 @@ class ExampleDataset():
                                                    cache_dir=self.cache_dir,
                                                    token=False,
                                                    trust_remote_code=True)
+        
+        print(self.dataset_paths)
 
     def check_empty_dst(self, dst_path: pathlib.Path) -> bool:
         """
