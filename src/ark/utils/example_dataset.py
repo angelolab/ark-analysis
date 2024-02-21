@@ -83,12 +83,13 @@ class ExampleDataset:
         # becomes 'pathlib.path(self.dataset_cache) / downloads/extracted/<hash>/<feature_name>'
         self.dataset_paths = {}
         for ds_name,ds in ds_paths.items():
+            self.dataset_paths[ds_name] = {}
             for feature in ds.features:
                 p, = ds[feature]
                 # extract the path relative to the cache_dir (last 3 parts of the path)
                 p = pathlib.Path(*pathlib.Path(p).parts[-3:])
                 # Set the start of the path to the cache_dir (for the user's machine)
-                self.dataset_paths[ds_name] = {feature: self.cache_dir / p / feature}
+                self.dataset_paths[ds_name][feature] = self.cache_dir / p / feature
 
 
     def check_empty_dst(self, dst_path: pathlib.Path) -> bool:
