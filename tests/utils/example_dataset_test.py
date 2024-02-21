@@ -187,7 +187,6 @@ class TestExampleDataset:
         dataset_names = list(
             dataset_download.dataset_paths[dataset_download.dataset].features.keys())
         for ds_n in dataset_names:
-            print(dataset_download.dataset_paths[dataset_download.dataset][ds_n][0])
             dataset_cache_path = pathlib.Path(
                 dataset_download.dataset_paths[dataset_download.dataset][ds_n][0])
             

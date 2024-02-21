@@ -41,7 +41,7 @@ class ExampleDataset():
         """
         self.dataset = dataset
         self.overwrite_existing = overwrite_existing
-        self.cache_dir = cache_dir
+        self.cache_dir = cache_dir if cache_dir else pathlib.Path("~/.cache/huggingface/datasets").expanduser()
         self.revision = revision
 
         self.path_suffixes = {
@@ -75,8 +75,16 @@ class ExampleDataset():
                                                    cache_dir=self.cache_dir,
                                                    token=False,
                                                    trust_remote_code=True)
-        
-        print(self.dataset_paths)
+
+        # modify the paths to be relative to the os
+        for ds_name,ds in self.dataset_paths.items():
+            for config in ds:
+                for key in config:
+                    # extract the path relative to the cache_dir (last 3 parts of the path)
+                    p = pathlib.Path(*pathlib.Path(config[key]).parts[-3:])
+                    # Set the start of the path to the cache_dir (for the user's machine)
+                    self.dataset_paths[ds_name][key] = self.cache_dir / p
+
 
     def check_empty_dst(self, dst_path: pathlib.Path) -> bool:
         """
