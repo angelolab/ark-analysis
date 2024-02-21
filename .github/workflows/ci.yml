@@ -80,7 +80,6 @@ jobs:
         with:
           pattern: coverage-*
           merge-multiple: true
-          path: .
 
       - name: Upload Coverage to Coveralls
         uses: coverallsapp/github-action@v2
