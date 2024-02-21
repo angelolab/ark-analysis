@@ -111,6 +111,7 @@ skip = [
     "*_s390x",        # IBM System/390, "mainframe"
     "*-win32",        # 32bit Windows Wheels
     "*_ppc64le",      # PowerPC
+    "cp39-win_arm64", # Windows ARM64 Python 3.9 wheels do not build.
 ]
 
 build-frontend = "build"
