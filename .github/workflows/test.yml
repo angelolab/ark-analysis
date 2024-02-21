@@ -39,7 +39,6 @@ jobs:
           enableCrossOsArchive: true
           fail-on-cache-miss: true
 
-
       - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v5
         with:
@@ -50,12 +49,6 @@ jobs:
       - name: Install Dependencies and ${{ github.repository }}
         run: |
           pip install .[test]
-
-      - name: Setup upterm session
-        uses: lhotari/action-upterm@v1
-        if: ${{ inputs.debug_enabled }}
-        with:
-          limit-access-to-actor: false
 
       - name: Run Tests
         run: |
