@@ -10,16 +10,16 @@ from ark.utils.example_dataset import ExampleDataset, get_example_dataset
 
 
 @pytest.fixture(scope="class", params=["segment_image_data",
-                                         "cluster_pixels",
-                                         "cluster_cells",
-                                         "post_clustering",
-                                         "fiber_segmentation",
-                                         "LDA_preprocessing",
-                                         "LDA_training_inference",
-                                         "neighborhood_analysis",
-                                         "pairwise_spatial_enrichment",
-                                         "ome_tiff",
-                                         "ez_seg_data"])
+                                       "cluster_pixels",
+                                       "cluster_cells",
+                                       "post_clustering",
+                                       "fiber_segmentation",
+                                       "LDA_preprocessing",
+                                       "LDA_training_inference",
+                                       "neighborhood_analysis",
+                                       "pairwise_spatial_enrichment",
+                                       "ome_tiff",
+                                       "ez_seg_data"])
 def dataset_download(request, dataset_cache_dir) -> Iterator[ExampleDataset]:
     """
     A Fixture which instantiates and downloads the dataset with respect to each
@@ -38,10 +38,11 @@ def dataset_download(request, dataset_cache_dir) -> Iterator[ExampleDataset]:
         cache_dir=dataset_cache_dir,
         revision=EXAMPLE_DATASET_REVISION
     )
-    
+
     # Download example data for a particular notebook
     example_dataset.download_example_dataset()
     yield example_dataset
+
 
 @pytest.fixture(scope="function")
 def cleanable_tmp_path(tmp_path_factory: pytest.TempPathFactory) -> Iterator[pathlib.Path]:
@@ -181,16 +182,13 @@ class TestExampleDataset:
 
         Args:
             dataset_download (ExampleDataset): Fixture for the dataset, respective to each
-            partition (`segment_image_data`, `cluster_pixels`, `cluster_cells`,
-            `post_clustering`).
         """
         dataset_names = list(
-            dataset_download.dataset_paths[dataset_download.dataset].features.keys())
+            dataset_download.dataset_paths[dataset_download.dataset].keys())
         for ds_n in dataset_names:
             dataset_cache_path = pathlib.Path(
-                dataset_download.dataset_paths[dataset_download.dataset][ds_n][0])
-            
-            self.dataset_test_fns[ds_n](dir_p=dataset_cache_path / ds_n)
+                dataset_download.dataset_paths[dataset_download.dataset][ds_n])
+            self.dataset_test_fns[ds_n](dir_p=dataset_cache_path)
 
     @pytest.mark.parametrize("_overwrite_existing", [True, False])
     def test_move_example_dataset(self, cleanable_tmp_path, dataset_download: ExampleDataset,
@@ -566,7 +564,7 @@ class TestExampleDataset:
             Generator: Yields the data directory for the files to be moved, and the dataset name.
         """
         dataset_names = list(
-            dataset_download.dataset_paths[dataset_download.dataset].features.keys()
+            dataset_download.dataset_paths[dataset_download.dataset].keys()
         )
 
         ds_n_suffixes = [self.move_path_suffixes[ds_n] for ds_n in dataset_names]
