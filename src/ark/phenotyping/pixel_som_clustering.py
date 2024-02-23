@@ -138,7 +138,7 @@ def run_pixel_som_assignment(pixel_data_path, pixel_pysom_obj, overwrite, num_pa
     return fov, 0
 
 
-def cluster_pixels(fovs, channels, base_dir, pixel_pysom, data_dir='pixel_mat_data',
+def cluster_pixels(fovs, base_dir, pixel_pysom, data_dir='pixel_mat_data',
                    multiprocess=False, batch_size=5, num_parallel_pixels=1000000,
                    overwrite=False):
     """Uses trained SOM weights to assign cluster labels on full pixel data.
@@ -148,8 +148,6 @@ def cluster_pixels(fovs, channels, base_dir, pixel_pysom, data_dir='pixel_mat_da
     Args:
         fovs (list):
             The list of fovs to subset on
-        channels (list):
-            The list of channels to subset on
         base_dir (str):
             The path to the data directory
         pixel_pysom (cluster_helpers.PixelSOMCluster):

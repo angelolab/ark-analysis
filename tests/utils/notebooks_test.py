@@ -66,7 +66,6 @@ def nb1_context(
     SEGMENT_IMAGE_DATA_PATH: pathlib.Path = templates_dir / "1_Segment_Image_Data.ipynb"
     with testbook(SEGMENT_IMAGE_DATA_PATH, timeout=6000, execute=False) as nb_context_manager:
         yield nb_context_manager, base_dir_generator / "nb1"
-    print("after init class")
     shutil.rmtree(base_dir_generator)
 
 

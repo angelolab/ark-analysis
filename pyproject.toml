@@ -1,17 +1,17 @@
 [build-system]
 requires = [
     "setuptools",
-    "Cython>=0.29,<1",
+    "Cython>=3",
     "numpy>=1.20,<1.24",
-    "setuptools_scm[toml]>=6.2",
+    "setuptools_scm[toml]>=6",
 ]
 build-backend = "setuptools.build_meta"
 
 [project]
 dependencies = [
-    "alpineer==0.1.10",
+    "alpineer==0.1.12",
     "anndata",
-    "Cython>=0.29,<1",
+    "Cython>=3",
     "dask[distributed]",
     "datasets>=2.6,<3.0",
     "dill>=0.3.5,<0.4",
@@ -27,9 +27,9 @@ dependencies = [
     "palettable>=3.3.0,<4",
     "pandas>=2",
     "pillow>=9,<10",
-    "pyFlowSOM>=0.1.15",
+    "pyFlowSOM>=0.1.16",
     "requests>=2.20,<3",
-    "scikit-image<=0.19.3",
+    "scikit-image<0.19.3",
     "scikit-learn>=1.1,<2",
     "graphviz",
     "scipy>=1.7,<2",
@@ -99,6 +99,7 @@ version_scheme = "release-branch-semver"
 local_scheme = "no-local-version"
 
 [tool.cibuildwheel]
+before-all = "uname -a"
 build = ["cp39-*", "cp310-*", "cp311-*"]
 skip = [
     "cp36-*",         # Python 3.6
@@ -114,14 +115,6 @@ skip = [
 ]
 
 build-frontend = "build"
-
-# Avoid testing on emulated architectures
-test-skip = [
-    "*-win_arm64",               # Skip testing emulated arm64 biulds on Windows
-    "*-*linux_aarch64",          # Skip testing emulated Linux builds
-    "*-macosx_arm64",            # Skip testing emulated arm64 builds on Intel Macs
-    "*-macosx_universal2:arm64", # Skip testing emulated arm64 portion of universal2 builds
-]
 
 # "manylinux" versioning
 # PEP 600: https://peps.python.org/pep-0600/
@@ -144,9 +137,8 @@ repair-wheel-command = "delocate-wheel --require-archs {delocate_archs} -w {dest
 # Build for Windows x86_64, and ARM 64
 [tool.cibuildwheel.windows]
 archs = ["AMD64", "ARM64"]
-# might not need to repair with delvewheel?
-# before-build = "pip install delvewheel"                          # Use delvewheel on windows
-# repair-wheel-command = "delvewheel repair -w {dest_dir} {wheel}"
+before-build = "pip install delvewheel"                          # Use delvewheel on windows
+repair-wheel-command = "delvewheel repair -w {dest_dir} {wheel}"
 
 # Coverage
 [tool.coverage.paths]
@@ -177,7 +169,6 @@ addopts = [
     "--randomly-seed=24",
     "--randomly-dont-reorganize",
     "--cov=ark",
-    "--cov-report=lcov",
     "--pycodestyle",
 ]
 console_output_style = "count"

@@ -5,7 +5,7 @@ import warnings
 from abc import ABC, abstractmethod
 from itertools import combinations
 from typing import List, Literal, Protocol, runtime_checkable
-
+import natsort as ns
 import feather
 import numpy as np
 import pandas as pd
@@ -419,12 +419,10 @@ class CellSOMCluster(PixieSOMCluster):
 # define a template class for type hinting cluster param in ConsensusCluster constructor
 @runtime_checkable
 class ClusterClassTemplate(Protocol):
-    def fit_predict(self) -> None:
-        ...
+    def fit_predict(self) -> None: ...
 
     @property
-    def n_clusters(self) -> int:
-        return n_cluster
+    def n_clusters(self) -> int: ...
 
 ###############################################
 # Copyright Žiga Sajovic, XLAB 2019           #

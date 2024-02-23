@@ -9,7 +9,7 @@ from alpineer.misc_utils import verify_in_list
 from ark.settings import EXAMPLE_DATASET_REVISION
 
 
-class ExampleDataset():
+class ExampleDataset:
     def __init__(self, dataset: str, overwrite_existing: bool = True, cache_dir: str = None,
                  revision: str = None) -> None:
         """
@@ -29,6 +29,7 @@ class ExampleDataset():
                     * `"neighborhood_analysis"`
                     * `"pairwise_spatial_enrichment"`
                     * `"ome_tiff"`
+                    * `"ez_seg_data"`
             overwrite_existing (bool): A flag to overwrite existing data. Defaults to `True`.
             cache_dir (str, optional): The directory to save the cache dir. Defaults to `None`,
                 which internally in Hugging Face defaults to `~/.cache/huggingface/datasets`.
@@ -38,9 +39,10 @@ class ExampleDataset():
                 defaults to the latest version in the `main` branch.
                 (https://huggingface.co/datasets/angelolab/ark_example/tree/main).
         """
+        self.dataset_paths = None
         self.dataset = dataset
         self.overwrite_existing = overwrite_existing
-        self.cache_dir = cache_dir
+        self.cache_dir = cache_dir if cache_dir else pathlib.Path("~/.cache/huggingface/datasets").expanduser()
         self.revision = revision
 
         self.path_suffixes = {
@@ -68,11 +70,27 @@ class ExampleDataset():
         The dataset will be downloaded to the Hugging Face default cache
         `~/.cache/huggingface/datasets`.
         """
-        self.dataset_paths = datasets.load_dataset(path="angelolab/ark_example",
+        ds_paths = datasets.load_dataset(path="angelolab/ark_example",
                                                    revision=self.revision,
                                                    name=self.dataset,
                                                    cache_dir=self.cache_dir,
-                                                   use_auth_token=False)
+                                                   token=False,
+                                                   trust_remote_code=True)
+
+        # modify the paths to be relative to the os
+        # For example:
+        # '/Users/user/.cache/huggingface/datasets/downloads/extracted/<hash>'
+        # becomes 'pathlib.path(self.dataset_cache) / downloads/extracted/<hash>/<feature_name>'
+        self.dataset_paths = {}
+        for ds_name,ds in ds_paths.items():
+            self.dataset_paths[ds_name] = {}
+            for feature in ds.features:
+                p, = ds[feature]
+                # extract the path relative to the cache_dir (last 3 parts of the path)
+                p = pathlib.Path(*pathlib.Path(p).parts[-3:])
+                # Set the start of the path to the cache_dir (for the user's machine)
+                self.dataset_paths[ds_name][feature] = self.cache_dir / p / feature
+
 
     def check_empty_dst(self, dst_path: pathlib.Path) -> bool:
         """
@@ -100,20 +118,19 @@ class ExampleDataset():
         Moves the downloaded example data from the `cache_dir` to the `save_dir`.
 
         Args:
-            save_dir (Union[str, pathlib.Path]): The path to save the dataset files in.
+            move_dir (Union[str, pathlib.Path]): The path to save the dataset files in.
         """
         if type(move_dir) is not pathlib.Path:
             move_dir = pathlib.Path(move_dir)
 
-        dataset_names = list(self.dataset_paths[self.dataset].features.keys())
+        dataset_names = list(self.dataset_paths[self.dataset].keys())
 
         for ds_n in dataset_names:
             ds_n_suffix: str = pathlib.Path(self.path_suffixes[ds_n])
 
             # The path where the dataset is saved in the Hugging Face Cache post-download,
             # Necessary to copy + move the data from the cache to the user specified `move_dir`.
-            dataset_cache_path = pathlib.Path(self.dataset_paths[self.dataset][ds_n][0])
-            src_path: pathlib.Path = dataset_cache_path / ds_n
+            src_path = pathlib.Path(self.dataset_paths[self.dataset][ds_n])
             dst_path: pathlib.Path = move_dir / ds_n_suffix
 
             # Overwrite the existing dataset when `overwrite_existing` == `True`

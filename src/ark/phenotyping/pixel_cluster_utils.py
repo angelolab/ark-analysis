@@ -10,6 +10,7 @@ import scipy.ndimage as ndimage
 from alpineer import image_utils, io_utils, load_utils, misc_utils
 from pyarrow.lib import ArrowInvalid
 from skimage.io import imread
+import natsort as ns
 
 
 def calculate_channel_percentiles(tiff_dir, fovs, channels, img_sub_folder,
@@ -54,6 +55,7 @@ def calculate_channel_percentiles(tiff_dir, fovs, channels, img_sub_folder,
         percentile_means.append(np.mean(percentile_list))
 
     percentile_df = pd.DataFrame(np.expand_dims(percentile_means, axis=0), columns=channels)
+    percentile_df.sort_index(axis="columns", key=ns.natsort_key, inplace=True)
 
     return percentile_df
 
