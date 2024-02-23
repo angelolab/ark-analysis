@@ -490,7 +490,7 @@ def generate_cell_table(segmentation_dir, tiff_dir, img_sub_folder="TIFs",
     # if no fovs are specified, then load all the fovs
     if fovs is None:
         if is_mibitiff:
-            fovs = io_utils.list_files(tiff_dir, substrs=['.tif'])
+            fovs = io_utils.list_files(tiff_dir, substrs=[".tif", ".tiff"])
         else:
             fovs = io_utils.list_folders(tiff_dir)
 
@@ -532,8 +532,8 @@ def generate_cell_table(segmentation_dir, tiff_dir, img_sub_folder="TIFs",
 
         # for each label given in the argument. read in that mask for the fov, and proceed with label and table appending
         mask_files = io_utils.list_files(segmentation_dir, substrs=fov_name)
-        mask_types = process_lists(fov_names=fovs, mask_names=mask_files)
-
+        mask_types = get_existing_mask_types(fov_names=fovs, mask_names=mask_files)
+        
         for mask_type in mask_types:
             # load the segmentation labels in
             fov_mask_name = fov_name + '_' + mask_type + ".tiff"
@@ -592,7 +592,7 @@ def generate_cell_table(segmentation_dir, tiff_dir, img_sub_folder="TIFs",
     return combined_cell_table_size_normalized, combined_cell_table_arcsinh_transformed
 
 
-def process_lists(fov_names: List[str], mask_names: List[str]) -> List[str]:
+def get_existing_mask_types(fov_names: List[str], mask_names: List[str]) -> List[str]:
     """
     Function to strip prefixes from list: fov_names, strip '.tiff' suffix from list: mask names,
     and remove underscore prefixes, returning unique mask values (i.e. categories of masks).
