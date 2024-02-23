@@ -2,7 +2,7 @@ import multiprocessing
 import os
 from functools import partial
 from shutil import rmtree
-
+import natsort as ns
 import feather
 import numpy as np
 import pandas as pd
@@ -42,7 +42,7 @@ def create_fov_pixel_data(fov, channels, img_data, seg_labels, pixel_thresh_val,
             - `pandas.DataFrame`: Gaussian blurred and channel sum normalized pixel data for a fov
             - `pandas.DataFrame`: subset of the preprocessed pixel dataset for a fov
     """
-
+    channels.sort(key=ns.natsort_key)
     # for each marker, compute the Gaussian blur
     for marker in range(len(channels)):
         img_data[:, :, marker] = ndimage.gaussian_filter(img_data[:, :, marker],
@@ -251,6 +251,8 @@ def create_pixel_matrix(fovs, channels, base_dir, tiff_dir, seg_dir,
             The number of FOVs to process in parallel, ignored if `multiprocess` is `False`
     """
 
+    channels.sort(key=ns.natsort_key)
+
     # if the subset_proportion specified is out of range
     if subset_proportion <= 0 or subset_proportion > 1:
         raise ValueError('Invalid subset percentage entered: must be in (0, 1]')
@@ -425,8 +427,13 @@ def create_pixel_matrix(fovs, channels, base_dir, tiff_dir, seg_dir,
             quant_dat_fov.index.name = "channel"
 
             # update the file with the newly processed fov quantile values
-            quant_dat_all = quant_dat_all.merge(quant_dat_fov, how="outer",
-                                                left_index=True, right_index=True)
+            quant_dat_all = quant_dat_all.merge(
+                quant_dat_fov,
+                how="outer",
+                left_index=True,
+                right_index=True
+            )
+
             quant_dat_all.to_csv(quantile_path)
 
             # update number of fovs processed
@@ -439,6 +446,12 @@ def create_pixel_matrix(fovs, channels, base_dir, tiff_dir, seg_dir,
     # get mean 99.9% across all fovs for all markers, check that none are missing
     mean_quant = pd.DataFrame(quant_dat_all.mean(axis=1))
 
+    # Bug in Pandas w/ natsort_key, so we have to use this ugly workaround ¯\_(ツ)_/¯
+    # See https://github.com/pandas-dev/pandas/issues/56081
+    mean_quant.sort_index(axis="index",
+                          key=lambda v: pd.Index(ns.natsort_key(v), tupleize_cols=False),
+                          inplace=True
+                          )
     # save 99.9% normalization values
     feather.write_dataframe(mean_quant.T,
                             os.path.join(base_dir, norm_vals_name_post_rownorm),

@@ -766,8 +766,10 @@ def test_generate_cell_table_mibitiff_loading():
         fovs_subset_ext[1] = str(fovs_subset_ext[1]) + ".tiff"
 
         tiff_dir = os.path.join(temp_dir, "mibitiff_inputs")
+        seg_dir = os.path.join(temp_dir, "segmentation_masks")
 
         os.mkdir(tiff_dir)
+        os.mkdir(seg_dir)
         create_paired_xarray_fovs(
             base_dir=tiff_dir,
             fov_names=fovs,
@@ -787,39 +789,35 @@ def test_generate_cell_table_mibitiff_loading():
         for fov in range(cell_masks.shape[0]):
             fov_whole_cell = cell_masks[fov, :, :, 0]
             fov_nuclear = cell_masks[fov, :, :, 1]
-            image_utils.save_image(os.path.join(temp_dir, 'fov%d_whole_cell.tiff' % fov),
+            image_utils.save_image(os.path.join(seg_dir, 'fov%d_whole_cell.tiff' % fov),
                                    fov_whole_cell)
-            image_utils.save_image(os.path.join(temp_dir, 'fov%d_nuclear.tiff' % fov),
+            image_utils.save_image(os.path.join(seg_dir, 'fov%d_nuclear.tiff' % fov),
                                    fov_nuclear)
 
         # generate sample norm and arcsinh data for all fovs
         norm_data_all_fov, arcsinh_data_all_fov = marker_quantification.generate_cell_table(
-            segmentation_dir=temp_dir, tiff_dir=tiff_dir,
-            img_sub_folder=tiff_dir, is_mibitiff=True, fovs=None)
+            segmentation_dir=seg_dir, tiff_dir=tiff_dir, is_mibitiff=True, fovs=None)
 
         assert norm_data_all_fov.shape[0] > 0 and norm_data_all_fov.shape[1] > 0
         assert arcsinh_data_all_fov.shape[0] > 0 and arcsinh_data_all_fov.shape[1] > 0
 
         # generate sample norm and arcsinh data for a subset of fovs
         norm_data_fov_sub, arcsinh_data_fov_sub = marker_quantification.generate_cell_table(
-            segmentation_dir=temp_dir, tiff_dir=tiff_dir,
-            img_sub_folder=tiff_dir, is_mibitiff=True, fovs=fovs_subset)
+            segmentation_dir=seg_dir, tiff_dir=tiff_dir, is_mibitiff=True, fovs=fovs_subset)
 
         assert norm_data_fov_sub.shape[0] > 0 and norm_data_fov_sub.shape[1] > 0
         assert arcsinh_data_fov_sub.shape[0] > 0 and arcsinh_data_fov_sub.shape[1] > 0
 
         # generate sample norm and arcsinh data for a subset of fovs with extensions
         norm_data_fov_ext, arcsinh_data_fov_ext = marker_quantification.generate_cell_table(
-            segmentation_dir=temp_dir, tiff_dir=tiff_dir,
-            img_sub_folder=tiff_dir, is_mibitiff=True, fovs=fovs_subset_ext)
+            segmentation_dir=seg_dir, tiff_dir=tiff_dir, is_mibitiff=True, fovs=fovs_subset_ext)
 
         assert norm_data_fov_ext.shape[0] > 0 and norm_data_fov_ext.shape[1] > 0
         assert arcsinh_data_fov_ext.shape[0] > 0 and arcsinh_data_fov_ext.shape[1] > 0
 
         # test nuclear_counts True
         norm_data_nuc, arcsinh_data_nuc = marker_quantification.generate_cell_table(
-            segmentation_dir=temp_dir, tiff_dir=tiff_dir,
-            img_sub_folder=tiff_dir, is_mibitiff=True, fovs=fovs_subset,
+            segmentation_dir=seg_dir, tiff_dir=tiff_dir, is_mibitiff=True, fovs=fovs_subset,
             nuclear_counts=True)
 
         assert norm_data_nuc.shape[0] == norm_data_fov_sub.shape[0]
