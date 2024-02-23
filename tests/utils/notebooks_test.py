@@ -264,7 +264,6 @@ def nbcell_neighbors_context(
     shutil.rmtree(base_dir_generator)
 
 
-import os
 class Test_1_Segment_Image_Data:
     """
     Tests Notebook 1 - Segment Image Data for completion.
