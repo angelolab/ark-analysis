@@ -25,12 +25,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout ${{github.repository }}
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
       - name: Restore Example Dataset Cache
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         id: dataset-cache
         with:
           path: ./data/cache/
@@ -38,7 +38,7 @@ jobs:
           enableCrossOsArchive: true
 
       - name: Set up Python
-        uses: actions/setup-python@v3
+        uses: actions/setup-python@v5
         with:
           python-version: "3.11"
           cache-dependency-path: "**/pyproject.toml"
@@ -56,7 +56,7 @@ jobs:
       pull-requests: write
     secrets: inherit
     uses: ./.github/workflows/test.yml
-  
+
   build:
     name: Build
     permissions:
@@ -71,13 +71,15 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout ${{github.repository }}
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
       - name: Download Coverage Artifact
-        uses: actions/download-artifact@v3
-        # if `name` is not specified, all artifacts are downloaded.
+        uses: actions/download-artifact@v4
+        with:
+          pattern: coverage-*
+          merge-multiple: true
 
       - name: Upload Coverage to Coveralls
         uses: coverallsapp/github-action@v2
