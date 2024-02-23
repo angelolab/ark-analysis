@@ -417,21 +417,6 @@ class Test_2_Pixel_Clustering:
 
     def test_gen_pixel_mat(self):
         self.tb.execute_cell("gen_pixel_mat")
-        print(os.listdir(os.path.join(self.base_dir, "pixie", "test_pixel_output_dir")))
-        import feather
-        norm_data = feather.read_dataframe(
-            os.path.join(self.base_dir, "pixie", "test_pixel_output_dir", "channel_norm_post_rownorm.feather")
-        )
-        print(norm_data)
-
-        from alpineer import io_utils
-        import feather
-        feather_files = io_utils.list_files(
-            os.path.join(self.base_dir, "pixie", "test_pixel_output_dir", "pixel_mat_data"),
-            substrs=".feather"
-        )
-        sample_fov = feather.read_dataframe(os.path.join(self.base_dir, "pixie", "test_pixel_output_dir", "pixel_mat_data", feather_files[0]))
-        print(sample_fov)
 
     def test_pixel_som_path_set(self):
         self.tb.execute_cell("pixel_som_path_set")
