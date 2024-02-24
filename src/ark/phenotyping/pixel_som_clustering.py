@@ -81,8 +81,6 @@ def train_pixel_som(fovs, channels, base_dir,
         num_passes=num_passes, xdim=xdim, ydim=ydim, lr_start=lr_start, lr_end=lr_end,
         seed=seed
     )
-    print("Norm data read into pixel_pysom")
-    print(pixel_pysom.norm_data)
 
     # train the SOM weights
     # NOTE: seed has to be set in cyFlowSOM.pyx, done by passing flag in PixieSOMCluster
@@ -196,8 +194,6 @@ def cluster_pixels(fovs, base_dir, pixel_pysom, data_dir='pixel_mat_data',
         break
 
     # for verification purposes, drop the metadata columns
-    print(sample_fov.columns.values)
-    print(pixel_pysom.norm_data.columns.values)
     cols_to_drop = ['fov', 'row_index', 'column_index']
     for col in ['label', 'pixel_som_cluster',
                 'pixel_meta_cluster', 'pixel_meta_cluster_rename']:
