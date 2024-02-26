@@ -853,35 +853,35 @@ class TestConvertToAnnData:
             assert pathlib.Path(fov_adata_path).exists()
 
 
-@pytest.fixture(scope="module")
+@pytest.fixture(scope="function")
 def testing_anndatas(
         tmp_path_factory: pytest.TempPathFactory
-) -> Callable[[int, pathlib.Path], Tuple[List[str], AnnCollection]]:
-    def create_adatas(n_fovs, save_dir: pathlib.Path):
-        fov_names, ann_collection = ark_test_utils.generate_anncollection(
-            fovs=n_fovs,
-            n_vars=10,
-            n_obs=100,
-            obs_properties=4,
-            obs_categorical_properties=2,
-            random_n_obs=True,
-            join_obs="inner",
-            join_obsm="inner"
-        )
+) -> Iterator[Tuple[List[str], AnnCollection, pathlib.Path]]:
 
-        for fov_name, fov_adata in zip(fov_names, ann_collection.adatas):
-            fov_adata.write_zarr(os.path.join(save_dir, f"{fov_name}.zarr"))
-        return fov_names, ann_collection
+    fov_names, ann_collection = ark_test_utils.generate_anncollection(
+        fovs=5,
+        n_vars=10,
+        n_obs=100,
+        obs_properties=4,
+        obs_categorical_properties=2,
+        random_n_obs=True,
+        join_obs="inner",
+        join_obsm="inner",
+    )
 
-    yield create_adatas
+    save_dir = tmp_path_factory.mktemp("anndatas")
+
+    for fov_name, fov_adata in zip(fov_names, ann_collection.adatas):
+        fov_adata.write_zarr(os.path.join(save_dir, f"{fov_name}.zarr"))
+
+    yield fov_names, ann_collection, save_dir
 
 
-def test_load_anndatas(testing_anndatas, tmp_path_factory):
-    ann_collection_path = tmp_path_factory.mktemp("anndatas")
+def test_load_anndatas(testing_anndatas):
 
-    fov_names, ann_collection = testing_anndatas(n_fovs=5, save_dir=ann_collection_path)
+    fov_names, ann_collection, anndata_dir = testing_anndatas
 
-    ac = data_utils.load_anndatas(ann_collection_path, join_obs="inner", join_obsm="inner")
+    ac = data_utils.load_anndatas(anndata_dir, join_obs="inner", join_obsm="inner")
 
     assert isinstance(ac, AnnCollection)
     assert len(ac.adatas) == len(fov_names)
@@ -890,21 +890,24 @@ def test_load_anndatas(testing_anndatas, tmp_path_factory):
     # Assert that each AnnData component of an AnnCollection is the same as the one on disk.
     for fov_name, fov_adata in zip(fov_names, ann_collection.adatas):
         anndata.tests.helpers.assert_adata_equal(
-            a=read_zarr(ann_collection_path / f"{fov_name}.zarr"),
+            a=read_zarr(anndata_dir / f"{fov_name}.zarr"),
             b=fov_adata
         )
 
 
-def test_AnnDataIterDataPipe(testing_anndatas, tmp_path_factory):
-    ann_collection_path = tmp_path_factory.mktemp("anndatas")
+def test_AnnDataIterDataPipe(testing_anndatas):
 
-    _ = testing_anndatas(n_fovs=5, save_dir=ann_collection_path)
-    ac = data_utils.load_anndatas(ann_collection_path, join_obs="inner", join_obsm="inner")
+    fov_names, _, anndata_dir = testing_anndatas
+    ac = data_utils.load_anndatas(anndata_dir, join_obs="inner", join_obsm="inner")
 
     a_idp = data_utils.AnnDataIterDataPipe(fovs=ac)
 
     from torchdata.datapipes.iter import IterDataPipe
     assert isinstance(a_idp, IterDataPipe)
 
-    for fov in a_idp:
-        assert isinstance(fov, AnnData)
+    for fov_name, fov_adata in zip(fov_names, a_idp):
+        assert isinstance(fov_adata, AnnData)
+        anndata.tests.helpers.assert_adata_equal(
+            a=read_zarr(anndata_dir / f"{fov_name}.zarr"),
+            b=fov_adata
+        )
