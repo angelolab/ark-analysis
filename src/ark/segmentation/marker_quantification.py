@@ -530,10 +530,15 @@ def generate_cell_table(segmentation_dir, tiff_dir, img_sub_folder="TIFs",
         whole_cell_file = fov_name + '_whole_cell.tiff'
         nuclear_file = fov_name + '_nuclear.tiff'
 
-        # for each label given in the argument. read in that mask for the fov, and proceed with label and table appending
+        # for each label given in the argument, read in that mask for the fov, and proceed with
+        # label and table appending
         mask_files = io_utils.list_files(segmentation_dir, substrs=fov_name)
         mask_types = get_existing_mask_types(fov_names=fovs, mask_names=mask_files)
-        
+ 
+        # remove nuclear from mask_types if nuclear_counts False
+        if not nuclear_counts and "nuclear" in mask_types:
+            mask_types.remove("nuclear")
+
         for mask_type in mask_types:
             # load the segmentation labels in
             fov_mask_name = fov_name + '_' + mask_type + ".tiff"
