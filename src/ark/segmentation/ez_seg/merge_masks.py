@@ -13,7 +13,7 @@ def merge_masks_seq(
     fov_list: List[str],
     object_list: List[str],
     object_mask_dir: Union[pathlib.Path, str],
-    cell_mask_path: Union[pathlib.Path, str],
+    cell_mask_dir: Union[pathlib.Path, str],
     cell_mask_suffix: str,
     overlap_percent_threshold: int,
     save_path: Union[pathlib.Path, str],
@@ -28,7 +28,7 @@ def merge_masks_seq(
         fov_list (List[str]): A list of fov names to merge masks over.
         object_list (List[str]): A list of names representing previously generated object masks. Note, order matters.
         object_mask_dir (Union[pathlib.Path, str]): Directory where object (ez) segmented masks are located
-        cell_mask_path (Union[str, pathlib.Path]): Path to where the original cell masks are located.
+        cell_mask_dir (Union[str, pathlib.Path]): Path to where the original cell masks are located.
         cell_mask_suffix (str): Name of the cell type you are merging. Usually "whole_cell".
         overlap_percent_threshold (int): Percent overlap of total pixel area needed fo object to be merged to a cell.
         save_path (Union[str, pathlib.Path]): The directory where merged masks and remaining cell mask will be saved.
@@ -37,15 +37,15 @@ def merge_masks_seq(
     # validate paths
     if isinstance(object_mask_dir, str):
         object_mask_dir = pathlib.Path(object_mask_dir)
-    if isinstance(cell_mask_path, str):
-        cell_mask_path = pathlib.Path(cell_mask_path)
+    if isinstance(cell_mask_dir, str):
+        cell_mask_dir = pathlib.Path(cell_mask_dir)
     if isinstance(save_path, str):
         save_path = pathlib.Path(save_path)
 
     # for each fov, import cell and object masks (multiple mask types into single xr.DataArray)
     for fov in fov_list:
         curr_cell_mask = imread(fname=os.path.join(
-            cell_mask_path, '_'.join([f'{fov}', f'{cell_mask_suffix}.tiff']))
+            cell_mask_dir, '_'.join([f'{fov}', f'{cell_mask_suffix}.tiff']))
         )
 
         fov_object_names = [f'{fov}_' + obj + '.tiff' for obj in object_list]
@@ -78,7 +78,7 @@ def merge_masks_seq(
         "fov_list": fov_list,
         "object_list": object_list,
         "object_mask_dir": object_mask_dir,
-        "cell_mask_path": cell_mask_path,
+        "cell_mask_dir": cell_mask_dir,
         "cell_mask_suffix": cell_mask_suffix,
         "overlap_percent_threshold": overlap_percent_threshold,
         "save_path": save_path
