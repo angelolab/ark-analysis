@@ -116,6 +116,3 @@ def test_merge_masks_single():
 
         assert np.all(created_merged_mask == expected_merged_mask)
         assert np.all(created_cell_mask == expected_cell_mask)
-
-
-test_merge_masks_seq()
