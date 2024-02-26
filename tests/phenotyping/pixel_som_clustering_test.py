@@ -232,7 +232,7 @@ def test_cluster_pixels_base(multiprocess, capsys):
                 os.path.join(temp_dir, 'pixel_mat_data'), norm_vals_path,
                 'bad_path.feather', fovs, chan_list
             )
-            pixel_som_clustering.cluster_pixels(fovs, chan_list, temp_dir, pixel_pysom_bad)
+            pixel_som_clustering.cluster_pixels(fovs, temp_dir, pixel_pysom_bad)
 
         # create a sample PixelSOMCluster object
         pixel_pysom = cluster_helpers.PixelSOMCluster(
@@ -242,7 +242,7 @@ def test_cluster_pixels_base(multiprocess, capsys):
 
         # run SOM cluster assignment
         pixel_som_clustering.cluster_pixels(
-            fovs, chan_list, temp_dir, pixel_pysom, 'pixel_mat_data', multiprocess=multiprocess
+            fovs, temp_dir, pixel_pysom, 'pixel_mat_data', multiprocess=multiprocess
         )
 
         for fov in fovs:
@@ -259,7 +259,7 @@ def test_cluster_pixels_base(multiprocess, capsys):
 
         # run SOM cluster assignment with overwrite flag
         pixel_som_clustering.cluster_pixels(
-            fovs, chan_list, temp_dir, pixel_pysom, 'pixel_mat_data', multiprocess=multiprocess,
+            fovs, temp_dir, pixel_pysom, 'pixel_mat_data', multiprocess=multiprocess,
             overwrite=True
         )
 
@@ -297,7 +297,7 @@ def test_cluster_pixels_corrupt(multiprocess, capsys):
 
         # run SOM cluster assignment
         pixel_som_clustering.cluster_pixels(
-            fovs, chans, temp_dir, pixel_pysom, 'pixel_mat_data', multiprocess=multiprocess
+            fovs, temp_dir, pixel_pysom, data_dir='pixel_mat_data', multiprocess=multiprocess
         )
 
         # assert the _temp folder is now gone
