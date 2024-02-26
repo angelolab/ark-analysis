@@ -30,7 +30,7 @@ def test_merge_masks_seq():
         for fov in fov_list:
             cell_mask_data: np.ndarray = np.random.randint(0, 16, (32, 32))
             cell_mask_fov_file: Union[str, pathlib.Path] = os.path.join(
-                cell_mask_dir, f"{fov}_whole_cell.tiff"
+                cell_mask_dir, f"{fov}_{cell_mask_suffix}.tiff"
             )
             io.imsave(cell_mask_fov_file, cell_mask_data)
 
@@ -39,7 +39,7 @@ def test_merge_masks_seq():
                 object_mask_fov_file: Union[str, pathlib.Path] = os.path.join(
                     object_mask_dir, f"{fov}_{obj}.tiff"
                 )
-                io.imsave(object_mask_fov_file, cell_mask_data)
+                io.imsave(object_mask_fov_file, object_mask_data)
 
         # we're only testing functionality, for in-depth merge testing see test_merge_masks_single
         merge_masks.merge_masks_seq(
@@ -48,9 +48,11 @@ def test_merge_masks_seq():
         )
 
         for fov in fov_list:
+            print("checking fov")
             merged_mask_fov_file: Union[str, pathlib.Path] = os.path.join(
                 merged_mask_dir, f"{fov}_final_cells_remaining.tiff"
             )
+            print("asserting fov")
             assert os.path.exists(merged_mask_fov_file)
 
         log_file: Union[str, pathlib.Path] = os.path.join(log_dir, "mask_merge_log.txt")
@@ -62,7 +64,7 @@ def test_merge_masks_seq():
         assert log_data[0] == f"fov_list: {str(fov_list)}\n"
         assert log_data[1] == f"object_list: {str(object_list)}\n"
         assert log_data[2] == f"object_mask_dir: {str(object_mask_dir)}\n"
-        assert log_data[3] == f"cell_mask_path: {str(cell_mask_dir)}\n"
+        assert log_data[3] == f"cell_mask_dir: {str(cell_mask_dir)}\n"
         assert log_data[4] == f"overlap_percent_threshold: {str(overlap_thresh)}\n"
         assert log_data[5] == f"save_path: {str(merged_mask_dir)}\n"
 
@@ -114,3 +116,6 @@ def test_merge_masks_single():
 
         assert np.all(created_merged_mask == expected_merged_mask)
         assert np.all(created_cell_mask == expected_cell_mask)
+
+
+test_merge_masks_seq()
