@@ -7,7 +7,7 @@ import xarray as xr
 
 from alpineer import io_utils
 from ark.segmentation.ez_seg import merge_masks
-from scipy.ndimage import label
+from skimage.morphology import label
 from skimage.draw import disk
 from typing import List, Union
 
@@ -19,6 +19,7 @@ def test_merge_masks_seq():
     with tempfile.TemporaryDirectory() as td:
         object_mask_dir: Union[str, pathlib.Path] = os.path.join(td, "ez_seg_dir")
         cell_mask_dir: Union[str, pathlib.Path] = os.path.join(td, "deepcell_output")
+        cell_mask_suffix = "whole_cell"
         merged_mask_dir: Union[str, pathlib.Path] = os.path.join(td, "merged_masks_dir")
         log_dir: Union[str, pathlib.Path] = os.path.join(td, "log_dir")
         for directory in [object_mask_dir, cell_mask_dir, merged_mask_dir, log_dir]:
@@ -42,7 +43,7 @@ def test_merge_masks_seq():
 
         # we're only testing functionality, for in-depth merge testing see test_merge_masks_single
         merge_masks.merge_masks_seq(
-            fov_list, object_list, object_mask_dir, cell_mask_dir, overlap_thresh,
+            fov_list, object_list, object_mask_dir, cell_mask_dir, cell_mask_suffix, overlap_thresh,
             merged_mask_dir, log_dir
         )
 
