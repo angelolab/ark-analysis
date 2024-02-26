@@ -9,30 +9,33 @@ import test_utils
 
 import ark.settings as settings
 from ark.analysis import neighborhood_analysis
+from ark.utils.data_utils import ConvertToAnnData, load_anndatas
 
 
 def test_create_neighborhood_matrix():
     # get positive expression and distance matrices
     all_data_pos, dist_mat_pos = test_utils._make_dist_exp_mats_spatial_test(
         enrichment_type="positive", dist_lim=51)
+    # add centroids
+    all_data_pos[settings.CENTROID_0], all_data_pos[settings.CENTROID_1] = np.nan, np.nan
 
-    with tempfile.TemporaryDirectory() as dist_mat_dir:
-        for fov in dist_mat_pos:
-            dist_mat_pos[fov].to_netcdf(
-                os.path.join(dist_mat_dir, fov + '_dist_mat.xr'),
-                format='NETCDF3_64BIT'
-            )
+    with tempfile.TemporaryDirectory() as base_dir:
+        # generate test data
+        anndata_dir = os.path.join(base_dir, "anndata")
+        cell_table_path = os.path.join(base_dir, 'table.csv')
+        all_data_pos.to_csv(cell_table_path, index=False)
+        test_utils.convert_to_anndata_table(anndata_dir, cell_table_path, dist_mat_pos)
 
         # error checking
         with pytest.raises(ValueError):
             # attempt to include fovs that do not exist
             counts, freqs = neighborhood_analysis.create_neighborhood_matrix(
-                all_data_pos, dist_mat_dir, included_fovs=[1, 100000], distlim=51
+                anndata_dir, included_fovs=['fov8', 'bad_fov'], distlim=51
             )
 
         # test if self_neighbor is False (default)
         counts, freqs = neighborhood_analysis.create_neighborhood_matrix(
-            all_data_pos, dist_mat_dir, distlim=51
+            anndata_dir, distlim=51
         )
 
         # test the counts values
@@ -46,6 +49,7 @@ def test_create_neighborhood_matrix():
                        (counts[settings.CELL_LABEL].isin(range(1, 11)))]["Pheno3"] == 2).all()
         assert (counts[(counts[settings.FOV_ID] == "fov9") &
                        (counts[settings.CELL_LABEL].isin(range(11, 21)))]["Pheno1"] == 0).all()
+
         # test that cells with only itself as neighbor were removed from the table
         assert (len(counts[(counts[settings.FOV_ID] == "fov8") &
                            (counts[settings.CELL_LABEL].isin(range(21, 80)))]) == 0)
@@ -55,7 +59,7 @@ def test_create_neighborhood_matrix():
 
         # test if self_neighbor is True
         counts, freqs = neighborhood_analysis.create_neighborhood_matrix(
-            all_data_pos, dist_mat_dir, distlim=51, self_neighbor=True
+            anndata_dir, distlim=51, self_neighbor=True
         )
 
         # test the counts values
@@ -66,27 +70,29 @@ def test_create_neighborhood_matrix():
         assert (counts[(counts[settings.FOV_ID] == "fov9") &
                        (counts[settings.CELL_LABEL].isin(range(11, 19)))]["Pheno1"] == 1).all()
 
-        # test on a non-continuous index
-        all_data_pos_sub = all_data_pos.iloc[np.r_[0:60, 80:140], :]
+    with tempfile.TemporaryDirectory() as base_dir:
+        anndata_dir = os.path.join(base_dir, "anndata")
+
+        # test on a non-continuous index (cell labels)
         dist_mat_pos_sub = {}
         dist_mat_pos_sub['fov8'] = dist_mat_pos['fov8'][0:60, 0:60]
         dist_mat_pos_sub['fov9'] = dist_mat_pos['fov9'][0:60, 0:60]
 
-        for fov in dist_mat_pos:
-            dist_mat_pos[fov].to_netcdf(
-                os.path.join(dist_mat_dir, fov + '_dist_mat.xr'),
-                format='NETCDF3_64BIT'
-            )
+        all_data_sub = all_data_pos[
+            all_data_pos.label.isin(np.array(dist_mat_pos_sub['fov8'].dim_0))]
 
-        counts, freqs = neighborhood_analysis.create_neighborhood_matrix(
-            all_data_pos, dist_mat_dir
-        )
+        # generate test data
+        cell_table_path = os.path.join(base_dir, 'table.csv')
+        all_data_sub.to_csv(cell_table_path, index=False)
+        test_utils.convert_to_anndata_table(anndata_dir, cell_table_path, dist_mat_pos_sub)
+
+        counts, freqs = neighborhood_analysis.create_neighborhood_matrix(anndata_dir)
 
         # test the counts values
         assert (counts[(counts[settings.FOV_ID] == "fov8") &
                        (counts[settings.CELL_LABEL].isin(range(1, 9)))]["Pheno1"] == 0).all()
         assert (counts[(counts[settings.FOV_ID] == "fov9") &
-                       (counts[settings.CELL_LABEL].isin(range(1, 9)))]["Pheno3"] == 2).all()
+                       (counts[settings.CELL_LABEL].isin(range(1, 9)))]["Pheno3"] == 1).all()
         assert (counts[(counts[settings.FOV_ID] == "fov9") &
                        (counts[settings.CELL_LABEL].isin(range(11, 19)))]["Pheno1"] == 0).all()
 
@@ -97,43 +103,50 @@ def test_generate_cluster_matrix_results():
     all_data_pos, dist_mat_pos = test_utils._make_dist_exp_mats_spatial_test(
         enrichment_type="positive", dist_lim=50
     )
+    # add centroids
+    all_data_pos[settings.CENTROID_0], all_data_pos[settings.CENTROID_1] = np.nan, np.nan
 
     # we need corresponding dimensions, so use this method to generate
     # the neighborhood matrix
-    with tempfile.TemporaryDirectory() as dist_mat_dir:
-        for fov in dist_mat_pos:
-            dist_mat_pos[fov].to_netcdf(
-                os.path.join(dist_mat_dir, fov + '_dist_mat.xr'),
-                format='NETCDF3_64BIT'
-            )
+    with tempfile.TemporaryDirectory() as base_dir:
+        anndata_dir = os.path.join(base_dir, "anndata")
+
+        cell_table_path = os.path.join(base_dir, 'table.csv')
+        all_data_pos.to_csv(cell_table_path, index=False)
+        test_utils.convert_to_anndata_table(anndata_dir, cell_table_path, dist_mat_pos)
 
         neighbor_counts, neighbor_freqs = neighborhood_analysis.create_neighborhood_matrix(
-            all_data_pos, dist_mat_dir, distlim=51
+            anndata_dir, distlim=51
         )
+        anndata_table = load_anndatas(
+            anndata_dir=anndata_dir, collection=False, join_obs="inner", join_obsm="inner")
+        # combine cell table and marker expression into single df
+        all_data = anndata_table.to_df().merge(
+            anndata_table.obs, left_index=True, right_index=True)
 
     # error checking
     with pytest.raises(ValueError):
         # pass bad columns
         neighborhood_analysis.generate_cluster_matrix_results(
-            all_data_pos, neighbor_counts, cluster_num=2, excluded_channels=["bad_col"]
+            all_data, neighbor_counts, cluster_num=2, excluded_channels=["bad_col"]
         )
 
     with pytest.raises(ValueError):
         # include bad fovs
         neighborhood_analysis.generate_cluster_matrix_results(
-            all_data_pos, neighbor_counts, cluster_num=2, excluded_channels=excluded_channels,
+            all_data, neighbor_counts, cluster_num=2, excluded_channels=excluded_channels,
             included_fovs=[1000]
         )
 
     with pytest.raises(ValueError):
         # specify bad k for clustering
         neighborhood_analysis.generate_cluster_matrix_results(
-            all_data_pos, neighbor_counts, cluster_num=1, excluded_channels=excluded_channels
+            all_data, neighbor_counts, cluster_num=1, excluded_channels=excluded_channels
         )
 
     all_data_markers_clusters, num_cell_type_per_cluster, mean_marker_exp_per_cluster = \
         neighborhood_analysis.generate_cluster_matrix_results(
-            all_data_pos, neighbor_counts, cluster_num=2, excluded_channels=excluded_channels
+            all_data, neighbor_counts, cluster_num=2, excluded_channels=excluded_channels
         )
 
     # make sure we created a cluster_labels column
@@ -148,12 +161,12 @@ def test_generate_cluster_matrix_results():
     assert mean_marker_exp_per_cluster.shape == (2, 20)
     assert list(mean_marker_exp_per_cluster.index.values) == ["Cluster1", "Cluster2"]
     assert list(mean_marker_exp_per_cluster.columns.values) == \
-        list(np.arange(2, 14)) + list(np.arange(15, 23))
+           [str(num) for num in list(np.arange(2, 14)) + list(np.arange(15, 23))]
 
     # test excluded_channels=None
     all_data_markers_clusters, num_cell_type_per_cluster, mean_marker_exp_per_cluster = \
         neighborhood_analysis.generate_cluster_matrix_results(
-            all_data_pos, neighbor_counts, cluster_num=2, excluded_channels=None
+            all_data, neighbor_counts, cluster_num=2, excluded_channels=None
         )
     assert all(x in mean_marker_exp_per_cluster.columns.values for x in excluded_channels)
 

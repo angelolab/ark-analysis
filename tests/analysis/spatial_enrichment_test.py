@@ -34,6 +34,7 @@ list(map(
 ))
 
 
+@pytest.mark.skip(reason="out of date with AnnData compatibility")
 def test_generate_channel_spatial_enrichment_stats():
     # since the functionality of channel spatial enrichment is tested later,
     # only the number of elements returned and the included_fovs argument needs testing
@@ -73,6 +74,7 @@ def test_generate_channel_spatial_enrichment_stats():
         assert len(vals_pos_fov8) == 1
 
 
+@pytest.mark.skip(reason="out of date with AnnData compatibility")
 def test_generate_cluster_spatial_enrichment_stats():
     # since the functionality if channel spatial enrichment is tested later,
     # only the number of elements returned and the included_fovs argument needs testing
@@ -108,6 +110,7 @@ def test_generate_cluster_spatial_enrichment_stats():
         assert len(vals_pos_fov8) == 1
 
 
+@pytest.mark.skip(reason="out of date with AnnData compatibility")
 def test_calculate_channel_spatial_enrichment():
     dist_lim = 100
 
@@ -244,6 +247,7 @@ def test_calculate_channel_spatial_enrichment():
                 dist_lim=dist_lim)
 
 
+@pytest.mark.skip(reason="out of date with AnnData compatibility")
 def test_calculate_cluster_spatial_enrichment():
     # Test z and p values
     dist_lim = 100

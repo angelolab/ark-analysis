@@ -1,4 +1,5 @@
 import os
+import anndata
 from functools import reduce
 
 import numpy as np
@@ -193,15 +194,13 @@ def calculate_mean_distance_to_all_cell_types(
 
 
 def generate_cell_distance_analysis(
-        cell_table, dist_mat_dir, save_path, k, cell_type_col=settings.CELL_TYPE,
+        anndata_dir, save_path, k, cell_type_col=settings.CELL_TYPE,
         fov_col=settings.FOV_ID, cell_label_col=settings.CELL_LABEL):
     """ Creates a dataframe containing the average distance between a cell and other cells of each
     phenotype, based on the specified cell_type_col.
     Args:
-        cell_table (pd.DataFrame):
-            dataframe containing all cells and their cell type
-        dist_mat_dir (str):
-            path to directory containing the distance matrix files
+        anndata_dir (str):
+            path where the AnnData objects are stored.
         save_path (str):
             path where to save the results to
         k (int):
@@ -214,8 +213,8 @@ def generate_cell_distance_analysis(
             column with the cell labels
     """
 
-    io_utils.validate_paths(dist_mat_dir)
-    fov_list = np.unique(cell_table[fov_col])
+    io_utils.validate_paths(anndata_dir)
+    fov_list = io_utils.list_folders(anndata_dir, substrs=".zarr")
 
     cell_dists = []
     with tqdm(total=len(fov_list), desc="Calculate Average Distances", unit="FOVs") \
@@ -223,8 +222,14 @@ def generate_cell_distance_analysis(
         for fov in fov_list:
             distance_progress.set_postfix(FOV=fov)
 
-            fov_cell_table = cell_table[cell_table[fov_col] == fov]
-            fov_dist_xr = xr.load_dataarray(os.path.join(dist_mat_dir, str(fov) + '_dist_mat.xr'))
+            fov_adata = anndata.read_zarr(
+                os.path.join(anndata_dir, fov))
+
+            # extract cell table and dist mat from AnnData table
+            fov_cell_table = fov_adata.obs
+            centroid_labels = list(fov_cell_table.label)
+            fov_dist_xr = fov_adata.obsp["distances"]
+            fov_dist_xr = xr.DataArray(fov_dist_xr, coords=[centroid_labels, centroid_labels])
 
             # get the average distances between cell types
             fov_cell_dists = calculate_mean_distance_to_all_cell_types(
