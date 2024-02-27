@@ -1,43 +1,28 @@
-*.idea/
-env
-.ipynb_checkpoints
-.pytest_cache
-*cache*
-*.egg-info
-
-*/.coverage
-*/.DS_Store
-
-.devcontainer/
-.scripts/
-.vscode/
-
-*/.token.json
-
-/scripts
-
-/build
-/dist
-
-*/_build
-*/_markdown
-*/visualizations
-
-*.c
-*.html
-*.so
-*.egg-info
-data/example_dataset/metaclustering/*output*.csv
-data/example_dataset/metaclustering/example_manually_adjust_metaclusters.ipynb
-Pipfile
-Pipfile.lock
-.coverage
-.python-version
-.coverage.*
+# Temp files
 .DS_Store
-coverage.lcov
-data/*
-.venv
+*~
+buck-out/
+
+# Compiled files
 .venv/
-.virtual_documents
-.history/
+__pycache__/
+.mypy_cache/
+.ruff_cache/
+
+# Distribution / packaging
+/build/
+/dist/
+/*.egg-info/
+
+# Tests and coverage
+/.pytest_cache/
+/.cache/
+/data/
+
+# docs
+/docs/generated/
+/docs/_build/
+
+# IDEs
+/.idea/
+/.vscode/

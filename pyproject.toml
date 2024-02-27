@@ -1,184 +1,152 @@
 [build-system]
-requires = [
-    "setuptools",
-    "Cython>=0.29,<1",
-    "numpy>=1.20,<1.24",
-    "setuptools_scm[toml]>=6.2",
-]
-build-backend = "setuptools.build_meta"
+build-backend = "hatchling.build"
+requires = ["hatchling"]
 
 [project]
 dependencies = [
-    "alpineer==0.1.10",
     "anndata",
-    "Cython>=0.29,<1",
-    "dask[distributed]",
-    "datasets>=2.6,<3.0",
-    "dill>=0.3.5,<0.4",
-    "feather-format>=0.4.1,<1",
-    "importlib-metadata>=5.0",
-    "ipympl>=0.9.2,<1.0.0",
-    "ipython>=8.4,<9",
-    "jupyterlab>=3.4.3,<4",
-    "matplotlib>=3.7,<4",
-    "multiprocess>=0.70.13",
-    "natsort>=8,<9",
-    "numpy>=1.20,<1.24",
-    "palettable>=3.3.0,<4",
-    "pandas>=2",
-    "pillow>=9,<10",
-    "pyFlowSOM>=0.1.15",
-    "requests>=2.20,<3",
-    "scikit-image<=0.19.3",
-    "scikit-learn>=1.1,<2",
-    "graphviz",
-    "scipy>=1.7,<2",
-    "seaborn>=0.12,<1",
-    "spatial-lda>=0.1.3,<1",
-    "statsmodels>=0.13.2,<1",
-    "squidpy",
-    "tifffile>=2022",
-    "torchdata",
-    "tqdm>=4,<5",
-    "umap-learn>=0.5,<1.0",
-    "xarray>=2022",
-    "xmltodict>=0.13.0,<1",
-    "zstandard>=0.19.0,<1",
-    "zarr",
-    "ark-analysis[colors]",
+    "numpy",
+    "scipy",
+    # "scanpy",
+    "datasets",
+    "dask[complete]",
+    "dask-image",
+    "scikit-image",
+    "flox",
+    "spatialdata @ git+https://github.com/scverse/spatialdata.git@multi_table",
+    "spatialdata-plot",
+    "xbatcher",
+    "torch",
+    "lightning",
+    "boltons",
+    "more-itertools",
+    "rich",
+    "hvplot",
+    "datashader",
+    # for debug logging (referenced from the issue template)
+    "session-info",
+    "modguard>=0.7.0",
 ]
 name = "ark-analysis"
-authors = [{ name = "Angelo Lab", email = "theangelolab@gmail.com" }]
-description = "Toolbox for analysis on segmented images from MIBI."
+version = "0.0.1"
+description = "A very interesting piece of code"
 readme = "README.md"
 requires-python = ">=3.9"
-license = { text = "Modified Apache License 2.0" }
-classifiers = [
-    "Development Status :: 4 - Beta",
-    "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.9",
-    "Programming Language :: Python :: 3.10",
-    "Programming Language :: Python :: 3.11",
-    "License :: OSI Approved :: Apache Software License",
-    "Topic :: Scientific/Engineering :: Bio-Informatics",
-]
-dynamic = ["version"]
-urls = { repository = "https://github.com/angelolab/ark-analysis" }
+license = { file = "LICENSE" }
+authors = [{ name = "angelo lab" }]
+maintainers = [{ name = "angelo lab", email = "angelolab@gmail.com" }]
+urls.Documentation = "https://ark-analysis.readthedocs.io/"
+urls.Source = "https://github.com/angelolab/ark-analysis"
+urls.Home-page = "https://github.com/angelolab/ark-analysis"
 
 [project.optional-dependencies]
-colors = [
-    "palettable",
-    "cmasher",
-    "cmocean",
-    "colorcet",
-    "scienceplots"
+dev = ["pre-commit", "twine>=4.0.2", "ark[doc]", "ark[test]", "ark[nb]"]
+jax = [
+    "jax-metal; platform_system == 'Darwin'",
+    "jax; platform_system != 'Darwin'",
+    "jaxlib",
+    "ml-dtypes",
+    "jaxtyping",
+    "equinox",
 ]
-test = [
-    "attrs",
-    "coveralls[toml]",
-    "pytest",
-    "pytest-cases",
-    "pytest-cov",
-    "pytest-mock",
-    "pytest-pycodestyle",
-    "pytest-randomly",
-    "pytest-asyncio",
-    "testbook",
+nb = ["ipywidgets", "jupyterlab", "notebook"]
+doc = [
+    "docutils>=0.8,!=0.18.*,!=0.19.*",
+    "sphinx>=4",
+    "sphinx-book-theme>=1.0.0",
+    "myst-nb",
+    "sphinxcontrib-bibtex>=1.0.0",
+    "sphinx-autodoc-typehints",
+    "sphinxext-opengraph",
+    # For notebooks
+    "ipykernel",
+    "ipython",
+    "sphinx-copybutton",
+    "pandas",
+    # IDE support
+    "esbonio",
 ]
-lab_ext = [
-    "jupyterlab-lsp",
-    "python-lsp-server[all]",
-    "jupyterlab-git",
-    "jupyterlab_execute_time",
-    "jupyterlab-skip-traceback",
-    "lckr-jupyterlab-variableinspector"
-]
+test = ["pytest", "coverage", "sphinx-pytest"]
 
-[tool.setuptools_scm]
-version_scheme = "release-branch-semver"
-local_scheme = "no-local-version"
-
-[tool.cibuildwheel]
-build = ["cp39-*", "cp310-*", "cp311-*"]
-skip = [
-    "cp36-*",         # Python 3.6
-    "cp37-*",         # Python 3.7
-    "cp38-*",         # Python 3.8
-    "*-musllinux_*",  # Musllinux
-    "pp*",            # PyPy wheels on all platforms
-    "*_i686",         # 32bit Linux Wheels
-    "*_s390x",        # IBM System/390, "mainframe"
-    "*-win32",        # 32bit Windows Wheels
-    "*_ppc64le",      # PowerPC
-    "cp39-win_arm64", # Windows ARM64 Python 3.9 wheels do not build.
-]
-
-build-frontend = "build"
-
-# Avoid testing on emulated architectures
-test-skip = [
-    "*-win_arm64",               # Skip testing emulated arm64 biulds on Windows
-    "*-*linux_aarch64",          # Skip testing emulated Linux builds
-    "*-macosx_arm64",            # Skip testing emulated arm64 builds on Intel Macs
-    "*-macosx_universal2:arm64", # Skip testing emulated arm64 portion of universal2 builds
-]
-
-# "manylinux" versioning
-# PEP 600: https://peps.python.org/pep-0600/
-# Build using the manylinux_2_28 image
-manylinux-x86_64-image = "manylinux_2_28"
-manylinux-aarch64-image = "manylinux_2_28"
-
-
-# On an Linux Intel runner with qemu installed, build Intel and aarch64 (arm) wheels
-[tool.cibuildwheel.linux]
-archs = ["x86_64", "aarch64"]
-repair-wheel-command = "auditwheel repair -w {dest_dir} {wheel}"
-
-# Build `universal2` and `arm64` wheels on an Intel runner.
-# Note that the `arm64` wheel and the `arm64` part of the `universal2` wheel cannot be tested in this configuration.
-[tool.cibuildwheel.macos]
-archs = ["x86_64", "arm64", "universal2"]
-repair-wheel-command = "delocate-wheel --require-archs {delocate_archs} -w {dest_dir} -v {wheel}"
-
-# Build for Windows x86_64, and ARM 64
-[tool.cibuildwheel.windows]
-archs = ["AMD64", "ARM64"]
-# might not need to repair with delvewheel?
-# before-build = "pip install delvewheel"                          # Use delvewheel on windows
-# repair-wheel-command = "delvewheel repair -w {dest_dir} {wheel}"
-
-# Coverage
-[tool.coverage.paths]
-source = ["src", "**/site-packages"]
+[tool.hatch.build.targets.wheel]
+packages = ["src/ark"]
 
 [tool.coverage.run]
-branch = true
 source = ["ark"]
+omit = ["**/test_*.py"]
 
-[tool.coverage.report]
-exclude_lines = [
-    "except ImportError",
-    "raise AssertionError",
-    "raise NotImplementedError",
-    "(ArrowInvalid, OSError, IOError)",
-]
-
-# Pytest Options
 [tool.pytest.ini_options]
-filterwarnings = [
-    "ignore::DeprecationWarning",
-    "ignore::PendingDeprecationWarning",
-]
-addopts = [
-    "-v",
-    "-s",
-    "--durations=20",
-    "--randomly-seed=24",
-    "--randomly-dont-reorganize",
-    "--cov=ark",
-    "--cov-report=lcov",
-    "--pycodestyle",
-]
-console_output_style = "count"
 testpaths = ["tests"]
+xfail_strict = true
+addopts = [
+    "--import-mode=importlib", # allow using test files with same name
+]
+
+[tool.ruff]
+line-length = 120
+src = ["src"]
+extend-include = ["*.ipynb"]
+
+[tool.ruff.format]
+docstring-code-format = true
+
+[tool.ruff.lint]
+select = [
+    "F",      # Errors detected by Pyflakes
+    "E",      # Error detected by Pycodestyle
+    "W",      # Warning detected by Pycodestyle
+    "I",      # isort
+    "D",      # pydocstyle
+    "B",      # flake8-bugbear
+    "TID",    # flake8-tidy-imports
+    "C4",     # flake8-comprehensions
+    "BLE",    # flake8-blind-except
+    "UP",     # pyupgrade
+    "RUF100", # Report unused noqa directives
+]
+ignore = [
+    # line too long -> we accept long comment lines; formatter gets rid of long code lines
+    "E501",
+    # Do not assign a lambda expression, use a def -> lambda expression assignments are convenient
+    "E731",
+    # allow I, O, l as variable names -> I is the identity matrix
+    "E741",
+    # Missing docstring in public package
+    "D104",
+    # Missing docstring in public module
+    "D100",
+    # Missing docstring in __init__
+    "D107",
+    # Errors from function calls in argument defaults. These are fine when the result is immutable.
+    "B008",
+    # __magic__ methods are are often self-explanatory, allow missing docstrings
+    "D105",
+    # first line should end with a period [Bug: doesn't work with single-line docstrings]    "D400",
+    # First line should be in imperative mood; try rephrasing
+    "D401",
+    ## Disable one in each pair of mutually incompatible rules
+    # We don’t want a blank line before a class docstring
+    "D203",
+    # We want docstrings to start immediately after the opening triple quote
+    "D213",
+]
+
+[tool.ruff.lint.pydocstyle]
+convention = "numpy"
+
+[tool.ruff.lint.per-file-ignores]
+"docs/*" = ["I"]
+"tests/*" = ["D"]
+"*/__init__.py" = ["F401"]
+
+[tool.cruft]
+skip = [
+    "tests",
+    "src/**/__init__.py",
+    "src/**/basic.py",
+    "docs/api.md",
+    "docs/changelog.md",
+    "docs/references.bib",
+    "docs/references.md",
+    "docs/notebooks/example.ipynb",
+]

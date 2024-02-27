@@ -1,0 +1,5 @@
+[build.targets.wheel]
+packages = ["src/ark"]
+
+[metadata]
+allow-direct-references = true

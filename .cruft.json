@@ -1,0 +1,29 @@
+{
+  "template": "https://github.com/scverse/cookiecutter-scverse",
+  "commit": "586b1652162ff7994b0070a034023d64289ae416",
+  "checkout": null,
+  "context": {
+    "cookiecutter": {
+      "project_name": "ark-analysis",
+      "package_name": "Multiplexed Spatial Analysis",
+      "project_description": "A very interesting piece of code",
+      "author_full_name": "angelo lab",
+      "author_email": "angelolab@gmail.com",
+      "github_user": "angelolab",
+      "project_repo": "https://github.com/angelolab/ark-analysis",
+      "license": "MIT License",
+      "_copy_without_render": [
+        ".github/workflows/build.yaml",
+        ".github/workflows/test.yaml",
+        "docs/_templates/autosummary/**.rst"
+      ],
+      "_render_devdocs": false,
+      "_jinja2_env_vars": {
+        "lstrip_blocks": true,
+        "trim_blocks": true
+      },
+      "_template": "https://github.com/scverse/cookiecutter-scverse"
+    }
+  },
+  "directory": null
+}
