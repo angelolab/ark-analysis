@@ -5,7 +5,7 @@ import skimage.io as io
 import tempfile
 import xarray as xr
 
-from alpineer import io_utils
+from alpineer import image_utils
 from ark.segmentation.ez_seg import merge_masks
 from skimage.morphology import label
 from skimage.draw import disk
@@ -32,25 +32,25 @@ def test_merge_masks_seq():
             cell_mask_fov_file: Union[str, pathlib.Path] = os.path.join(
                 cell_mask_dir, f"{fov}_{cell_mask_suffix}.tiff"
             )
-            io.imsave(cell_mask_fov_file, cell_mask_data)
+            image_utils.save_image(cell_mask_fov_file, cell_mask_data)
 
             for obj in object_list:
                 object_mask_data: np.ndarray = np.random.randint(0, 8, (32, 32))
                 object_mask_fov_file: Union[str, pathlib.Path] = os.path.join(
                     object_mask_dir, f"{fov}_{obj}.tiff"
                 )
-                io.imsave(object_mask_fov_file, object_mask_data)
+                image_utils.save_image(object_mask_fov_file, object_mask_data)
 
         # we're only testing functionality, for in-depth merge testing see test_merge_masks_single
         merge_masks.merge_masks_seq(
-            fov_list, object_list, object_mask_dir, cell_mask_dir, cell_mask_suffix, overlap_thresh,
-            merged_mask_dir, log_dir
+            fov_list, object_list, object_mask_dir, cell_mask_dir, cell_mask_suffix,
+            overlap_thresh, merged_mask_dir, log_dir
         )
 
         for fov in fov_list:
             print("checking fov")
             merged_mask_fov_file: Union[str, pathlib.Path] = os.path.join(
-                merged_mask_dir, f"{fov}_final_cells_remaining.tiff"
+                merged_mask_dir, f"{fov}_final_{cell_mask_suffix}_remaining.tiff"
             )
             print("asserting fov")
             assert os.path.exists(merged_mask_fov_file)
@@ -65,8 +65,9 @@ def test_merge_masks_seq():
         assert log_data[1] == f"object_list: {str(object_list)}\n"
         assert log_data[2] == f"object_mask_dir: {str(object_mask_dir)}\n"
         assert log_data[3] == f"cell_mask_dir: {str(cell_mask_dir)}\n"
-        assert log_data[4] == f"overlap_percent_threshold: {str(overlap_thresh)}\n"
-        assert log_data[5] == f"save_path: {str(merged_mask_dir)}\n"
+        assert log_data[4] == f"cell_mask_suffix: {str(cell_mask_suffix)}\n"
+        assert log_data[5] == f"overlap_percent_threshold: {str(overlap_thresh)}\n"
+        assert log_data[6] == f"save_path: {str(merged_mask_dir)}\n"
 
 
 def test_merge_masks_single():
