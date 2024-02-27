@@ -183,11 +183,14 @@ class TestExampleDataset:
         Args:
             dataset_download (ExampleDataset): Fixture for the dataset, respective to each
         """
+        import os
         dataset_names = list(
-            dataset_download.dataset_paths[dataset_download.dataset].keys())
+            dataset_download.dataset_paths[dataset_download.dataset].keys()
+        )
         for ds_n in dataset_names:
             dataset_cache_path = pathlib.Path(
-                dataset_download.dataset_paths[dataset_download.dataset][ds_n])
+                dataset_download.dataset_paths[dataset_download.dataset][ds_n]
+            )
             self.dataset_test_fns[ds_n](dir_p=dataset_cache_path)
 
     @pytest.mark.parametrize("_overwrite_existing", [True, False])

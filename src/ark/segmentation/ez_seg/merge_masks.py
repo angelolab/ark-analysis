@@ -4,7 +4,7 @@ import xarray as xr
 import numpy as np
 import os
 from skimage.io import imread
-from scipy.ndimage import label
+from skimage.morphology import label
 from alpineer import load_utils, image_utils
 from ark.segmentation.ez_seg.ez_seg_utils import log_creator
 
@@ -13,7 +13,8 @@ def merge_masks_seq(
     fov_list: List[str],
     object_list: List[str],
     object_mask_dir: Union[pathlib.Path, str],
-    cell_mask_path: Union[pathlib.Path, str],
+    cell_mask_dir: Union[pathlib.Path, str],
+    cell_mask_suffix: str,
     overlap_percent_threshold: int,
     save_path: Union[pathlib.Path, str],
     log_dir: Union[pathlib.Path, str]
@@ -27,7 +28,8 @@ def merge_masks_seq(
         fov_list (List[str]): A list of fov names to merge masks over.
         object_list (List[str]): A list of names representing previously generated object masks. Note, order matters.
         object_mask_dir (Union[pathlib.Path, str]): Directory where object (ez) segmented masks are located
-        cell_mask_path (Union[str, pathlib.Path]): Path to where the original cell masks are located.
+        cell_mask_dir (Union[str, pathlib.Path]): Path to where the original cell masks are located.
+        cell_mask_suffix (str): Name of the cell type you are merging. Usually "whole_cell".
         overlap_percent_threshold (int): Percent overlap of total pixel area needed fo object to be merged to a cell.
         save_path (Union[str, pathlib.Path]): The directory where merged masks and remaining cell mask will be saved.
         log_dir (Union[str, pathlib.Path]): The directory to save log information to.
@@ -35,15 +37,15 @@ def merge_masks_seq(
     # validate paths
     if isinstance(object_mask_dir, str):
         object_mask_dir = pathlib.Path(object_mask_dir)
-    if isinstance(cell_mask_path, str):
-        cell_mask_path = pathlib.Path(cell_mask_path)
+    if isinstance(cell_mask_dir, str):
+        cell_mask_dir = pathlib.Path(cell_mask_dir)
     if isinstance(save_path, str):
         save_path = pathlib.Path(save_path)
 
     # for each fov, import cell and object masks (multiple mask types into single xr.DataArray)
     for fov in fov_list:
         curr_cell_mask = imread(fname=os.path.join(
-            cell_mask_path, '_'.join([f'{fov}', 'whole_cell.tiff']))
+            cell_mask_dir, '_'.join([f'{fov}', f'{cell_mask_suffix}.tiff']))
         )
 
         fov_object_names = [f'{fov}_' + obj + '.tiff' for obj in object_list]
@@ -69,14 +71,15 @@ def merge_masks_seq(
             curr_cell_mask = remaining_cells
 
         # save the unmerged cells as a tiff.
-        image_utils.save_image(fname=save_path / (fov + "_final_cells_remaining.tiff"), data=curr_cell_mask.astype(np.int32))
+        image_utils.save_image(fname=save_path / (fov + f"_final_{cell_mask_suffix}_remaining.tiff"), data=curr_cell_mask.astype(np.int32))
 
     # Write a log saving mask merging info
     variables_to_log = {
         "fov_list": fov_list,
         "object_list": object_list,
         "object_mask_dir": object_mask_dir,
-        "cell_mask_path": cell_mask_path,
+        "cell_mask_dir": cell_mask_dir,
+        "cell_mask_suffix": cell_mask_suffix,
         "overlap_percent_threshold": overlap_percent_threshold,
         "save_path": save_path
     }
@@ -111,8 +114,8 @@ def merge_masks_single(
         raise ValueError("Both masks must have the same shape")
 
     # Relabel cell, object masks
-    cell_labels, num_cell_labels = label(cell_mask)
-    object_labels, num_object_labels = label(object_mask)
+    cell_labels, num_cell_labels = label(cell_mask, return_num=True)
+    object_labels, num_object_labels = label(object_mask, return_num=True)
 
     # Instantiate new array for merging
     merged_mask = object_labels.copy()

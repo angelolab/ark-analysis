@@ -427,13 +427,8 @@ def create_pixel_matrix(fovs, channels, base_dir, tiff_dir, seg_dir,
             quant_dat_fov.index.name = "channel"
 
             # update the file with the newly processed fov quantile values
-            quant_dat_all = quant_dat_all.merge(
-                quant_dat_fov,
-                how="outer",
-                left_index=True,
-                right_index=True
-            )
-
+            quant_dat_all = quant_dat_all.merge(quant_dat_fov, how="outer",
+                                                left_index=True, right_index=True)
             quant_dat_all.to_csv(quantile_path)
 
             # update number of fovs processed
