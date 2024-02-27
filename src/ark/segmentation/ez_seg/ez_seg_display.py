@@ -46,7 +46,8 @@ def display_channel_image(
 
     base_image: np.ndarray = imread(image_path, as_gray=True)
 
-    base_image_scaled = img_as_ubyte(base_image)
+    # convert image to presentable RGB
+    base_image_scaled = base_image / 255
 
     # Plot
     fig: Figure = plt.figure(dpi=300, figsize=(6, 6))
@@ -103,8 +104,8 @@ def overlay_mask_outlines(
     channel_image: np.ndarray = imread(channel_image_path, as_gray=True)
     mask_image: np.ndarray = imread(mask_image_path, as_gray=True)
 
-    # Auto-scale the base image
-    channel_image_scaled = img_as_ubyte(channel_image)
+    # convert image to presentable RGB
+    channel_image_scaled = channel_image / 255
 
     # Apply Canny edge detection to extract outlines
     edges: np.ndarray = feature.canny(
@@ -137,6 +138,7 @@ def multiple_mask_display(
     mask_name: str,
     object_mask_dir: Union[str, os.PathLike],
     cell_mask_dir: Union[str, os.PathLike],
+    cell_mask_suffix: str,
     merged_mask_dir: Union[str, os.PathLike],
 ) -> None:
     """
@@ -147,6 +149,7 @@ def multiple_mask_display(
         mask_name (str): Name of mask to view
         object_mask_dir (Union[str, os.PathLike]): Directory where the object masks are stored.
         cell_mask_dir (Union[str, os.PathLike]): Directory where the cell masks are stored.
+        cell_mask_suffix (str): Suffix name of the cell mask files.
         merged_mask_dir (Union[str, os.PathLike]): Directory where the merged masks are stored.
     """
     if isinstance(object_mask_dir, str):
@@ -158,7 +161,7 @@ def multiple_mask_display(
     io_utils.validate_paths([object_mask_dir, cell_mask_dir, merged_mask_dir])
 
     modified_overlay_mask: np.ndarray = create_overlap_and_merge_visual(
-        fov, mask_name, object_mask_dir, cell_mask_dir, merged_mask_dir
+        fov, mask_name, object_mask_dir, cell_mask_dir, cell_mask_suffix, merged_mask_dir
     )
 
     # Create a new figure
@@ -177,6 +180,7 @@ def create_overlap_and_merge_visual(
     mask_name: str,
     object_mask_dir: pathlib.Path,
     cell_mask_dir: pathlib.Path,
+    cell_mask_suffix: str,
     merged_mask_dir: pathlib.Path,
 ) -> np.ndarray:
     """
@@ -187,6 +191,7 @@ def create_overlap_and_merge_visual(
         mask_name (str): Name of mask to view
         object_mask_dir (pathlib.Path): Directory where the object masks are stored.
         cell_mask_dir (pathlib.Path): Directory where the cell masks are stored.
+        cell_mask_suffix (str): Suffix name of the cell mask files.
         merged_mask_dir (pathlib.Path): Directory where the merged masks are stored.
 
     Returns:
@@ -196,7 +201,7 @@ def create_overlap_and_merge_visual(
     # read in masks
     object_mask: np.ndarray = imread(object_mask_dir / f"{fov}_{mask_name}.tiff")
     cell_mask: np.ndarray = imread(
-        cell_mask_dir / f"{fov}_whole_cell.tiff", as_gray=True
+        cell_mask_dir / f"{fov}_{cell_mask_suffix}.tiff", as_gray=True
     )
     merged_mask: np.ndarray = imread(
         merged_mask_dir / f"{fov}_{mask_name}_merged.tiff", as_gray=True
