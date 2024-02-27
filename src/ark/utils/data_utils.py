@@ -446,6 +446,9 @@ def generate_and_save_cell_cluster_masks(
     cluster_map = cmd.mapping.filter([cmd.cluster_column, cmd.cluster_id_column])
     cluster_map = cluster_map.drop_duplicates()
 
+    # drop the cluster_id column from updated_cluster_map if it already exists, otherwise do nothing
+    gui_map = gui_map.drop(columns="cluster_id", errors="ignore")
+
     # add a cluster_id column corresponding to the new mask integers
     updated_cluster_map = gui_map.merge(cluster_map, on=[cmd.cluster_column], how="left")
     updated_cluster_map.to_csv(cluster_id_to_name_path, index=False)
