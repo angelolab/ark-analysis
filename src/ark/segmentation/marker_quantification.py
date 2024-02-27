@@ -605,8 +605,6 @@ def get_existing_mask_types(fov_names: List[str], mask_names: List[str]) -> List
     Args:
         fov_names (List[str]): list of fov names. Matching fov names in mask names will be returned without fov prefix.
         mask_names (List[str]): list of mask names. Mask names will be returned without tiff suffix.
-
-
         Returns:
             List[str]: Unique mask names (i.e. categories of masks)
     """
