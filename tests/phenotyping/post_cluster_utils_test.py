@@ -136,3 +136,10 @@ def test_generate_new_cluster_resolution():
             post_cluster_utils.generate_new_cluster_resolution(
                 cell_table, cluster_col=settings.CELL_TYPE, new_cluster_col="new_clusters_bad",
                 cluster_mapping=missing_assignments, save_path=new_path)
+
+        # check error raise when dict value is not list
+        with pytest.raises(ValueError):
+            missing_assignments = {'A': ['A'], 'C': 'C'}
+            post_cluster_utils.generate_new_cluster_resolution(
+                cell_table, cluster_col=settings.CELL_TYPE, new_cluster_col="new_clusters_bad",
+                cluster_mapping=missing_assignments, save_path=new_path)

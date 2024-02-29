@@ -190,6 +190,9 @@ def generate_new_cluster_resolution(cell_table, cluster_col, new_cluster_col, cl
                          f"Please specify a different name for the new column.")
 
     cluster_mapping_values = list(cluster_mapping.values())
+    not_list = [type(group) != list for group in cluster_mapping_values]
+    if any(not_list):
+        raise ValueError(f"Please make sure all values of the dictionary specify a list.")
     cluster_list = list(itertools.chain.from_iterable(cluster_mapping_values))
     misc_utils.verify_same_elements(
         specified_cell_clusters=cluster_list,
