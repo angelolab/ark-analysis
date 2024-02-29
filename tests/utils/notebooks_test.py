@@ -757,8 +757,8 @@ class Test_4_Post_Clustering:
         """
         self.tb.inject(cluster_mapping_inject, "cluster_mapping")
 
-    def test_generate_clusters(self):
-        self.tb.execute_cell("generate_clusters")
+    def test_generate_new_clusters(self):
+        self.tb.execute_cell("generate_new_clusters")
 
 
 class Test_EZSegmenter:
