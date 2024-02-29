@@ -738,6 +738,28 @@ class Test_4_Post_Clustering:
     def test_cell_table_threshold(self):
         self.tb.execute_cell("cell_table_threshold")
 
+    def test_read_table(self):
+        self.tb.execute_cell("read_table")
+
+    def test_set_cluster_args(self):
+        self.tb.execute_cell("set_cluster_args")
+
+    def test_print_clusters(self):
+        self.tb.execute_cell("print_clusters")
+
+    def test_cluster_mapping(self):
+        cell_dict = {'A': ['CD4T', 'CD8T', 'CD14_monocyte', 'Bcell'],
+                     'B': ['other', 'M2_macrophage', 'M1_macrophage', 'APC', 'stroma'],
+                     'C': ['immune_other', 'endothelium', 'Myofibroblast', 'tumor_ck17'],
+                     'D': ['tumor_ecad']}
+        cluster_mapping_inject = f"""
+            cluster_mapping = {cell_dict}
+        """
+        self.tb.inject(cluster_mapping_inject, "cluster_mapping")
+
+    def test_generate_clusters(self):
+        self.tb.execute_cell("generate_clusters")
+
 
 class Test_EZSegmenter:
     """
