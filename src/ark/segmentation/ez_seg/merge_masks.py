@@ -5,6 +5,7 @@ import numpy as np
 import os
 from skimage.io import imread
 from skimage.morphology import label
+from skimage.measure import regionprops
 from alpineer import load_utils, image_utils
 from ark.segmentation.ez_seg.ez_seg_utils import log_creator
 
@@ -123,6 +124,9 @@ def merge_masks_single(
     # Set up list to store merged cell labels
     remove_cells_list = [0]
 
+    # Create a dictionary of the bounding boxes for all object labels
+    object_labels_bounding_boxes = get_bounding_boxes(object_labels)
+
     # Find connected components in object and cell masks. Merge only those with highest overlap that meets threshold.
     for obj_label in range(1, num_object_labels + 1):
         # Extract a connected component from object_mask
@@ -132,9 +136,12 @@ def merge_masks_single(
         best_cell_mask_component = None
         cell_to_merge_label = None
 
-        for cell_label in range(1, num_cell_labels + 1):
+        # Filter for cell_labels that fall within the expanded bounding box of the obj_label
+        cell_labels_in_range = filter_labels_in_bbox(object_labels_bounding_boxes.pop(str(obj_label)), cell_labels)
+
+        for cell_label in cell_labels_in_range:
             # Extract a connected component from cell_mask
-            cell_mask_component = cell_labels == cell_label
+            cell_mask_component = cell_labels == int(cell_label)
 
             # Calculate the overlap between cell_mask_component and object_mask_component
             intersection = np.logical_and(cell_mask_component, object_mask_component)
@@ -165,3 +172,61 @@ def merge_masks_single(
 
     # Return unmerged cells
     return cell_labels
+
+
+def get_bounding_boxes(object_labels: np.ndarray):
+    """
+    Gets the bounding boxes of labeled images based on object major axis length.
+
+    Args:
+        object_labels (np.ndarray): label array
+    Returns:
+        dict: Dictionary containing labels as keys and bounding box as values
+    """
+    bounding_boxes = {}
+
+    props = regionprops(object_labels)
+
+    for prop in props:
+        # Get major axis length
+        major_axis_length = prop.major_axis_length
+
+        # Define bounding box based on major axis length
+        centroid = prop.centroid
+        radius = int(major_axis_length / 2)
+        min_row = max(0, int(centroid[0]) - radius)
+        max_row = min(object_labels.shape[0] - 1, int(centroid[0]) + radius)
+        min_col = max(0, int(centroid[1]) - radius)
+        max_col = min(object_labels.shape[1] - 1, int(centroid[1]) + radius)
+
+        bounding_boxes[prop.label] = ((min_row, min_col), (max_row, max_col))
+
+    return bounding_boxes
+
+
+def filter_labels_in_bbox(bounding_box: List, cell_labels: np.ndarray):
+    """
+    Gets the cell labels that fall within the expanded bounding box of a given object.
+
+    Args:
+        bounding_box (List): The bounding box values for the input obj_label
+        cell_labels (np.ndarray): The cell label array.
+
+    Returns:
+        List: The cell labels that fall within the expanded bounding box.
+
+    """
+    min_row, min_col = bounding_box[0]
+    max_row, max_col = bounding_box[1]
+
+    filtered_labels = []
+
+    props = regionprops(cell_labels)
+
+    for prop in props:
+        centroid = prop.centroid
+        if min_row <= centroid[0] <= max_row and min_col <= centroid[1] <= max_col:
+            filtered_labels.append(prop.label)
+
+    return filtered_labels
+

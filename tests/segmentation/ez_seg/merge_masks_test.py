@@ -7,7 +7,7 @@ import xarray as xr
 
 from alpineer import image_utils
 from ark.segmentation.ez_seg import merge_masks
-from skimage.morphology import label
+from skimage.measure import label
 from skimage.draw import disk
 from typing import List, Union
 
@@ -117,3 +117,53 @@ def test_merge_masks_single():
 
         assert np.all(created_merged_mask == expected_merged_mask)
         assert np.all(created_cell_mask == expected_cell_mask)
+
+
+def test_get_bounding_boxes():
+    # Create a labeled array
+    labels = np.array([[1, 1, 0, 0],
+                       [0, 1, 0, 0],
+                       [0, 0, 2, 2]])
+
+    # Call the function to get bounding boxes
+    bounding_boxes = merge_masks.get_bounding_boxes(labels)
+
+    # Expected bounding boxes
+    expected_bounding_boxes = {1: ((0, 0), (1, 1)),
+                                2: ((2, 2), (2, 3))}
+
+    assert bounding_boxes == expected_bounding_boxes
+
+
+def test_filter_labels_in_bbox():
+    # Create a labeled array
+    labels = np.array([[1, 1, 0, 0],
+                       [0, 1, 0, 0],
+                       [0, 0, 2, 2]])
+
+    # Get the bounding boxes
+    bounding_boxes = merge_masks.get_bounding_boxes(labels)
+
+    # Filter labels within the bounding box of label 1
+    filtered_labels = merge_masks.filter_labels_in_bbox(bounding_boxes[1], labels)
+
+    # Expected filtered labels for label 1
+    expected_filtered_labels_1 = [1]
+
+    assert filtered_labels == expected_filtered_labels_1
+
+    # Filter labels within the bounding box of label 2
+    filtered_labels = merge_masks.filter_labels_in_bbox(bounding_boxes[2], labels)
+
+    # Expected filtered labels for label 2
+    expected_filtered_labels_2 = [2]
+
+    assert filtered_labels == expected_filtered_labels_2
+
+    # Filter labels within the bounding box of an empty label (should return an empty list)
+    filtered_labels = merge_masks.filter_labels_in_bbox(((0, 0), (0, 0)), labels)
+
+    # Expected filtered labels for an empty label
+    expected_filtered_labels_empty = []
+
+    assert filtered_labels == expected_filtered_labels_empty
