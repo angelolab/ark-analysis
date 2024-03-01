@@ -5,7 +5,8 @@ import numpy as np
 import os
 from skimage.io import imread
 from skimage.morphology import label
-from skimage.measure import regionprops
+from skimage.measure import regionprops_table
+import pandas as pd
 from alpineer import load_utils, image_utils
 from ark.segmentation.ez_seg.ez_seg_utils import log_creator
 
@@ -17,6 +18,7 @@ def merge_masks_seq(
     cell_mask_dir: Union[pathlib.Path, str],
     cell_mask_suffix: str,
     overlap_percent_threshold: int,
+    expansion_factor: int,
     save_path: Union[pathlib.Path, str],
     log_dir: Union[pathlib.Path, str]
 ) -> None:
@@ -32,6 +34,7 @@ def merge_masks_seq(
         cell_mask_dir (Union[str, pathlib.Path]): Path to where the original cell masks are located.
         cell_mask_suffix (str): Name of the cell type you are merging. Usually "whole_cell".
         overlap_percent_threshold (int): Percent overlap of total pixel area needed fo object to be merged to a cell.
+        expansion_factor (int): How many pixels out from an objects bbox a cell should be looked for.
         save_path (Union[str, pathlib.Path]): The directory where merged masks and remaining cell mask will be saved.
         log_dir (Union[str, pathlib.Path]): The directory to save log information to.
     """
@@ -62,13 +65,9 @@ def merge_masks_seq(
         # for each object type in the fov, merge with cell masks
         for obj in fov_object_names:
             curr_object_mask = imread(fname=(object_mask_dir / obj))
-            remaining_cells = merge_masks_single(
-                object_mask=curr_object_mask,
-                cell_mask=curr_cell_mask,
-                overlap_thresh=overlap_percent_threshold,
-                object_name=obj,
-                mask_save_path=save_path,
-            )
+            remaining_cells = merge_masks_single(object_mask=curr_object_mask, cell_mask=curr_cell_mask,
+                                                 overlap_thresh=overlap_percent_threshold, object_name=obj,
+                                                 mask_save_path=save_path, expansion_factor=expansion_factor)
             curr_cell_mask = remaining_cells
 
         # save the unmerged cells as a tiff.
@@ -94,6 +93,7 @@ def merge_masks_single(
     overlap_thresh: int,
     object_name: str,
     mask_save_path: str,
+    expansion_factor: int
 ) -> np.ndarray:
     """
     Combines overlapping object and cell masks. For any combination which represents has at least `overlap` percentage
@@ -105,6 +105,7 @@ def merge_masks_single(
         overlap_thresh (int): The percentage overlap required for a cell to be merged.
         object_name (str): The name of the object.
         mask_save_path (str): The path to save the mask.
+        expansion_factor (int): How many pixels out from an objects bbox a cell should be looked for.
 
     Returns:
         np.ndarray: The cells remaining mask, which will be used for the next cycle in merging while there are objects.
@@ -127,6 +128,9 @@ def merge_masks_single(
     # Create a dictionary of the bounding boxes for all object labels
     object_labels_bounding_boxes = get_bounding_boxes(object_labels)
 
+    # Calculate all cell regionprops for filtering, convert to DataFrame
+    cell_props = pd.DataFrame(regionprops_table(cell_labels, properties=('label', 'centroid', 'major_axis_length')))
+
     # Find connected components in object and cell masks. Merge only those with highest overlap that meets threshold.
     for obj_label in range(1, num_object_labels + 1):
         # Extract a connected component from object_mask
@@ -137,11 +141,12 @@ def merge_masks_single(
         cell_to_merge_label = None
 
         # Filter for cell_labels that fall within the expanded bounding box of the obj_label
-        cell_labels_in_range = filter_labels_in_bbox(object_labels_bounding_boxes.pop(str(obj_label)), cell_labels)
+        cell_labels_in_range = filter_labels_in_bbox(
+            object_labels_bounding_boxes.pop(obj_label), cell_props, expansion_factor)
 
         for cell_label in cell_labels_in_range:
             # Extract a connected component from cell_mask
-            cell_mask_component = cell_labels == int(cell_label)
+            cell_mask_component = cell_labels == cell_label
 
             # Calculate the overlap between cell_mask_component and object_mask_component
             intersection = np.logical_and(cell_mask_component, object_mask_component)
@@ -185,32 +190,28 @@ def get_bounding_boxes(object_labels: np.ndarray):
     """
     bounding_boxes = {}
 
-    props = regionprops(object_labels)
+    # Get region properties as a DataFrame
+    props = regionprops_table(object_labels, properties=('label', 'bbox'))
 
-    for prop in props:
-        # Get major axis length
-        major_axis_length = prop.major_axis_length
+    # Convert to DataFrame
+    df = pd.DataFrame(props)
 
-        # Define bounding box based on major axis length
-        centroid = prop.centroid
-        radius = int(major_axis_length / 2)
-        min_row = max(0, int(centroid[0]) - radius)
-        max_row = min(object_labels.shape[0] - 1, int(centroid[0]) + radius)
-        min_col = max(0, int(centroid[1]) - radius)
-        max_col = min(object_labels.shape[1] - 1, int(centroid[1]) + radius)
-
-        bounding_boxes[prop.label] = ((min_row, min_col), (max_row, max_col))
+    for _, row in df.iterrows():
+        label_id, min_row, min_col, max_row, max_col = row.values
+        # Return closed interval bounding box
+        bounding_boxes[label_id] = ((min_row, min_col), (max_row-1, max_col-1))
 
     return bounding_boxes
 
 
-def filter_labels_in_bbox(bounding_box: List, cell_labels: np.ndarray):
+def filter_labels_in_bbox(bounding_box: List, cell_props: pd.DataFrame, expansion_factor: int):
     """
     Gets the cell labels that fall within the expanded bounding box of a given object.
 
     Args:
         bounding_box (List): The bounding box values for the input obj_label
-        cell_labels (np.ndarray): The cell label array.
+        cell_props (pd.DataFrame): The cell label regionprops DataFrame.
+        expansion_factor: how many pixels from the bounding box you want to expand the search for compatible cells.
 
     Returns:
         List: The cell labels that fall within the expanded bounding box.
@@ -219,14 +220,11 @@ def filter_labels_in_bbox(bounding_box: List, cell_labels: np.ndarray):
     min_row, min_col = bounding_box[0]
     max_row, max_col = bounding_box[1]
 
-    filtered_labels = []
-
-    props = regionprops(cell_labels)
-
-    for prop in props:
-        centroid = prop.centroid
-        if min_row <= centroid[0] <= max_row and min_col <= centroid[1] <= max_col:
-            filtered_labels.append(prop.label)
+    # Filter labels based on bounding box
+    filtered_labels = cell_props[(cell_props['centroid-0'] >= min_row-expansion_factor) &
+                                 (cell_props['centroid-0'] <= max_row+expansion_factor) &
+                                 (cell_props['centroid-1'] >= min_col-expansion_factor) &
+                                 (cell_props['centroid-1'] <= max_col+expansion_factor)]['label'].tolist()
 
     return filtered_labels
 

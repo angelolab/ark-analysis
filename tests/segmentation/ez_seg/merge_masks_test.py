@@ -4,10 +4,11 @@ import pathlib
 import skimage.io as io
 import tempfile
 import xarray as xr
-
+import pytest
 from alpineer import image_utils
 from ark.segmentation.ez_seg import merge_masks
-from skimage.measure import label
+from skimage.measure import regionprops_table, label
+import pandas as pd
 from skimage.draw import disk
 from typing import List, Union
 
@@ -26,6 +27,7 @@ def test_merge_masks_seq():
             os.mkdir(directory)
 
         overlap_thresh: int = 10
+        expansion_factor: int = 10
 
         for fov in fov_list:
             cell_mask_data: np.ndarray = np.random.randint(0, 16, (32, 32))
@@ -42,10 +44,8 @@ def test_merge_masks_seq():
                 image_utils.save_image(object_mask_fov_file, object_mask_data)
 
         # we're only testing functionality, for in-depth merge testing see test_merge_masks_single
-        merge_masks.merge_masks_seq(
-            fov_list, object_list, object_mask_dir, cell_mask_dir, cell_mask_suffix,
-            overlap_thresh, merged_mask_dir, log_dir
-        )
+        merge_masks.merge_masks_seq(fov_list, object_list, object_mask_dir, cell_mask_dir, cell_mask_suffix,
+                                    overlap_thresh, merged_mask_dir, log_dir, expansion_factor)
 
         for fov in fov_list:
             print("checking fov")
@@ -77,6 +77,7 @@ def test_merge_masks_single():
     expected_cell_mask: np.ndarray = np.zeros((32, 32))
 
     overlap_thresh: int = 10
+    expansion_factor: int = 10
     merged_mask_name: str = "merged_mask"
 
     # case 1: overlap below threshold, don't merge
@@ -107,9 +108,9 @@ def test_merge_masks_single():
         mask_save_dir: Union[str, pathlib.Path] = os.path.join(td, "mask_save_dir")
         os.mkdir(mask_save_dir)
 
-        created_cell_mask: np.ndarray = merge_masks.merge_masks_single(
-            object_mask, cell_mask, overlap_thresh, merged_mask_name, mask_save_dir
-        )
+        created_cell_mask: np.ndarray = merge_masks.merge_masks_single(object_mask, cell_mask,
+                                                                       overlap_thresh, merged_mask_name,
+                                                                       mask_save_dir, expansion_factor)
 
         created_merged_mask: np.ndarray = io.imread(
             os.path.join(mask_save_dir, merged_mask_name + "_merged.tiff")
@@ -130,7 +131,7 @@ def test_get_bounding_boxes():
 
     # Expected bounding boxes
     expected_bounding_boxes = {1: ((0, 0), (1, 1)),
-                                2: ((2, 2), (2, 3))}
+                               2: ((2, 2), (2, 3))}
 
     assert bounding_boxes == expected_bounding_boxes
 
@@ -141,11 +142,14 @@ def test_filter_labels_in_bbox():
                        [0, 1, 0, 0],
                        [0, 0, 2, 2]])
 
+    # Get regionprops df
+    label_df = pd.DataFrame(regionprops_table(label(labels), properties=('label', 'centroid', 'major_axis_length')))
+
     # Get the bounding boxes
-    bounding_boxes = merge_masks.get_bounding_boxes(labels)
+    bounding_boxes = merge_masks.get_bounding_boxes(label(labels))
 
     # Filter labels within the bounding box of label 1
-    filtered_labels = merge_masks.filter_labels_in_bbox(bounding_boxes[1], labels)
+    filtered_labels = merge_masks.filter_labels_in_bbox(bounding_boxes[1], label_df, expansion_factor=0)
 
     # Expected filtered labels for label 1
     expected_filtered_labels_1 = [1]
@@ -153,7 +157,7 @@ def test_filter_labels_in_bbox():
     assert filtered_labels == expected_filtered_labels_1
 
     # Filter labels within the bounding box of label 2
-    filtered_labels = merge_masks.filter_labels_in_bbox(bounding_boxes[2], labels)
+    filtered_labels = merge_masks.filter_labels_in_bbox(bounding_boxes[2], label_df,  expansion_factor=0)
 
     # Expected filtered labels for label 2
     expected_filtered_labels_2 = [2]
@@ -161,9 +165,17 @@ def test_filter_labels_in_bbox():
     assert filtered_labels == expected_filtered_labels_2
 
     # Filter labels within the bounding box of an empty label (should return an empty list)
-    filtered_labels = merge_masks.filter_labels_in_bbox(((0, 0), (0, 0)), labels)
+    filtered_labels = merge_masks.filter_labels_in_bbox(((0, 0), (0, 0)), label_df, expansion_factor=0)
 
     # Expected filtered labels for an empty label
     expected_filtered_labels_empty = []
 
     assert filtered_labels == expected_filtered_labels_empty
+
+    # Filter labels within the bounding box of label 1 and expansion
+    filtered_labels = merge_masks.filter_labels_in_bbox(bounding_boxes[1], label_df, expansion_factor=10)
+
+    # Expected filtered labels for label 1 and 2
+    expected_filtered_labels_expanded = [1,2]
+
+    assert filtered_labels == expected_filtered_labels_expanded
