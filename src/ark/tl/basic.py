@@ -15,3 +15,6 @@ def basic_tool(adata: AnnData) -> int:
     """
     print("Implement a tool to run on the AnnData object.")
     return 0
+
+def p2():
+    print("p2")
