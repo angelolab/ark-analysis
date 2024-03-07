@@ -598,15 +598,14 @@ def generate_cell_table(segmentation_dir, tiff_dir, img_sub_folder="TIFs",
 
 
 def get_existing_mask_types(fov_names: List[str], mask_names: List[str]) -> List[str]:
-    """
-    Function to strip prefixes from list: fov_names, strip '.tiff' suffix from list: mask names,
+    """ Function to strip prefixes from list: fov_names, strip '.tiff' suffix from list: mask names,
     and remove underscore prefixes, returning unique mask values (i.e. categories of masks).
 
-        Args:
-            fov_names (List[str]): list of fov names. Matching fov names in mask names will be returned without fov prefix.
-            mask_names (List[str]): list of mask names. Mask names will be returned without tif suffix.
-
-        Returns:
+    Args:
+        fov_names (List[str]): list of fov names. Matching fov names in mask names will be returned without fov prefix.
+        mask_names (List[str]): list of mask names. Mask names will be returned without tiff suffix.
+        
+    Returns:
             List[str]: Unique mask names (i.e. categories of masks)
     """
     stripped_mask_names = io_utils.remove_file_extensions(mask_names)
