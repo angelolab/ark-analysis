@@ -408,7 +408,7 @@ def test_generate_som_avg_files(capsys):
         # test overwrite functionality
         capsys.readouterr()
 
-        # run SOM averaging with overwrite flg
+        # run SOM averaging with overwrite flag
         pixel_som_clustering.generate_som_avg_files(
             fovs, chan_list, temp_dir, pixel_pysom, 'pixel_data_dir', num_fovs_subset=3,
             overwrite=True
@@ -423,8 +423,14 @@ def test_generate_som_avg_files(capsys):
         # remove average SOM file for final test
         os.remove(pc_som_avg_file)
 
-        # ensure error gets thrown when not all SOM clusters make it in
+        # ensure error gets thrown when not all SOM clusters make it in if flag specified
         with pytest.raises(ValueError):
             pixel_som_clustering.generate_som_avg_files(
-                fovs, chan_list, temp_dir, pixel_pysom, 'pixel_data_dir', num_fovs_subset=1
+                fovs, chan_list, temp_dir, pixel_pysom, 'pixel_data_dir', num_fovs_subset=1,
+                require_all_som_clusters=True
             )
+
+        # otherwise, ensure function runs even if not SOM clusters all make it in
+        pixel_som_clustering.generate_som_avg_files(
+            fovs, chan_list, temp_dir, pixel_pysom, 'pixel_data_dir', num_fovs_subset=1
+        )

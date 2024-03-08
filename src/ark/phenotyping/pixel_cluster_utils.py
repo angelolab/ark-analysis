@@ -332,9 +332,9 @@ def compute_pixel_cluster_channel_avg(fovs, channels, base_dir, pixel_cluster_co
         valid_cluster_cols=['pixel_som_cluster', 'pixel_meta_cluster']
     )
 
-    # verify num_pixel_clusters is valid
-    if num_pixel_clusters <= 0:
-        raise ValueError("Number of pixel clusters desired must be a positive integer")
+    # verify num_pixel_clusters is valid if set
+    if num_pixel_clusters is not None and num_pixel_clusters <= 0:
+        raise ValueError("If set, number of pixel clusters desired must be a positive integer")
 
     # verify fovs subset value is valid
     if num_fovs_subset <= 0:
