@@ -306,7 +306,8 @@ def _ignore_extended_attributes(func: Callable, filename: str, exc_info: Tuple[A
 
 def generate_som_avg_files(fovs, channels, base_dir, pixel_pysom, data_dir='pixel_data_dir',
                            pc_chan_avg_som_cluster_name='pixel_channel_avg_som_cluster.csv',
-                           num_fovs_subset=100, seed=42, overwrite=False):
+                           num_fovs_subset=100, require_all_som_clusters=False, seed=42,
+                           overwrite=False):
     """Computes and saves the average channel expression across pixel SOM clusters.
 
     Args:
@@ -324,6 +325,8 @@ def generate_som_avg_files(fovs, channels, base_dir, pixel_pysom, data_dir='pixe
             The name of the file to save the average channel expression across all SOM clusters
         num_fovs_subset (int):
             The number of FOVs to subset on for SOM cluster channel averaging
+        require_all_som_clusters (bool):
+            Whether to require all SOM clusters to have at least one pixel assigned
         seed (int):
             The random seed to set for subsetting FOVs
         overwrite (bool):
@@ -353,7 +356,7 @@ def generate_som_avg_files(fovs, channels, base_dir, pixel_pysom, data_dir='pixe
         channels,
         base_dir,
         'pixel_som_cluster',
-        pixel_pysom.weights.shape[0],
+        pixel_pysom.weights.shape[0] if require_all_som_clusters else None,
         data_dir,
         num_fovs_subset=num_fovs_subset,
         seed=seed,
