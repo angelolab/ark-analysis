@@ -379,6 +379,7 @@ def test_generate_som_avg_files(capsys):
         pixel_pysom = cluster_helpers.PixelSOMCluster(
             pixel_data_path, norm_vals_path, weights_path, fovs, chan_list
         )
+        pixel_pysom.som_clusters_seen = set(list(np.arange(3)))
 
         # test base generation with all subsetted FOVs
         pixel_som_clustering.generate_som_avg_files(
@@ -424,13 +425,14 @@ def test_generate_som_avg_files(capsys):
         os.remove(pc_som_avg_file)
 
         # ensure error gets thrown when not all SOM clusters make it in if flag specified
+        pixel_pysom.som_clusters_seen = set(list(np.arange(200)))
         with pytest.raises(ValueError):
             pixel_som_clustering.generate_som_avg_files(
-                fovs, chan_list, temp_dir, pixel_pysom, 'pixel_data_dir', num_fovs_subset=1,
-                require_all_som_clusters=True
+                fovs, chan_list, temp_dir, pixel_pysom, 'pixel_data_dir', num_fovs_subset=1
             )
 
         # otherwise, ensure function runs even if not SOM clusters all make it in
         pixel_som_clustering.generate_som_avg_files(
-            fovs, chan_list, temp_dir, pixel_pysom, 'pixel_data_dir', num_fovs_subset=1
+            fovs, chan_list, temp_dir, pixel_pysom, 'pixel_data_dir', num_fovs_subset=1,
+            require_all_som_clusters=False
         )

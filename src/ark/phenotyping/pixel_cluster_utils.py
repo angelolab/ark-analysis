@@ -292,7 +292,7 @@ def filter_with_nuclear_mask(fovs: List, tiff_dir: str, seg_dir: str, channel: s
 
 
 def compute_pixel_cluster_channel_avg(fovs, channels, base_dir, pixel_cluster_col,
-                                      num_pixel_clusters=None,
+                                      num_pixel_clusters,
                                       pixel_data_dir='pixel_mat_data',
                                       num_fovs_subset=100, seed=42, keep_count=False):
     """Compute the average channel values across each pixel SOM cluster.
