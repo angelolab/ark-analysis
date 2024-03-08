@@ -45,7 +45,7 @@ def test_merge_masks_seq():
 
         # we're only testing functionality, for in-depth merge testing see test_merge_masks_single
         merge_masks.merge_masks_seq(fov_list, object_list, object_mask_dir, cell_mask_dir, cell_mask_suffix,
-                                    overlap_thresh, merged_mask_dir, log_dir, expansion_factor)
+                                    overlap_thresh, expansion_factor, merged_mask_dir, log_dir)
 
         for fov in fov_list:
             print("checking fov")
@@ -176,6 +176,6 @@ def test_filter_labels_in_bbox():
     filtered_labels = merge_masks.filter_labels_in_bbox(bounding_boxes[1], label_df, expansion_factor=10)
 
     # Expected filtered labels for label 1 and 2
-    expected_filtered_labels_expanded = [1,2]
+    expected_filtered_labels_expanded = [1, 2]
 
     assert filtered_labels == expected_filtered_labels_expanded
