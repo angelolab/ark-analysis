@@ -292,7 +292,7 @@ def filter_with_nuclear_mask(fovs: List, tiff_dir: str, seg_dir: str, channel: s
 
 
 def compute_pixel_cluster_channel_avg(fovs, channels, base_dir, pixel_cluster_col,
-                                      num_pixel_clusters,
+                                      num_pixel_clusters=None,
                                       pixel_data_dir='pixel_mat_data',
                                       num_fovs_subset=100, seed=42, keep_count=False):
     """Compute the average channel values across each pixel SOM cluster.
@@ -309,7 +309,7 @@ def compute_pixel_cluster_channel_avg(fovs, channels, base_dir, pixel_cluster_co
         pixel_cluster_col (str):
             Name of the column to group by
         num_pixel_clusters (int):
-            The number of pixel clusters that are desired
+            The number of pixel clusters that are desired, if None then no fixed amount required
         pixel_data_dir (str):
             Name of the directory containing the pixel data with cluster labels
         num_fovs_subset (float):
@@ -392,7 +392,7 @@ def compute_pixel_cluster_channel_avg(fovs, channels, base_dir, pixel_cluster_co
     )[channels + ['count']].sum().reset_index()
 
     # error out if any clusters were lost during the averaging process
-    if sum_count_totals.shape[0] < num_pixel_clusters:
+    if num_pixel_clusters is not None and sum_count_totals.shape[0] < num_pixel_clusters:
         raise ValueError(
             'Averaged data contains just %d clusters out of %d. '
             'Average expression file not written. '
