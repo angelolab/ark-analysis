@@ -216,9 +216,10 @@ def cluster_pixels(fovs, base_dir, pixel_pysom, data_dir='pixel_mat_data',
         pixel_data_columns=sample_fov.columns.values
     )
 
-    # if overwrite flag set, run on all FOVs in data_dir
+    # if overwrite flag set, run on all FOVs in data_dir, make sure to reset SOM clusters seen
     if overwrite:
         print('Overwrite flag set, reassigning SOM cluster labels to all FOVs')
+        pixel_pysom.som_clusters_seen = set()
         os.mkdir(data_path + '_temp')
         fovs_list = io_utils.remove_file_extensions(
             io_utils.list_files(data_path, substrs='.feather')
