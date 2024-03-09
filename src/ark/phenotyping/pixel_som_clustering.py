@@ -122,7 +122,7 @@ def run_pixel_som_assignment(pixel_data_path, pixel_pysom_obj, overwrite, num_pa
 
     # if the overwrite flag was set in cluster_pixels, drop the pixel_som_cluster column
     if overwrite:
-        fov_data = fov_data.drop(columns="pixel_som_cluster")
+        fov_data = fov_data.drop(columns="pixel_som_cluster", errors="ignore")
 
     # assign the SOM labels to fov_data, overwrite flag indicates if data needs normalization
     fov_data = pixel_pysom_obj.assign_som_clusters(
