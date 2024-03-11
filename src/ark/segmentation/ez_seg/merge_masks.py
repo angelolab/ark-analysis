@@ -129,7 +129,7 @@ def merge_masks_single(
     object_labels_bounding_boxes = get_bounding_boxes(object_labels)
 
     # Calculate all cell regionprops for filtering, convert to DataFrame
-    cell_props = pd.DataFrame(regionprops_table(cell_labels, properties=('label', 'centroid', 'major_axis_length')))
+    cell_props = pd.DataFrame(regionprops_table(cell_labels, properties=('label', 'centroid')))
 
     # Find connected components in object and cell masks. Merge only those with highest overlap that meets threshold.
     for obj_label in range(1, num_object_labels + 1):
@@ -142,7 +142,7 @@ def merge_masks_single(
 
         # Filter for cell_labels that fall within the expanded bounding box of the obj_label
         cell_labels_in_range = filter_labels_in_bbox(
-            object_labels_bounding_boxes.pop(obj_label), cell_props, expansion_factor)
+            object_labels_bounding_boxes[obj_label], cell_props, expansion_factor)
 
         for cell_label in cell_labels_in_range:
             # Extract a connected component from cell_mask
@@ -191,15 +191,12 @@ def get_bounding_boxes(object_labels: np.ndarray):
     bounding_boxes = {}
 
     # Get region properties as a DataFrame
-    props = regionprops_table(object_labels, properties=('label', 'bbox'))
+    props_df = pd.DataFrame(regionprops_table(object_labels, properties=('label', 'bbox')))
 
-    # Convert to DataFrame
-    df = pd.DataFrame(props)
-
-    for _, row in df.iterrows():
-        label_id, min_row, min_col, max_row, max_col = row.values
-        # Return closed interval bounding box
-        bounding_boxes[label_id] = ((min_row, min_col), (max_row-1, max_col-1))
+    # Return closed interval bounding box
+    # label_id, min_row, min_col, max_row, max_col used to define bbox
+    props_df.apply(lambda row: bounding_boxes.update(
+        {row['label']: ((row['bbox-0'], row['bbox-1']), (row['bbox-2'] - 1, row['bbox-3'] - 1))}), axis=1)
 
     return bounding_boxes
 
