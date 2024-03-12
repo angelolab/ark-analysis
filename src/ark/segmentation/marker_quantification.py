@@ -455,7 +455,7 @@ def create_marker_count_matrices(segmentation_labels, image_data, nuclear_counts
 def generate_cell_table(segmentation_dir, tiff_dir, img_sub_folder="TIFs",
                         is_mibitiff=False, fovs=None,
                         extraction='total_intensity', nuclear_counts=False,
-                        fast_extraction=False, **kwargs):
+                        fast_extraction=False, mask_types=['whole_cell'], **kwargs):
     """This function takes the segmented data and computes the expression matrices batch-wise
     while also validating inputs
 
@@ -476,6 +476,8 @@ def generate_cell_table(segmentation_dir, tiff_dir, img_sub_folder="TIFs",
         nuclear_counts (bool):
             boolean flag to determine whether nuclear counts are returned, note that if
             set to True, the compartments coordinate in segmentation_labels must contain 'nuclear'
+        mask_types (list):
+            if set, skips the custom regionprops and expensive base regionprops extraction steps
         fast_extraction (bool):
             if set, skips the custom regionprops and expensive base regionprops extraction steps
         **kwargs:
@@ -526,19 +528,6 @@ def generate_cell_table(segmentation_dir, tiff_dir, img_sub_folder="TIFs",
                                                         img_sub_folder=img_sub_folder,
                                                         fovs=[fov_name])
 
-        # define the files for whole cell and nuclear
-        whole_cell_file = fov_name + '_whole_cell.tiff'
-        nuclear_file = fov_name + '_nuclear.tiff'
-
-        # for each label given in the argument, read in that mask for the fov, and proceed with
-        # label and table appending
-        mask_files = io_utils.list_files(segmentation_dir, substrs=fov_name)
-        mask_types = get_existing_mask_types(fov_names=fovs, mask_names=mask_files)
- 
-        # remove nuclear from mask_types if nuclear_counts False
-        if not nuclear_counts and "nuclear" in mask_types:
-            mask_types.remove("nuclear")
-
         for mask_type in mask_types:
             # load the segmentation labels in
             fov_mask_name = fov_name + '_' + mask_type + ".tiff"
@@ -551,7 +540,8 @@ def generate_cell_table(segmentation_dir, tiff_dir, img_sub_folder="TIFs",
             compartments = ['whole_cell']
             segmentation_labels = current_labels_cell.values
 
-            if nuclear_counts:
+            if nuclear_counts and mask_type == 'whole_cell':
+                nuclear_file = fov_name + '_nuclear.tiff'
                 current_labels_nuc = load_utils.load_imgs_from_dir(data_dir=segmentation_dir,
                                                                    files=[nuclear_file],
                                                                    xr_dim_name='compartments',
