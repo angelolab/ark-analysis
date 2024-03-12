@@ -476,10 +476,10 @@ def generate_cell_table(segmentation_dir, tiff_dir, img_sub_folder="TIFs",
         nuclear_counts (bool):
             boolean flag to determine whether nuclear counts are returned, note that if
             set to True, the compartments coordinate in segmentation_labels must contain 'nuclear'
-        mask_types (list):
-            if set, skips the custom regionprops and expensive base regionprops extraction steps
         fast_extraction (bool):
             if set, skips the custom regionprops and expensive base regionprops extraction steps
+        mask_types (list):
+            list of masks to extract data for, defaults to ['whole_cell']
         **kwargs:
             arbitrary keyword arguments for signal and regionprops extraction
 
