@@ -736,15 +736,15 @@ def test_generate_cell_table_tree_loading():
             nuclear_counts=True)
 
         # setting nuclear_counts True generates data for both whole_cell and nuclear
-        # so there should be double the number of rows
-        assert norm_data_nuc.shape[0] == norm_data_fov_sub.shape[0] * 2
+        # so there should be double the number of columns, but not rows
+        assert norm_data_nuc.shape[0] == norm_data_fov_sub.shape[0]
         assert norm_data_nuc.shape[1] == norm_data_fov_sub.shape[1] * 2
         misc_utils.verify_in_list(
             nuclear_col='nc_ratio',
             nuc_cell_table_cols=norm_data_nuc.columns.values
         )
 
-        assert arcsinh_data_nuc.shape[0] == arcsinh_data_fov_sub.shape[0] * 2
+        assert arcsinh_data_nuc.shape[0] == arcsinh_data_fov_sub.shape[0]
         assert arcsinh_data_nuc.shape[1] == norm_data_fov_sub.shape[1] * 2
         misc_utils.verify_in_list(
             nuclear_col='nc_ratio',
