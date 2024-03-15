@@ -12,7 +12,6 @@ dependencies = [
     "alpineer==0.1.12",
     "anndata",
     "Cython>=3",
-    "dask[distributed]",
     "datasets>=2.6,<3.0",
     "dill>=0.3.5,<0.4",
     "feather-format>=0.4.1,<1",
