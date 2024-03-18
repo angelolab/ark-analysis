@@ -507,6 +507,19 @@ def test_generate_and_save_pixel_cluster_masks(sub_dir, name_suffix):
             consensus_data['row_index'] = np.random.randint(low=0, high=chan_dims[0], size=100)
             consensus_data['column_index'] = np.random.randint(low=0, high=chan_dims[1], size=100)
 
+            # create pixel mapping file
+            cluster_id_to_name_path = os.path.join(temp_dir, 'mapping.csv')
+            df = pd.DataFrame.from_dict(
+                {
+                    "pixel_som_cluster": np.arange(1, 11),
+                    "pixel_meta_cluster": np.repeat(np.arange(5) + 1, 2),
+                    "pixel_meta_cluster_rename": [
+                        "meta" + str(i) for i in np.repeat(np.arange(5) + 1, 2)
+                    ]
+                }
+            )
+            df.to_csv(cluster_id_to_name_path, index=False)
+
             feather.write_dataframe(
                 consensus_data, os.path.join(temp_dir, 'pixel_mat_consensus', fov + '.feather')
             )
@@ -518,6 +531,7 @@ def test_generate_and_save_pixel_cluster_masks(sub_dir, name_suffix):
             tiff_dir=temp_dir,
             chan_file='chan0.tiff',
             pixel_data_dir='pixel_mat_consensus',
+            cluster_id_to_name_path=cluster_id_to_name_path,
             pixel_cluster_col='pixel_meta_cluster',
             sub_dir=sub_dir,
             name_suffix=name_suffix
@@ -534,6 +548,10 @@ def test_generate_and_save_pixel_cluster_masks(sub_dir, name_suffix):
             actual_img_dims = (40, 40) if i < fov_size_split else (20, 20)
             assert pixel_mask.shape == actual_img_dims
             assert np.all(pixel_mask <= 5)
+
+        # check that mapping was updated with cluster_id
+        mapping = pd.read_csv(cluster_id_to_name_path)
+        assert "cluster_id" in mapping.columns
 
 
 @parametrize('sub_dir', [None, 'sub_dir'])
