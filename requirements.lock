@@ -8,7 +8,6 @@
 #   with-sources: false
 
 -e file:.
-    # via file:///-
 accessible-pygments==0.0.4
     # via pydata-sphinx-theme
 aiobotocore==2.5.4
@@ -124,6 +123,7 @@ dask==2024.2.1
     # via distributed
     # via multiscale-spatial-image
     # via ome-zarr
+    # via spatialdata
     # via xbatcher
 dask-image==2023.8.1
     # via ark
@@ -184,7 +184,6 @@ frozenlist==1.4.1
 fsspec==2023.6.0
     # via dask
     # via datasets
-    # via fsspec
     # via huggingface-hub
     # via lightning
     # via ome-zarr
@@ -465,7 +464,6 @@ numpy==1.23.4
     # via numpy-groupies
     # via ome-zarr
     # via opt-einsum
-    # via pandas
     # via patsy
     # via pims
     # via pyarrow
@@ -516,6 +514,7 @@ packaging==23.2
     # via lightning-utilities
     # via matplotlib
     # via nbconvert
+    # via pooch
     # via pydata-sphinx-theme
     # via pytest
     # via pytorch-lightning
@@ -577,9 +576,12 @@ pkginfo==1.9.6
 platformdirs==4.2.0
     # via esbonio
     # via jupyter-core
+    # via pooch
     # via virtualenv
 pluggy==1.4.0
     # via pytest
+pooch==1.8.1
+    # via spatialdata
 pre-commit==3.6.2
     # via ark
 prometheus-client==0.20.0
@@ -682,6 +684,7 @@ requests==2.31.0
     # via jupyterlab-server
     # via ome-zarr
     # via panel
+    # via pooch
     # via requests-toolbelt
     # via sphinx
     # via twine
@@ -736,6 +739,10 @@ send2trash==1.8.2
 session-info==1.0.0
     # via ark
     # via scanpy
+setuptools==69.1.1
+    # via fiona
+    # via lightning-utilities
+    # via nodeenv
 shapely==2.0.3
     # via geopandas
     # via spatialdata
@@ -763,10 +770,10 @@ soupsieve==2.5
 spatial-image==0.3.0
     # via multiscale-spatial-image
     # via spatialdata
-spatialdata @ git+https://github.com/scverse/spatialdata.git@multi_table
+spatialdata @ git+https://github.com/scverse/spatialdata.git@421c31517fa4d510025e2bc9c7ce7106eaf47072
     # via ark
     # via spatialdata-plot
-spatialdata-plot==0.1.0
+spatialdata-plot @ git+https://github.com/scverse/spatialdata-plot@0da78787478e41fe3269c64f16d26f4fc7d394fb
     # via ark
 sphinx==7.2.6
     # via ark
@@ -959,7 +966,3 @@ zict==3.0.0
     # via distributed
 zipp==3.17.0
     # via importlib-metadata
-setuptools==69.1.1
-    # via fiona
-    # via lightning-utilities
-    # via nodeenv
