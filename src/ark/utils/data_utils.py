@@ -542,8 +542,8 @@ def generate_pixel_cluster_mask(fov, base_dir, tiff_dir, chan_file_path,
     # get the corresponding cluster labels for each pixel
     cluster_labels = list(fov_data[pixel_cluster_col])
 
-    # relabel clusters with sequential integers
-    unique_clusters = list(np.unique(cluster_labels))
+    # relabel clusters with sequential integers (cluster_id)
+    unique_clusters = list(np.unique(cluster_labels))  # returns sorted meta cluster numbers
     cluster_ids = list(range(1, len(unique_clusters) + 1))
     id_mapping = {meta_cluster: cluster_id
                   for meta_cluster, cluster_id in zip(unique_clusters, cluster_ids)}
@@ -585,7 +585,7 @@ def generate_and_save_pixel_cluster_masks(fovs: List[str],
             The path to the data with full pixel data.
             This data should also have the SOM and meta cluster labels appended.
         cluster_id_to_name_path (Union[str, pathlib.Path]): A path to a CSV identifying the
-            cell cluster to manually-defined name mapping this is output by the remapping
+            pixel cluster to manually-defined name mapping this is output by the remapping
             visualization found in `metacluster_remap_gui`.
         pixel_cluster_col (str, optional):
             The path to the data with full pixel data.
@@ -598,14 +598,14 @@ def generate_and_save_pixel_cluster_masks(fovs: List[str],
         name_suffix (str, optional):
             Specify what to append at the end of every pixel mask. Defaults to `''`.
     """
-    # read in gui cluster mapping file and new cluster mapping created by ClusterMaskData
+    # read in gui cluster mapping file and save cluster_id created in generate_pixel_cluster_mask
     gui_map = pd.read_csv(cluster_id_to_name_path)
     cluster_map = gui_map.copy()[[pixel_cluster_col]]
 
     cluster_map = cluster_map.drop_duplicates().sort_values(by=[pixel_cluster_col])
     cluster_map["cluster_id"] = list(range(1, len(cluster_map) + 1))
 
-    # drop the cluster_id column from updated_cluster_map if it already exists, otherwise do nothing
+    # drop the cluster_id column from gui_map if it already exists, otherwise do nothing
     gui_map = gui_map.drop(columns="cluster_id", errors="ignore")
 
     # add a cluster_id column corresponding to the new mask integers
