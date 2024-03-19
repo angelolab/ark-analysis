@@ -19,11 +19,10 @@ import xarray as xr
 from ark import settings
 from skimage.segmentation import find_boundaries
 import dask.dataframe as dd
-from dask import delayed
+from pandas.core.groupby.generic import DataFrameGroupBy
 from anndata import AnnData, read_zarr
 from anndata.experimental import AnnCollection
 from anndata.experimental.multi_files._anncollection import ConvertType
-from tqdm.dask import TqdmCallback
 from torchdata.datapipes.iter import IterDataPipe
 from typing import Iterator, Optional
 try:
@@ -849,14 +848,13 @@ def stitch_images_by_shape(data_dir, stitched_dir, img_sub_folder=None, channels
                                current_img)
 
 
-@delayed
-def _convert_ct_fov_to_adata(fov_dd: dd.DataFrame, var_names: list[str], obs_names: list[str], save_dir: os.PathLike) -> str:
+def _convert_ct_fov_to_adata(fov_group: DataFrameGroupBy, var_names: list[str], obs_names: list[str], save_dir: os.PathLike) -> str:
     """Converts the cell table for a single FOV to an `AnnData` object and saves it to disk as a
     `Zarr` store.
 
     Parameters
     ----------
-    fov_dd : dd.DataFrame
+    fov_group : DataFrameGroupBy
         The cell table subset on a single FOV.
     var_names: list[str]
         The marker names to extract from the cell table.
@@ -871,7 +869,7 @@ def _convert_ct_fov_to_adata(fov_dd: dd.DataFrame, var_names: list[str], obs_nam
         The path of the saved `AnnData` object.
     """
     
-    fov_dd: dd.DataFrame = fov_dd.sort_values(by=settings.CELL_LABEL, key=ns.natsort_key).reset_index()
+    fov_dd: dd.DataFrame = fov_group.sort_values(by=settings.CELL_LABEL, key=ns.natsort_key).reset_index()
     fov_id: str = fov_dd[settings.FOV_ID].iloc[0]
 
     # Set the index to be the FOV and the segmentation label to create a unique index
@@ -932,11 +930,10 @@ class ConvertToAnnData:
         
         io_utils.validate_paths(paths=cell_table_path)
         
-        
         # Read in the cell table
-        cell_table: dd.DataFrame = dd.read_csv(cell_table_path)
+        cell_table: pd.DataFrame = pd.read_csv(cell_table_path)
         ct_columns = cell_table.columns
-        
+
         # Get the marker column indices
         marker_index_start: int = ct_columns.get_loc(settings.PRE_CHANNEL_COL) + 1
         marker_index_stop: int = ct_columns.get_loc(settings.POST_CHANNEL_COL)
@@ -996,20 +993,16 @@ class ConvertToAnnData:
         if not save_dir.exists():
             save_dir.mkdir(parents=True, exist_ok=True)
 
+        n_unique_fovs = self.cell_table[settings.FOV_ID].nunique()
 
-        with TqdmCallback(desc="Converting to AnnData"):
-            g: pd.Series = (
-                self.cell_table.groupby(by=settings.FOV_ID, sort=True)
-                .apply(
-                    _convert_ct_fov_to_adata,
-                    var_names=self.var_names,
-                    obs_names=self.obs_names,
-                    save_dir=save_dir,
-                    meta=("anndata_save_results", str),
-                )
-            ).compute()
+        tqdm.pandas(desc="Converting Cell Table to AnnData Tables", total=n_unique_fovs, unit="FOVs")
 
-        return g.to_dict()
+        result: pd.Series = self.cell_table.groupby(by=settings.FOV_ID, sort=True).progress_apply(
+            lambda x: _convert_ct_fov_to_adata(
+                x, var_names=self.var_names, obs_names=self.obs_names, save_dir=save_dir
+            ),
+        )
+        return result.to_dict()
 
 
 class AnnCollectionKwargs(TypedDict):

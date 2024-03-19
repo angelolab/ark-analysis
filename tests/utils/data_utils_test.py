@@ -796,38 +796,35 @@ def test_convert_ct_fov_to_adata(tmp_path: pytest.TempPathFactory):
     n_cells = 100
     n_markers = 10
     ct = ark_test_utils.make_cell_table(n_cells=n_cells, n_markers=n_markers)
-    ct_dd = dd.from_pandas(ct, npartitions=2)
-    fov1_dd = ct_dd[ct_dd[settings.FOV_ID] == 1]
+
+    ct_gb = ct.groupby(by=settings.FOV_ID)
+    fov1_ct = ct_gb.get_group(1)
 
     var_names = [f"marker_{i}" for i in range(n_markers)]
-    obs_names = fov1_dd.drop(columns=var_names).columns.to_list()
+    obs_names = fov1_ct.drop(columns=var_names).columns.to_list()
 
     fov1_adata_save_path = data_utils._convert_ct_fov_to_adata(
-        fov_dd=fov1_dd,
+        fov_group=fov1_ct,
         var_names=var_names,
         obs_names=obs_names,
         save_dir=tmp_path
     )
-    save_path = fov1_adata_save_path.compute()
 
     # Assert that the file exists
     assert (tmp_path / "1.zarr").exists()
 
     # Load the AnnData Zarr Store
-    fov1_adata = read_zarr(save_path)
-
-    # compute fov1_dd for asserts
-    fov1_df = fov1_dd.compute()
+    fov1_adata = read_zarr(fov1_adata_save_path)
 
     # Assert that the obs_names follow "{fov_id}_{cell_label}"
-    true_obs_names = list(map(lambda label: f"1_{int(label)}", fov1_df[settings.CELL_LABEL]))
+    true_obs_names = list(map(lambda label: f"1_{int(label)}", fov1_ct[settings.CELL_LABEL]))
     assert fov1_adata.obs_names.tolist() == true_obs_names
 
     # Assert that the X / Markers values are correct
-    np.testing.assert_allclose(actual=fov1_adata.X, desired=fov1_df[var_names].values)
+    np.testing.assert_allclose(actual=fov1_adata.X, desired=fov1_ct[var_names].values)
 
     # Assert that the obs columns are correct
-    expected_obs_columns = fov1_df.drop(
+    expected_obs_columns = fov1_ct.drop(
         columns=[*var_names, settings.CENTROID_0, settings.CENTROID_1]
     ).columns
     assert fov1_adata.obs.columns.tolist() == expected_obs_columns.tolist()
@@ -835,7 +832,7 @@ def test_convert_ct_fov_to_adata(tmp_path: pytest.TempPathFactory):
     # Assert that the obsm values are correct
     np.testing.assert_allclose(
         actual=fov1_adata.obsm["spatial"].values,
-        desired=fov1_df[[settings.CENTROID_0, settings.CENTROID_1]].values
+        desired=fov1_ct[[settings.CENTROID_0, settings.CENTROID_1]].values
     )
 
 
