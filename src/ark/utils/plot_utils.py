@@ -147,12 +147,13 @@ class MetaclusterColormap:
         # grab mask cluster_id integers and merge with raw_cmap
         cluster_id_to_metacluster_map = cluster_id_to_name[
             [f"{self.cluster_type}_meta_cluster", "cluster_id"]].drop_duplicates()
+        unassigned_cluster_id: int = int(cluster_id_to_name["cluster_id"].max() + 1)
         cluster_id_to_metacluster_map = pd.concat(
             [
                 cluster_id_to_metacluster_map,
                 pd.DataFrame(
                     data={
-                        f"{self.cluster_type}_meta_cluster": [unassigned_id, 0],
+                        f"{self.cluster_type}_meta_cluster": [unassigned_cluster_id, 0],
                         "cluster_id": [unassigned_id, 0],
                     }
                 )
@@ -733,7 +734,7 @@ def create_mantis_dir(fovs: List[str], mantis_project_path: Union[str, pathlib.P
     if not new_mask_suffix:
         new_mask_suffix = mask_suffix
 
-    cluster_id_key = 'cluster_id' if cluster_type == 'cell' else 'pixel_meta_cluster'
+    cluster_id_key = 'cluster_id'
     map_df = map_df.loc[:, [cluster_id_key, f'{cluster_type}_meta_cluster_rename']]
     # remove duplicates from df
     map_df = map_df.drop_duplicates()

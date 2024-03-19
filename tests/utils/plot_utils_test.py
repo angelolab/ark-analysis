@@ -594,8 +594,7 @@ def test_create_mantis_dir(
                 os.path.join(output_path, f"population{mask_suff}.csv"))
 
             # 3.a. Assert that appropratiate cluster col equals the region_id col
-            cluster_col = "cluster_id" if cluster_type == "cell"\
-                else f"{cluster_type}_meta_cluster"
+            cluster_col = "cluster_id"
             metacluster_col = original_mapping_df[[cluster_col]].drop_duplicates()
             region_id_col = new_mapping_df[["region_id"]]
             assert np.equal(metacluster_col.values, region_id_col.values).all()
