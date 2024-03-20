@@ -477,7 +477,8 @@ def generate_and_save_cell_cluster_masks(
 
 
 def generate_pixel_cluster_mask(fov, base_dir, tiff_dir, chan_file_path,
-                                pixel_data_dir, pixel_cluster_col='pixel_meta_cluster'):
+                                pixel_data_dir, cluster_mapping,
+                                pixel_cluster_col='pixel_meta_cluster'):
     """For a fov, create a mask labeling each pixel with their SOM or meta cluster label
 
     Args:
@@ -493,6 +494,8 @@ def generate_pixel_cluster_mask(fov, base_dir, tiff_dir, chan_file_path,
         pixel_data_dir (str):
             The path to the data with full pixel data.
             This data should also have the SOM and meta cluster labels appended.
+        cluster_mapping (pd.DataFrame)
+            Dataframe detailing which meta_cluster IDs map to which cluster_id
         pixel_cluster_col (str):
             Whether to assign SOM or meta clusters
             needs to be `'pixel_som_cluster'` or `'pixel_meta_cluster'`
@@ -542,11 +545,9 @@ def generate_pixel_cluster_mask(fov, base_dir, tiff_dir, chan_file_path,
     # get the corresponding cluster labels for each pixel
     cluster_labels = list(fov_data[pixel_cluster_col])
 
-    # relabel clusters with sequential integers (cluster_id)
-    unique_clusters = list(np.unique(cluster_labels))  # returns sorted meta cluster numbers
-    cluster_ids = list(range(1, len(unique_clusters) + 1))
-    id_mapping = {meta_cluster: cluster_id
-                  for meta_cluster, cluster_id in zip(unique_clusters, cluster_ids)}
+    # relabel meta_cluster numbers with cluster_id
+    cluster_mapping = cluster_mapping.drop_duplicates()[[pixel_cluster_col, 'cluster_id']]
+    id_mapping = dict(zip(cluster_mapping[pixel_cluster_col], cluster_mapping['cluster_id']))
     cluster_labels = [id_mapping[label] for label in cluster_labels]
 
     # assign each coordinate in pixel_cluster_mask to its respective cluster label
@@ -626,7 +627,8 @@ def generate_and_save_pixel_cluster_masks(fovs: List[str],
                 generate_pixel_cluster_mask(fov=fov, base_dir=base_dir, tiff_dir=tiff_dir,
                                             chan_file_path=chan_file_path,
                                             pixel_data_dir=pixel_data_dir,
-                                            pixel_cluster_col=pixel_cluster_col)
+                                            pixel_cluster_col=pixel_cluster_col,
+                                            cluster_mapping=updated_cluster_map)
 
             # save the pixel mask generated
             save_fov_mask(fov, data_dir=save_dir, mask_data=pixel_mask, sub_dir=sub_dir,

@@ -398,13 +398,13 @@ def test_generate_pixel_cluster_mask():
         # bad segmentation path passed
         with pytest.raises(FileNotFoundError):
             data_utils.generate_pixel_cluster_mask(
-                fov, temp_dir, 'bad_tiff_dir', 'bad_chan_file', 'bad_consensus_path'
+                fov, temp_dir, 'bad_tiff_dir', 'bad_chan_file', 'bad_consensus_path', {}
             )
 
         # bad channel file path passed
         with pytest.raises(FileNotFoundError):
             data_utils.generate_pixel_cluster_mask(
-                fov, temp_dir, temp_dir, 'bad_chan_file', 'bad_consensus_path'
+                fov, temp_dir, temp_dir, 'bad_chan_file', 'bad_consensus_path', {}
             )
 
         # generate sample fov folder with one channel value, no sub folder
@@ -415,7 +415,8 @@ def test_generate_pixel_cluster_mask():
         # bad consensus path passed
         with pytest.raises(FileNotFoundError):
             data_utils.generate_pixel_cluster_mask(
-                fov, temp_dir, temp_dir, os.path.join('fov0', 'chan0.tiff'), 'bad_consensus_path'
+                fov, temp_dir, temp_dir, os.path.join('fov0', 'chan0.tiff'), 'bad_consensus_path',
+                {}
             )
 
         # create a dummy consensus directory
@@ -424,9 +425,20 @@ def test_generate_pixel_cluster_mask():
         # create dummy data containing SOM and consensus labels for the fov
         consensus_data = pd.DataFrame(np.random.rand(100, 4), columns=chans)
         consensus_data['pixel_som_cluster'] = np.tile(np.arange(1, 11), 10)
-        consensus_data['pixel_meta_cluster'] = np.tile(np.arange(1, 6), 20)
+        consensus_data['pixel_meta_cluster'] = np.tile(np.arange(2, 7), 20)
         consensus_data['row_index'] = np.random.randint(low=0, high=40, size=100)
         consensus_data['column_index'] = np.random.randint(low=0, high=40, size=100)
+
+        cluster_mapping = pd.DataFrame.from_dict(
+            {
+                "pixel_som_cluster": np.arange(1, 11),
+                "pixel_meta_cluster": np.repeat(np.arange(2, 7), 2),
+                "pixel_meta_cluster_rename": [
+                    "meta" + str(i) for i in np.repeat(np.arange(2, 7), 2)
+                ],
+                "cluster_id": np.repeat(np.arange(1, 6), 2),
+            }
+        )
 
         feather.write_dataframe(
             consensus_data, os.path.join(temp_dir, 'pixel_mat_consensus', fov + '.feather')
@@ -436,20 +448,20 @@ def test_generate_pixel_cluster_mask():
         with pytest.raises(ValueError):
             data_utils.generate_pixel_cluster_mask(
                 fov, temp_dir, temp_dir, os.path.join('fov0', 'chan0.tiff'),
-                'pixel_mat_consensus', 'bad_cluster'
+                'pixel_mat_consensus', cluster_mapping, 'bad_cluster'
             )
 
         # bad fov provided
         with pytest.raises(ValueError):
             data_utils.generate_pixel_cluster_mask(
                 'fov1', temp_dir, temp_dir, os.path.join('fov0', 'chan0.tiff'),
-                'pixel_mat_consensus', 'pixel_som_cluster'
+                'pixel_mat_consensus', cluster_mapping, 'pixel_som_cluster'
             )
 
         # test on SOM assignments
         pixel_masks = data_utils.generate_pixel_cluster_mask(
             fov, temp_dir, temp_dir, os.path.join('fov0', 'chan0.tiff'),
-            'pixel_mat_consensus', 'pixel_som_cluster'
+            'pixel_mat_consensus', cluster_mapping, 'pixel_som_cluster'
         )
 
         # assert the image size is the same as the mask (40, 40)
@@ -461,7 +473,7 @@ def test_generate_pixel_cluster_mask():
         # test on meta assignments
         pixel_masks = data_utils.generate_pixel_cluster_mask(
             fov, temp_dir, temp_dir, os.path.join('fov0', 'chan0.tiff'),
-            'pixel_mat_consensus', 'pixel_meta_cluster'
+            'pixel_mat_consensus', cluster_mapping, 'pixel_meta_cluster'
         )
 
         # assert the image size is the same as the mask (40, 40)
@@ -469,6 +481,27 @@ def test_generate_pixel_cluster_mask():
 
         # assert no value is greater than the highest meta cluster value (5)
         assert np.all(pixel_masks <= 5)
+
+        # assert that only cluster_id ints are used in the mask
+        assert (np.unique(pixel_masks) ==
+                np.append([0], np.unique(cluster_mapping['cluster_id']))).all()
+
+        # create fov using only subset of possible pixel clusters
+        consensus_data_sub = consensus_data.copy()
+        consensus_data_sub['pixel_meta_cluster'] = np.tile(np.array([3, 6]), 50)
+
+        feather.write_dataframe(
+            consensus_data_sub, os.path.join(temp_dir, 'pixel_mat_consensus', fov + '.feather')
+        )
+
+        # test mask generation for subset fov
+        pixel_masks_sub = data_utils.generate_pixel_cluster_mask(
+            fov, temp_dir, temp_dir, os.path.join('fov0', 'chan0.tiff'),
+            'pixel_mat_consensus', cluster_mapping, 'pixel_meta_cluster'
+        )
+
+        # assert that only cluster_id ints are used in the mask
+        assert (np.unique(pixel_masks_sub) == np.array([0, 2, 5])).all()
 
 
 @parametrize('sub_dir', [None, 'sub_dir'])
