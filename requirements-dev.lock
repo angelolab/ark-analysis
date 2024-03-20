@@ -47,6 +47,8 @@ asttokens==2.4.1
     # via stack-data
 async-lru==2.0.4
     # via jupyterlab
+async-timeout==4.0.3
+    # via aiohttp
 attrs==23.2.0
     # via aiohttp
     # via cattrs
@@ -159,6 +161,12 @@ equinox==0.11.3
     # via ark
 esbonio==0.16.4
     # via ark
+exceptiongroup==1.2.0
+    # via anndata
+    # via anyio
+    # via cattrs
+    # via ipython
+    # via pytest
 executing==2.0.1
     # via stack-data
 fasteners==0.19
@@ -464,6 +472,7 @@ numpy==1.23.4
     # via numpy-groupies
     # via ome-zarr
     # via opt-einsum
+    # via pandas
     # via patsy
     # via pims
     # via pyarrow
@@ -770,10 +779,10 @@ soupsieve==2.5
 spatial-image==0.3.0
     # via multiscale-spatial-image
     # via spatialdata
-spatialdata @ git+https://github.com/scverse/spatialdata.git@421c31517fa4d510025e2bc9c7ce7106eaf47072
+spatialdata @ git+https://github.com/scverse/spatialdata.git@778f508508bdce6b87312b072345dbbab289a430
     # via ark
     # via spatialdata-plot
-spatialdata-plot @ git+https://github.com/scverse/spatialdata-plot@0da78787478e41fe3269c64f16d26f4fc7d394fb
+spatialdata-plot @ git+https://github.com/scverse/spatialdata-plot@71d4f3ea6bfd841432df3e65667f204bc043b5e2
     # via ark
 sphinx==7.2.6
     # via ark
@@ -835,6 +844,9 @@ tifffile==2024.2.12
     # via scikit-image
 tinycss2==1.2.1
     # via nbconvert
+tomli==2.0.1
+    # via jupyterlab
+    # via pytest
 toolz==0.12.1
     # via dask
     # via datashader
@@ -889,6 +901,9 @@ typeguard==2.13.3
 types-python-dateutil==2.8.19.20240106
     # via arrow
 typing-extensions==4.10.0
+    # via anyio
+    # via async-lru
+    # via cattrs
     # via equinox
     # via huggingface-hub
     # via jaxtyping

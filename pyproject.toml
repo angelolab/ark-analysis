@@ -31,7 +31,7 @@ name = "ark"
 version = "0.0.1"
 description = "A very interesting piece of code"
 readme = "README.md"
-requires-python = ">=3.11"
+requires-python = ">=3.10"
 license = { file = "LICENSE" }
 authors = [{ name = "angelo lab" }]
 maintainers = [{ name = "angelo lab", email = "angelolab@gmail.com" }]
