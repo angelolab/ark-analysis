@@ -14,7 +14,7 @@ dependencies = [
     "scikit-image",
     "flox",
     "spatialdata @ git+https://github.com/scverse/spatialdata.git@main",
-    "spatialdata-plot @ git+https://github.com/scverse/spatialdata-plot@multi_table",
+    "spatialdata-plot @ git+https://github.com/scverse/spatialdata-plot@main",
     "xbatcher",
     "torch",
     "lightning",
