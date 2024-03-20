@@ -92,7 +92,7 @@ class MetaclusterColormap:
         cluster_id_to_name: pd.DataFrame = pd.read_csv(self.cluster_id_to_name_path)
 
         # The mapping file needs to contain the following columns:
-        # 'cluster', 'metacluster', and 'mc_name'
+        # '*_som_cluster', '*_meta_cluster', '*_meta_cluster_rename', 'cluster_id'
         misc_utils.verify_in_list(
             required_cols=[
                 f"{self.cluster_type}_som_cluster",
@@ -105,13 +105,15 @@ class MetaclusterColormap:
 
         # subset on just metacluster and mc_name
         metacluster_id_to_name = cluster_id_to_name[
-            [f"{self.cluster_type}_meta_cluster", f"{self.cluster_type}_meta_cluster_rename"]
-        ].copy()
+            [f"{self.cluster_type}_meta_cluster", f"{self.cluster_type}_meta_cluster_rename",
+             "cluster_id"]].copy()
 
-        unassigned_id: int = int(
+        unassigned_meta_cluster: int = int(
             metacluster_id_to_name[f"{self.cluster_type}_meta_cluster"].max() + 1)
+        unassigned_cluster_id: int = int(
+            metacluster_id_to_name["cluster_id"].max() + 1)
 
-        # Extract unique pairs of (metacluster-ID,  name)
+        # Extract unique pairs of (metacluster-ID,  name, cluster_id)
         # Set the unassigned meta cluster to be the max ID + 1
         # Set 0 as the Empty value
         metacluster_id_to_name: pd.DataFrame = pd.concat(
@@ -119,15 +121,16 @@ class MetaclusterColormap:
                 metacluster_id_to_name.drop_duplicates(),
                 pd.DataFrame(
                     data={
-                        f"{self.cluster_type}_meta_cluster": [unassigned_id, 0],
-                        f"{self.cluster_type}_meta_cluster_rename": ["Unassigned", "Empty"]
+                        f"{self.cluster_type}_meta_cluster": [unassigned_meta_cluster, 0],
+                        f"{self.cluster_type}_meta_cluster_rename": ["Unassigned", "Empty"],
+                        "cluster_id": [unassigned_cluster_id, 0]
                     }
                 )
             ]
         )
 
         # add the unassigned color to the metacluster_colors dict
-        self.metacluster_colors.update({unassigned_id: self.unassigned_color})
+        self.metacluster_colors.update({unassigned_meta_cluster: self.unassigned_color})
 
         # add the no cluster color to the metacluster_colors dict
         self.metacluster_colors.update({0: self.background_color})
@@ -144,30 +147,12 @@ class MetaclusterColormap:
             f"{self.cluster_type}_meta_cluster"
         ].map(self.metacluster_colors)
 
-        # grab mask cluster_id integers and merge with raw_cmap
-        cluster_id_to_metacluster_map = cluster_id_to_name[
-            [f"{self.cluster_type}_meta_cluster", "cluster_id"]].drop_duplicates()
-        unassigned_cluster_id: int = int(cluster_id_to_name["cluster_id"].max() + 1)
-        cluster_id_to_metacluster_map = pd.concat(
-            [
-                cluster_id_to_metacluster_map,
-                pd.DataFrame(
-                    data={
-                        f"{self.cluster_type}_meta_cluster": [unassigned_cluster_id, 0],
-                        "cluster_id": [unassigned_id, 0],
-                    }
-                )
-            ]
-        )
-        cluster_id_to_color = metacluster_id_to_name.merge(
-            cluster_id_to_metacluster_map, on=[f"{self.cluster_type}_meta_cluster"])
-
         # sort by cluster_id ascending, so colors align with mask integers
-        cluster_id_to_color.sort_values(by="cluster_id", inplace=True)
-        cluster_id_to_color.reset_index(drop=True, inplace=True)
+        metacluster_id_to_name.sort_values(by="cluster_id", inplace=True)
+        metacluster_id_to_name.reset_index(drop=True, inplace=True)
 
         # Convert the list of tuples to a numpy array, each index is a color
-        mc_colors: np.ndarray = np.array(cluster_id_to_color['color'].to_list())
+        mc_colors: np.ndarray = np.array(metacluster_id_to_name['color'].to_list())
 
         # generate the colormap
         cmap = colors.ListedColormap(mc_colors)
