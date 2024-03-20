@@ -47,8 +47,6 @@ asttokens==2.4.1
     # via stack-data
 async-lru==2.0.4
     # via jupyterlab
-async-timeout==4.0.3
-    # via aiohttp
 attrs==23.2.0
     # via aiohttp
     # via cattrs
@@ -161,12 +159,6 @@ equinox==0.11.3
     # via ark
 esbonio==0.16.4
     # via ark
-exceptiongroup==1.2.0
-    # via anndata
-    # via anyio
-    # via cattrs
-    # via ipython
-    # via pytest
 executing==2.0.1
     # via stack-data
 fasteners==0.19
@@ -472,7 +464,6 @@ numpy==1.23.4
     # via numpy-groupies
     # via ome-zarr
     # via opt-einsum
-    # via pandas
     # via patsy
     # via pims
     # via pyarrow
@@ -844,9 +835,6 @@ tifffile==2024.2.12
     # via scikit-image
 tinycss2==1.2.1
     # via nbconvert
-tomli==2.0.1
-    # via jupyterlab
-    # via pytest
 toolz==0.12.1
     # via dask
     # via datashader
@@ -901,9 +889,6 @@ typeguard==2.13.3
 types-python-dateutil==2.8.19.20240106
     # via arrow
 typing-extensions==4.10.0
-    # via anyio
-    # via async-lru
-    # via cattrs
     # via equinox
     # via huggingface-hub
     # via jaxtyping
