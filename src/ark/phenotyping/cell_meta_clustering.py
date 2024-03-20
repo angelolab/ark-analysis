@@ -203,9 +203,9 @@ def apply_cell_meta_cluster_remapping(base_dir, cell_som_input_data, cell_remapp
     cell_remapped_data = pd.read_csv(cell_remapped_path)
 
     # assert the correct columns are contained
-    misc_utils.verify_same_elements(
-        remapped_data_cols=cell_remapped_data.columns.values,
-        required_cols=['cell_som_cluster', 'cell_meta_cluster', 'cell_meta_cluster_rename']
+    misc_utils.verify_in_list(
+        required_cols=['cell_som_cluster', 'cell_meta_cluster', 'cell_meta_cluster_rename'],
+        remapped_data_cols=cell_remapped_data.columns.values
     )
 
     # create the mapping from cell SOM to cell meta cluster
@@ -277,9 +277,9 @@ def generate_remap_avg_count_files(base_dir, cell_som_input_data,
     cell_remapped_data = pd.read_csv(cell_remapped_path)
 
     # assert the correct columns are contained
-    misc_utils.verify_same_elements(
-        remapped_data_cols=cell_remapped_data.columns.values,
-        required_cols=['cell_som_cluster', 'cell_meta_cluster', 'cell_meta_cluster_rename']
+    misc_utils.verify_in_list(
+        required_cols=['cell_som_cluster', 'cell_meta_cluster', 'cell_meta_cluster_rename'],
+        remapped_data_cols=cell_remapped_data.columns.values
     )
 
     # create the mapping from cell SOM to cell meta cluster
