@@ -92,13 +92,13 @@ def generate_meta_cluster_colormap_dict(meta_cluster_remap_path, cmap, cluster_t
     remapping = pd.read_csv(meta_cluster_remap_path)
 
     # assert the correct columns are contained
-    misc_utils.verify_same_elements(
-        remapping_cols=remapping.columns.values,
+    misc_utils.verify_in_list(
         required_cols=[
             f'{cluster_type}_som_cluster',
             f'{cluster_type}_meta_cluster',
-            f'{cluster_type}_meta_cluster_rename'
-        ]
+            f'{cluster_type}_meta_cluster_rename',
+        ],
+        remapping_cols=remapping.columns.values
     )
 
     # define the raw meta cluster colormap

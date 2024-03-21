@@ -366,9 +366,9 @@ def apply_pixel_meta_cluster_remapping(fovs, channels, base_dir,
     pixel_remapped_data = pd.read_csv(pixel_remapped_path)
 
     # assert the correct columns are contained
-    misc_utils.verify_same_elements(
+    misc_utils.verify_in_list(
+        required_cols=['pixel_som_cluster', 'pixel_meta_cluster', 'pixel_meta_cluster_rename'],
         remapped_data_cols=pixel_remapped_data.columns.values,
-        required_cols=['pixel_som_cluster', 'pixel_meta_cluster', 'pixel_meta_cluster_rename']
     )
 
     # create the mapping from pixel SOM to pixel meta cluster
@@ -484,9 +484,6 @@ def generate_remap_avg_files(fovs, channels, base_dir, pixel_data_dir, pixel_rem
 
     # file path validation
     io_utils.validate_paths([pixel_remapped_path, som_cluster_avg_path, meta_cluster_avg_path])
-
-    # read in the unique meta clusters defined in pixel_remapped_path
-    new_meta_clusters = pd.read_csv(pixel_remapped_path)['pixel_meta_cluster'].unique()
 
     # read in the remapping
     # TODO: define a separate function for this duplicated logic, OOP will help greatly (soon...)

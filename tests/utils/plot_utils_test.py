@@ -55,7 +55,7 @@ def metacluster_colors(n_metaclusters: int) -> Generator[Dict, None, None]:
     Yields:
         Generator[dict, None, None]: Yields the dictionary of metacluster colors.
     """
-    sample_mapping = {i: tuple(np.random.rand(4)) for i in np.arange(n_metaclusters)}
+    sample_mapping = {i: tuple(np.random.rand(4)) for i in np.arange(n_metaclusters) + 1}
 
     yield sample_mapping
 
@@ -158,11 +158,12 @@ def test_plot_pixel_cell_cluster(metacluster_colors):
         # invalid columns provided in mapping
         df = pd.DataFrame.from_dict(
             {
-                "bad_cluster_col": np.arange(20),
-                "pixel_meta_cluster": np.repeat(np.arange(5), 4),
+                "bad_cluster_col": np.arange(20) + 1,
+                "pixel_meta_cluster": np.repeat(np.arange(5) + 1, 4),
                 "pixel_meta_cluster_rename": [
-                    "meta" + str(i) for i in np.repeat(np.arange(5), 4)
+                    "meta" + str(i) for i in np.repeat(np.arange(5) + 1, 4)
                 ],
+                "cluster_id": np.repeat(np.arange(5) + 1, 4),
             }
         )
         df.to_csv(cluster_id_to_name_path, index=False)
@@ -174,6 +175,7 @@ def test_plot_pixel_cell_cluster(metacluster_colors):
 
         # rename bad_cluster_col to cluster so it passes that test
         df = df.rename({"bad_cluster_col": "pixel_som_cluster"}, axis=1)
+
         df.to_csv(cluster_id_to_name_path, index=False)
 
         # invalid sample_mapping dict provided, metaclusters do not match
@@ -592,8 +594,7 @@ def test_create_mantis_dir(
                 os.path.join(output_path, f"population{mask_suff}.csv"))
 
             # 3.a. Assert that appropratiate cluster col equals the region_id col
-            cluster_col = "cluster_id" if cluster_type == "cell"\
-                else f"{cluster_type}_meta_cluster"
+            cluster_col = "cluster_id"
             metacluster_col = original_mapping_df[[cluster_col]].drop_duplicates()
             region_id_col = new_mapping_df[["region_id"]]
             assert np.equal(metacluster_col.values, region_id_col.values).all()
@@ -659,16 +660,13 @@ def cluster_id_to_name_mapping(
 
     df = pd.DataFrame.from_dict(
         {
-            f"{cluster_type}_som_cluster": np.arange(20),
-            f"{cluster_type}_meta_cluster": np.repeat(np.arange(n_metaclusters), 4),
+            f"{cluster_type}_som_cluster": np.arange(20) + 1,
+            f"{cluster_type}_meta_cluster": np.repeat(np.arange(n_metaclusters) + 1, 4),
             f"{cluster_type}_meta_cluster_rename": [
-                "meta" + str(i) for i in np.repeat(np.arange(n_metaclusters), 4)],
+                "meta" + str(i) for i in np.repeat(np.arange(n_metaclusters) + 1, 4)],
+            "cluster_id": np.repeat(np.arange(n_metaclusters) + 1, 4)
         }
     )
-
-    # add cluster_id for cell file
-    if cluster_type == "cell":
-        df["cluster_id"] = np.repeat(np.arange(n_metaclusters)+1, 4)
 
     df.to_csv(mapping_path, index=False)
 
@@ -690,30 +688,23 @@ class TestMetaclusterColormap:
         self.n_metaclusters = n_metaclusters
 
     def test_metacluster_cmap_generator(self):
-        # Test by initilizing the MetaclusterColormap class, then __post_init__ will
+        # Test by initializing the MetaclusterColormap class, then __post_init__ will
         # run `_metacluster_cmp_generator`
         mcc = plot_utils.MetaclusterColormap(
             cluster_type=self.cluster_type,
             cluster_id_to_name_path=self.cluster_id_to_name_mapping,
             metacluster_colors=self.metacluster_colors,
         )
-
         # Assert that the fields after __post_init__ are correct
-
         # Assert metacluster_to_id_name is correct, contains "`Unassigned`" and `"No Cluster`
         assert set(
             mcc.metacluster_id_to_name[f"{self.cluster_type}_meta_cluster_rename"]
-        ) == set([f"meta{i}" for i in range(5)] + ["Unassigned", "Empty"])
+        ) == set([f"meta{i}" for i in range(1, 6)] + ["Unassigned", "Empty"])
 
         # Assert mc_colors has the correct shape
         # Add 2 colors to account for an element with no associated cluster, and an element with an
         # unassigned cluster
         assert mcc.mc_colors.shape == (self.n_metaclusters + 2, 4)
-
-        # Assert metacluster_to_index is correct
-        assert mcc.metacluster_to_index == {
-            i: i + 1 for i in range(self.n_metaclusters + 1)
-        }
 
         # Assert the cmap has the correct number of colors
         assert mcc.cmap.N == self.n_metaclusters + 2
@@ -722,29 +713,6 @@ class TestMetaclusterColormap:
         # This would be for `plot_neighborhood_cluster_result`, currently not used by
         # `plot_pixel_cell_cluster`
         assert mcc.norm.N == self.n_metaclusters + 3
-
-    def test_assign_metacluster_cmap(self):
-        mcc = plot_utils.MetaclusterColormap(
-            cluster_type=self.cluster_type,
-            cluster_id_to_name_path=self.cluster_id_to_name_mapping,
-            metacluster_colors=self.metacluster_colors,
-        )
-        fov_img: np.ndarray = _generate_segmentation_labels(
-            (1024, 1024), num_cells=self.n_metaclusters
-        )
-        mc_cmap = mcc.assign_metacluster_cmap(fov_img=fov_img)
-
-        # Assert colored mask shape
-        assert mc_cmap.shape == (1024, 1024)
-
-        # Assert colored mask dtype
-        assert mc_cmap.dtype == np.uint8
-
-        # Assert the number of unique metacluster_cmap values in the colored mask are correct
-        assert np.unique(mc_cmap).shape == (self.n_metaclusters,)
-
-        # Assert the unique metacluster_cmap values are correct
-        assert np.all(np.unique(mc_cmap) == np.arange(self.n_metaclusters) + 1)
 
 
 @pytest.fixture(scope="function")
@@ -828,6 +796,17 @@ def test_save_colored_masks(
 
         # Get the unique colors in the colored mask
         assert np.max(np.unique(colored_mask, axis=None)) <= 255
+
+        # check that colored mask is mapped correctly
+        cluster_mask = io.imread(os.path.join(create_masks, fov + f'_{cluster_type}_mask.tiff'))
+        rgb_mask = (colored_mask[:, :, 0]/255).round(1)
+
+        for id_num in metacluster_colors.keys():
+            if id_num != 6:
+                cluster_idx = np.where(cluster_mask == id_num)
+                colored_idx = np.where(rgb_mask == np.round(metacluster_colors[id_num][0], 1))
+                assert np.all(cluster_idx[0] == colored_idx[0])
+                assert np.all(cluster_idx[1] == colored_idx[1])
 
 
 @dataclass

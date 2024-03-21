@@ -131,9 +131,11 @@ class ClusterMaskData:
         ].copy()
 
         # Add a cluster_id_column to the column in case the cluster_column is
-        # non-numeric (i.e. string)
+        # non-numeric (i.e. string), index in ascending order of cell_meta_cluster
         cluster_name_id = pd.DataFrame(
             {self.cluster_column: mapping_data[self.cluster_column].unique()})
+        cluster_name_id.sort_values(by=f'{self.cluster_column}', inplace=True)
+        cluster_name_id.reset_index(drop=True, inplace=True)
 
         cluster_name_id[self.cluster_id_column] = (cluster_name_id.index + 1).astype(np.int32)
 
@@ -475,7 +477,8 @@ def generate_and_save_cell_cluster_masks(
 
 
 def generate_pixel_cluster_mask(fov, base_dir, tiff_dir, chan_file_path,
-                                pixel_data_dir, pixel_cluster_col='pixel_meta_cluster'):
+                                pixel_data_dir, cluster_mapping,
+                                pixel_cluster_col='pixel_meta_cluster'):
     """For a fov, create a mask labeling each pixel with their SOM or meta cluster label
 
     Args:
@@ -491,6 +494,8 @@ def generate_pixel_cluster_mask(fov, base_dir, tiff_dir, chan_file_path,
         pixel_data_dir (str):
             The path to the data with full pixel data.
             This data should also have the SOM and meta cluster labels appended.
+        cluster_mapping (pd.DataFrame)
+            Dataframe detailing which meta_cluster IDs map to which cluster_id
         pixel_cluster_col (str):
             Whether to assign SOM or meta clusters
             needs to be `'pixel_som_cluster'` or `'pixel_meta_cluster'`
@@ -537,8 +542,13 @@ def generate_pixel_cluster_mask(fov, base_dir, tiff_dir, chan_file_path,
     # convert to 1D indexing
     coordinates = x_coords * img_data.shape[1] + y_coords
 
-    # get the cooresponding cluster labels for each pixel
+    # get the corresponding cluster labels for each pixel
     cluster_labels = list(fov_data[pixel_cluster_col])
+
+    # relabel meta_cluster numbers with cluster_id
+    cluster_mapping = cluster_mapping.drop_duplicates()[[pixel_cluster_col, 'cluster_id']]
+    id_mapping = dict(zip(cluster_mapping[pixel_cluster_col], cluster_mapping['cluster_id']))
+    cluster_labels = [id_mapping[label] for label in cluster_labels]
 
     # assign each coordinate in pixel_cluster_mask to its respective cluster label
     img_subset = img_data.ravel()
@@ -554,6 +564,7 @@ def generate_and_save_pixel_cluster_masks(fovs: List[str],
                                           tiff_dir: Union[pathlib.Path, str],
                                           chan_file: Union[pathlib.Path, str],
                                           pixel_data_dir: Union[pathlib.Path, str],
+                                          cluster_id_to_name_path: Union[pathlib.Path, str],
                                           pixel_cluster_col: str = 'pixel_meta_cluster',
                                           sub_dir: str = None,
                                           name_suffix: str = ''):
@@ -574,6 +585,9 @@ def generate_and_save_pixel_cluster_masks(fovs: List[str],
         pixel_data_dir (Union[pathlib.Path, str]):
             The path to the data with full pixel data.
             This data should also have the SOM and meta cluster labels appended.
+        cluster_id_to_name_path (Union[str, pathlib.Path]): A path to a CSV identifying the
+            pixel cluster to manually-defined name mapping this is output by the remapping
+            visualization found in `metacluster_remap_gui`.
         pixel_cluster_col (str, optional):
             The path to the data with full pixel data.
             This data should also have the SOM and meta cluster labels appended.
@@ -585,6 +599,19 @@ def generate_and_save_pixel_cluster_masks(fovs: List[str],
         name_suffix (str, optional):
             Specify what to append at the end of every pixel mask. Defaults to `''`.
     """
+    # read in gui cluster mapping file and save cluster_id created in generate_pixel_cluster_mask
+    gui_map = pd.read_csv(cluster_id_to_name_path)
+    cluster_map = gui_map.copy()[[pixel_cluster_col]]
+
+    cluster_map = cluster_map.drop_duplicates().sort_values(by=[pixel_cluster_col])
+    cluster_map["cluster_id"] = list(range(1, len(cluster_map) + 1))
+
+    # drop the cluster_id column from gui_map if it already exists, otherwise do nothing
+    gui_map = gui_map.drop(columns="cluster_id", errors="ignore")
+
+    # add a cluster_id column corresponding to the new mask integers
+    updated_cluster_map = gui_map.merge(cluster_map, on=[pixel_cluster_col], how="left")
+    updated_cluster_map.to_csv(cluster_id_to_name_path, index=False)
 
     # create the pixel cluster masks across each fov
     with tqdm(total=len(fovs), desc="Pixel Cluster Mask Generation", unit="FOVs") \
@@ -600,7 +627,8 @@ def generate_and_save_pixel_cluster_masks(fovs: List[str],
                 generate_pixel_cluster_mask(fov=fov, base_dir=base_dir, tiff_dir=tiff_dir,
                                             chan_file_path=chan_file_path,
                                             pixel_data_dir=pixel_data_dir,
-                                            pixel_cluster_col=pixel_cluster_col)
+                                            pixel_cluster_col=pixel_cluster_col,
+                                            cluster_mapping=updated_cluster_map)
 
             # save the pixel mask generated
             save_fov_mask(fov, data_dir=save_dir, mask_data=pixel_mask, sub_dir=sub_dir,

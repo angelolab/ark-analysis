@@ -257,7 +257,8 @@ def test_apply_cell_meta_cluster_remapping(weighted_cell_channel_exists):
         sample_cell_remapping = {
             'cell_som_cluster': [i for i in np.arange(100)],
             'cell_meta_cluster': [int(i / 5) for i in np.arange(100)],
-            'cell_meta_cluster_rename': ['meta' + str(int(i / 5)) for i in np.arange(100)]
+            'cell_meta_cluster_rename': ['meta' + str(int(i / 5)) for i in np.arange(100)],
+            'cluster_id': [int(i / 5) for i in np.arange(100)]
         }
         sample_cell_remapping = pd.DataFrame.from_dict(sample_cell_remapping)
         sample_cell_remapping.to_csv(
@@ -411,7 +412,8 @@ def test_generate_remap_avg_count_files():
         sample_cell_remapping = {
             'cell_som_cluster': [i for i in np.arange(100)],
             'cell_meta_cluster': [int(i / 5) for i in np.arange(100)],
-            'cell_meta_cluster_rename': ['meta' + str(int(i / 5)) for i in np.arange(100)]
+            'cell_meta_cluster_rename': ['meta' + str(int(i / 5)) for i in np.arange(100)],
+            'cluster_id': [int(i / 5) for i in np.arange(100)]
         }
         sample_cell_remapping = pd.DataFrame.from_dict(sample_cell_remapping)
         sample_cell_remapping.to_csv(
