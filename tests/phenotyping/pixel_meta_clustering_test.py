@@ -506,7 +506,8 @@ def generate_test_apply_pixel_meta_cluster_remapping_data(temp_dir, fovs, chans,
     sample_pixel_remapping = {
         'pixel_som_cluster': [i for i in np.arange(105)],
         'pixel_meta_cluster': [int(i / 5) for i in np.arange(105)],
-        'pixel_meta_cluster_rename': ['meta' + str(int(i / 5)) for i in np.arange(105)]
+        'pixel_meta_cluster_rename': ['meta' + str(int(i / 5)) for i in np.arange(105)],
+        'cluster_id': [int(i / 5) for i in np.arange(105)],
     }
     sample_pixel_remapping = pd.DataFrame.from_dict(sample_pixel_remapping)
     sample_pixel_remapping.to_csv(

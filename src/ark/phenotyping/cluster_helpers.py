@@ -217,6 +217,9 @@ class PixelSOMCluster(PixieSOMCluster):
         # we can just normalize train_data now since that's what we'll be training on
         self.train_data = self.normalize_data(self.train_data)
 
+        # define each SOM cluster seen
+        self.som_clusters_seen = set()
+
     def normalize_data(self, external_data: pd.DataFrame) -> pd.DataFrame:
         """Uses `norm_data` to normalize a dataset
 
@@ -291,6 +294,9 @@ class PixelSOMCluster(PixieSOMCluster):
 
         # assign SOM clusters to external_data
         external_data_norm['pixel_som_cluster'] = som_labels
+
+        # update the total number of SOM clusters
+        self.som_clusters_seen.update(list(np.unique(som_labels)))
 
         return external_data_norm
 
