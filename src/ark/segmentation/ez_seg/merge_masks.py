@@ -17,7 +17,9 @@ def merge_masks_seq(
     cell_mask_dir: Union[pathlib.Path, str],
     cell_mask_suffix: str,
     overlap_percent_threshold: int,
-    save_path: Union[pathlib.Path, str],
+    operation_type: str,
+    save_path_merge: Union[pathlib.Path, str],
+    save_path_remain: Union[pathlib.Path, str],
     log_dir: Union[pathlib.Path, str]
 ) -> None:
     """
@@ -27,12 +29,14 @@ def merge_masks_seq(
 
     Args:
         fov_list (List[str]): A list of fov names to merge masks over.
-        object_list (List[str]): A list of names representing previously generated object masks. Note, order matters.
+        object_list (List[str]): A name representing previously generated object masks. Note, order matters.
         object_mask_dir (Union[pathlib.Path, str]): Directory where object (ez) segmented masks are located
         cell_mask_dir (Union[str, pathlib.Path]): Path to where the original cell masks are located.
         cell_mask_suffix (str): Name of the cell type you are merging. Usually "whole_cell".
-        overlap_percent_threshold (int): Percent overlap of total pixel area needed fo object to be merged to a cell.
-        save_path (Union[str, pathlib.Path]): The directory where merged masks and remaining cell mask will be saved.
+        overlap_percent_threshold (int): Percent overlap of cell's total pixel area needed for object merge.
+        operation_type (str): Action performed - either combine objects with cells or remove overlapping cells.
+        save_path_merge (Union[str, pathlib.Path]): Directory where combined masks or original objects will be saved.
+        save_path_remain: (Union[pathlib.Path, str]): Directory where remaining cell / object mask will be saved.
         log_dir (Union[str, pathlib.Path]): The directory to save log information to.
     """
     # validate paths
@@ -40,8 +44,10 @@ def merge_masks_seq(
         object_mask_dir = pathlib.Path(object_mask_dir)
     if isinstance(cell_mask_dir, str):
         cell_mask_dir = pathlib.Path(cell_mask_dir)
-    if isinstance(save_path, str):
-        save_path = pathlib.Path(save_path)
+    if isinstance(save_path_merge, str):
+        save_path_merge = pathlib.Path(save_path_merge)
+    if isinstance(save_path_remain, str):
+        save_path_remain = pathlib.Path(save_path_remain)
 
     # for each fov, import cell and object masks (multiple mask types into single xr.DataArray)
     for fov in fov_list:
@@ -66,13 +72,14 @@ def merge_masks_seq(
                 object_mask=curr_object_mask,
                 cell_mask=curr_cell_mask,
                 overlap_thresh=overlap_percent_threshold,
+                operation=operation_type,
                 object_name=obj,
-                mask_save_path=save_path,
+                mask_save_path=save_path_merge,
             )
             curr_cell_mask = remaining_cells
 
         # save the unmerged cells as a tiff.
-        image_utils.save_image(fname=save_path / (fov + f"_final_{cell_mask_suffix}_remaining.tiff"), data=curr_cell_mask.astype(np.int32))
+        image_utils.save_image(fname=save_path_remain / (fov + f"_{cell_mask_suffix}.tiff"), data=curr_cell_mask.astype(np.int32))
 
     # Write a log saving mask merging info
     variables_to_log = {
@@ -82,18 +89,24 @@ def merge_masks_seq(
         "cell_mask_dir": cell_mask_dir,
         "cell_mask_suffix": cell_mask_suffix,
         "overlap_percent_threshold": overlap_percent_threshold,
-        "save_path": save_path
+        "operation_type": operation_type,
+        "save_path_merge": save_path_merge,
+        "save_path_remain": save_path_remain
     }
     log_creator(variables_to_log, log_dir, "mask_merge_log.txt")
-    print("Merged masks built and saved")
+    if operation_type == "combine":
+        print(f"Combined object and cell masks built and saved, Remaining cell masks saved.")
+    elif operation_type == "remove_duplicates":
+        print("Duplicate masks removed. Original objects and remaining cells saved.")
 
 
 def merge_masks_single(
     object_mask: np.ndarray,
     cell_mask: np.ndarray,
     overlap_thresh: int,
+    operation: str,
     object_name: str,
-    mask_save_path: str,
+    mask_save_path: str
 ) -> np.ndarray:
     """
     Combines overlapping object and cell masks. For any combination which represents has at least `overlap` percentage
@@ -103,6 +116,7 @@ def merge_masks_single(
         object_mask (np.ndarray): The object mask numpy array.
         cell_mask (np.ndarray): The cell mask numpy array.
         overlap_thresh (int): The percentage overlap required for a cell to be merged.
+        operation (str): Action performed by function - either combine objects with cells or remove overlapping cells.
         object_name (str): The name of the object.
         mask_save_path (str): The path to save the mask.
 
@@ -118,7 +132,7 @@ def merge_masks_single(
     cell_labels, num_cell_labels = label(cell_mask, return_num=True)
     object_labels, num_object_labels = label(object_mask, return_num=True)
 
-    # Instantiate new array for merging
+    # Instantiate new array for merging (or keeping original object masks if removing duplicates).
     merged_mask = object_labels.copy()
 
     # Set up list to store merged cell labels
@@ -137,7 +151,7 @@ def merge_masks_single(
         cell_to_merge_label = None
 
         # Filter for cell_labels that fall within the expanded bounding box of the obj_label
-        cell_labels_in_range = filter_labels_in_bbox(object_labels_bounding_boxes.pop(str(obj_label)), cell_labels)
+        cell_labels_in_range = filter_labels_in_bbox(object_labels_bounding_boxes[obj_label], cell_labels)
 
         for cell_label in cell_labels_in_range:
             # Extract a connected component from cell_mask
@@ -156,18 +170,26 @@ def merge_masks_single(
                 best_cell_mask_component = cell_mask_component
                 cell_to_merge_label = cell_label
 
-        # If best merge has been found, assign the merged cell+object into the new mask and record the cell label
-        if best_cell_mask_component is not None:
+        # If best merge has been found, assign the combined cell+object into the new mask and record the cell label.
+        if operation == "combine" and best_cell_mask_component is not None:
             merged_mask[best_cell_mask_component == True] = obj_label
             remove_cells_list.append(cell_to_merge_label)
 
-    # Assign any unmerged cells into a remaining cell mask array.
+        # If best merge has been found, assign the object into the new mask and record the cell label for later removal.
+        elif operation == "remove_duplicates" and best_cell_mask_component is not None:
+            remove_cells_list.append(cell_to_merge_label)
+
+    # Assign any cells not combined or removed into a remaining cell mask array.
     non_merged_cell_mask = np.isin(cell_labels, remove_cells_list, invert=True)
     cell_labels[non_merged_cell_mask == False] = 0
 
     # Save the merged mask tiff.
+    if operation == "combine":
+        filename = os.path.join(mask_save_path, object_name.removesuffix(".tiff") + "_combined.tiff")
+    elif operation == "remove_duplicates":
+        filename = os.path.join(mask_save_path, object_name.removesuffix(".tiff") + "_duplicates_removed.tiff")
     image_utils.save_image(
-        fname=os.path.join(mask_save_path, object_name.removesuffix(".tiff") + "_merged.tiff"),
+        fname=filename,
         data=merged_mask)
 
     # Return unmerged cells

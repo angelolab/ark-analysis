@@ -103,7 +103,7 @@ def test_find_and_copy_files(
     combined_mask_dir: pathlib.Path = tmpdir_factory.mktemp("mask_dest_dir")
     mask_suffix_names: List[str] = ["type1", "type2"]
 
-    ez_seg_utils.find_and_copy_files(mask_suffix_names, nested_mask_dir, combined_mask_dir)
+    ez_seg_utils.find_and_copy_files(mask_suffix_names, nested_mask_dir, combined_mask_dir, exclude_folder=None)
 
     files_copied = [
         combined_mask_dir / f"fov{fov_num}_{ms}.tiff"

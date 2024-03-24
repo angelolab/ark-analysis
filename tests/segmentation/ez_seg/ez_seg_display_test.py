@@ -17,6 +17,7 @@ class MaskDataPaths:
     object_mask_dir: pathlib.Path
     cell_mask_dir: pathlib.Path
     merged_mask_dir: pathlib.Path
+    remain_mask_dir: pathlib.Path
 
 
 @pytest.fixture(scope="module")
@@ -34,6 +35,7 @@ def mask_data(
     object_mask_dir = mask_path / "object_mask_dir"
     cell_mask_dir = mask_path / "cell_mask_dir"
     merged_mask_dir = mask_path / "merged_mask_dir"
+    remain_mask_dir = mask_path / "remain_mask_dir"
 
     for p in [fov0_dir, object_mask_dir, cell_mask_dir, merged_mask_dir]:
         p.mkdir(parents=True, exist_ok=True)
@@ -110,24 +112,17 @@ def test_multiple_mask_display(mask_data: MaskDataPaths):
     fov0 = "fov_0"
     mask0 = "mask_0"
 
-    ez_seg_display.multiple_mask_display(
-        fov=fov0,
-        mask_name=mask0,
-        object_mask_dir=mask_data.object_mask_dir,
-        cell_mask_dir=mask_data.cell_mask_dir,
-        cell_mask_suffix="whole_cell",
-        merged_mask_dir=mask_data.merged_mask_dir,
-    )
+    ez_seg_display.multiple_mask_display(fov=fov0, mask_name=mask0, object_mask_dir=mask_data.object_mask_dir,
+                                         cell_mask_dir=mask_data.cell_mask_dir, cell_mask_suffix="whole_cell",
+                                         operation="combine", merged_masks_dir=mask_data.merged_mask_dir,
+                                         remain_masks_dir=mask_data.remain_mask_dir)
 
     with pytest.raises(FileNotFoundError):
-        ez_seg_display.multiple_mask_display(
-            fov=fov0,
-            mask_name="bad_mask_name",
-            object_mask_dir=mask_data.object_mask_dir,
-            cell_mask_dir=mask_data.cell_mask_dir,
-            cell_mask_suffix="whole_cell",
-            merged_mask_dir=mask_data.merged_mask_dir,
-        )
+        ez_seg_display.multiple_mask_display(fov=fov0, mask_name="bad_mask_name",
+                                             object_mask_dir=mask_data.object_mask_dir,
+                                             cell_mask_dir=mask_data.cell_mask_dir, cell_mask_suffix="whole_cell",
+                                             operation="combine", merged_masks_dir=mask_data.merged_mask_dir,
+                                             remain_masks_dir=mask_data.remain_mask_dir)
 
 
 def test_create_overlap_and_merge_visual(mask_data: MaskDataPaths):
@@ -137,7 +132,9 @@ def test_create_overlap_and_merge_visual(mask_data: MaskDataPaths):
         object_mask_dir=mask_data.object_mask_dir,
         cell_mask_dir=mask_data.cell_mask_dir,
         cell_mask_suffix="whole_cell",
+        operation="combine",
         merged_mask_dir=mask_data.merged_mask_dir,
+        remain_mask_dir=mask_data.remain_mask_dir,
     )
 
     assert (

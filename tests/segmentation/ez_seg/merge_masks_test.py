@@ -21,11 +21,13 @@ def test_merge_masks_seq():
         cell_mask_dir: Union[str, pathlib.Path] = os.path.join(td, "deepcell_output")
         cell_mask_suffix = "whole_cell"
         merged_mask_dir: Union[str, pathlib.Path] = os.path.join(td, "merged_masks_dir")
+        remain_mask_dir: Union[str, pathlib.Path] = os.path.join(td, "remain_masks_dir")
         log_dir: Union[str, pathlib.Path] = os.path.join(td, "log_dir")
         for directory in [object_mask_dir, cell_mask_dir, merged_mask_dir, log_dir]:
             os.mkdir(directory)
 
         overlap_thresh: int = 10
+        operation_type: str = "combine"
 
         for fov in fov_list:
             cell_mask_data: np.ndarray = np.random.randint(0, 16, (32, 32))
@@ -44,12 +46,12 @@ def test_merge_masks_seq():
         # we're only testing functionality, for in-depth merge testing see test_merge_masks_single
         merge_masks.merge_masks_seq(
             fov_list, object_list, object_mask_dir, cell_mask_dir, cell_mask_suffix, overlap_thresh,
-            merged_mask_dir, log_dir
+            operation_type, merged_mask_dir, remain_mask_dir, log_dir
         )
 
         for fov in fov_list:
             merged_mask_fov_file: Union[str, pathlib.Path] = os.path.join(
-                merged_mask_dir, f"{fov}_final_cells_remaining.tiff"
+                remain_mask_dir, f"{fov}_whole_cell.tiff"
             )
             assert os.path.exists(merged_mask_fov_file)
 
@@ -64,7 +66,9 @@ def test_merge_masks_seq():
         assert log_data[2] == f"object_mask_dir: {str(object_mask_dir)}\n"
         assert log_data[3] == f"cell_mask_path: {str(cell_mask_dir)}\n"
         assert log_data[4] == f"overlap_percent_threshold: {str(overlap_thresh)}\n"
-        assert log_data[5] == f"save_path: {str(merged_mask_dir)}\n"
+        assert log_data[5] == f"operation_type: {str(operation_type)}\n"
+        assert log_data[6] == f"save_path_merge: {str(merged_mask_dir)}\n"
+        assert log_data[7] == f"save_path_remain: {str(remain_mask_dir)}\n"
 
 
 def test_merge_masks_single():
@@ -75,6 +79,7 @@ def test_merge_masks_single():
 
     overlap_thresh: int = 10
     merged_mask_name: str = "merged_mask"
+    operation_type: str = "combine"
 
     # case 1: overlap below threshold, don't merge
     obj1_rows, obj1_cols = disk((7, 7), radius=5, shape=object_mask.shape)
@@ -105,11 +110,11 @@ def test_merge_masks_single():
         os.mkdir(mask_save_dir)
 
         created_cell_mask: np.ndarray = merge_masks.merge_masks_single(
-            object_mask, cell_mask, overlap_thresh, merged_mask_name, mask_save_dir
+            object_mask, cell_mask, overlap_thresh, operation_type, merged_mask_name, mask_save_dir
         )
 
         created_merged_mask: np.ndarray = io.imread(
-            os.path.join(mask_save_dir, merged_mask_name + "_merged.tiff")
+            os.path.join(mask_save_dir, merged_mask_name + "_combined.tiff")
         )
 
         assert np.all(created_merged_mask == expected_merged_mask)

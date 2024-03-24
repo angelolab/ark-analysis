@@ -12,7 +12,8 @@ import pandas as pd
 
 
 def find_and_copy_files(mask_names: List[str], source_folder: Union[str, pathlib.Path],
-                        destination_folder: Union[str, pathlib.Path]):
+                        destination_folder: Union[str, pathlib.Path],
+                        exclude_folder: (Union[str, pathlib.Path, None])):
     """
     Creates a new directory of masks for relabeling and cell table generation. Useful if more than
     one mask type is needed for cell table generation. E.g. merged cells and proteopathy objects.
@@ -24,6 +25,8 @@ def find_and_copy_files(mask_names: List[str], source_folder: Union[str, pathlib
             The parent segmentation folder all masks are found in.
         destination_folder (Union[str, pathlib.Path]):
             New dir where final masks will be copied to.
+        exclude_folder (Union[str, pathlib.Path, None]):
+            Excludes any masks from this folder. Used to ensure original cell masks are not copied over after merging.
     """
     # Ensure the destination folder exists, create it if not
     if not os.path.exists(destination_folder):
@@ -38,8 +41,13 @@ def find_and_copy_files(mask_names: List[str], source_folder: Union[str, pathlib
         files_to_copy = []
         for root, dirs, files in os.walk(source_folder):
             for file in files:
-                if pattern.match(file) and str(destination_folder) not in str(root):
-                    files_to_copy.append(os.path.join(root, file))
+                if exclude_folder is None:
+                    if pattern.match(file) and str(destination_folder) not in str(root):
+                        files_to_copy.append(os.path.join(root, file))
+                elif exclude_folder is not None:
+                    if pattern.match(file) and str(destination_folder) not in str(root) \
+                            and str(exclude_folder) not in str(root):
+                        files_to_copy.append(os.path.join(root, file))
 
         # Copy the found files to the destination folder
         for file_path in files_to_copy:

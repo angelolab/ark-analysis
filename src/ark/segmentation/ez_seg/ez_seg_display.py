@@ -139,7 +139,9 @@ def multiple_mask_display(
     object_mask_dir: Union[str, os.PathLike],
     cell_mask_dir: Union[str, os.PathLike],
     cell_mask_suffix: str,
-    merged_mask_dir: Union[str, os.PathLike],
+    operation: str,
+    merged_masks_dir: Union[str, os.PathLike],
+    remain_masks_dir: Union[str, os.PathLike],
 ) -> None:
     """
     Create a grid to display the object, cell, and merged masks for a given fov.
@@ -150,18 +152,22 @@ def multiple_mask_display(
         object_mask_dir (Union[str, os.PathLike]): Directory where the object masks are stored.
         cell_mask_dir (Union[str, os.PathLike]): Directory where the cell masks are stored.
         cell_mask_suffix (str): Suffix name of the cell mask files.
-        merged_mask_dir (Union[str, os.PathLike]): Directory where the merged masks are stored.
+        operation (str): Whether the operation performed was a merge or duplicate removal.
+        merged_masks_dir (Union[str, os.PathLike]): Directory where the merged / final object masks are stored.
+        remain_masks_dir (pathlib.Path): Directory where the remaining masks are stored.
     """
     if isinstance(object_mask_dir, str):
         object_mask_dir = pathlib.Path(object_mask_dir)
     if isinstance(cell_mask_dir, str):
         cell_mask_dir = pathlib.Path(cell_mask_dir)
-    if isinstance(merged_mask_dir, str):
-        merged_mask_dir = pathlib.Path(merged_mask_dir)
-    io_utils.validate_paths([object_mask_dir, cell_mask_dir, merged_mask_dir])
+    if isinstance(merged_masks_dir, str):
+        merged_masks_dir = pathlib.Path(merged_masks_dir)
+    if isinstance(remain_masks_dir, str):
+        remain_masks_dir = pathlib.Path(remain_masks_dir)
+    io_utils.validate_paths([object_mask_dir, cell_mask_dir, merged_masks_dir, remain_masks_dir])
 
     modified_overlay_mask: np.ndarray = create_overlap_and_merge_visual(
-        fov, mask_name, object_mask_dir, cell_mask_dir, cell_mask_suffix, merged_mask_dir
+        fov, mask_name, object_mask_dir, cell_mask_dir, cell_mask_suffix, operation, merged_masks_dir, remain_masks_dir
     )
 
     # Create a new figure
@@ -181,7 +187,9 @@ def create_overlap_and_merge_visual(
     object_mask_dir: pathlib.Path,
     cell_mask_dir: pathlib.Path,
     cell_mask_suffix: str,
+    operation: str,
     merged_mask_dir: pathlib.Path,
+    remain_mask_dir: pathlib.Path,
 ) -> np.ndarray:
     """
     Generate the NumPy Array representing the overlap between two masks
@@ -192,7 +200,10 @@ def create_overlap_and_merge_visual(
         object_mask_dir (pathlib.Path): Directory where the object masks are stored.
         cell_mask_dir (pathlib.Path): Directory where the cell masks are stored.
         cell_mask_suffix (str): Suffix name of the cell mask files.
-        merged_mask_dir (pathlib.Path): Directory where the merged masks are stored.
+        operation (str): Whether the operation performed was a merge or duplicate removal.
+        merged_mask_dir (pathlib.Path): Directory where the merged / final object masks are stored.
+        remain_mask_dir (pathlib.Path): Directory where the remaining masks are stored.
+
 
     Returns:
         np.ndarray:
@@ -203,9 +214,14 @@ def create_overlap_and_merge_visual(
     cell_mask: np.ndarray = imread(
         cell_mask_dir / f"{fov}_{cell_mask_suffix}.tiff", as_gray=True
     )
-    merged_mask: np.ndarray = imread(
-        merged_mask_dir / f"{fov}_{mask_name}_merged.tiff", as_gray=True
-    )
+    if operation == "combine":
+        combine_mask: np.ndarray = imread(
+            merged_mask_dir / f"{fov}_{mask_name}_combined.tiff", as_gray=True
+        )
+    elif operation == "remove_duplicates":
+        remain_mask: np.ndarray = imread(
+            remain_mask_dir / f"{fov}_{cell_mask_suffix}.tiff", as_gray=True
+        )
 
     # Assign colors to the non-overlapping areas of each mask
     # Object masks in red
@@ -216,9 +232,12 @@ def create_overlap_and_merge_visual(
     blue_array = np.zeros(shape=object_mask.shape, dtype=np.uint8)
     blue_array[cell_mask > 0] = 255
 
-    # Merged mask edges in green
-    merge_bool = merged_mask > 0
-    edges = filters.sobel(merge_bool)
+    # Merged or Removed mask edges in green
+    if operation == "combine":
+        mask_bool = combine_mask > 0
+    elif operation == "remove_duplicates":
+        mask_bool = np.logical_xor(remain_mask, cell_mask)
+    edges = filters.sobel(mask_bool)
     green_array = np.zeros(shape=object_mask.shape, dtype=np.uint8)
     green_array[edges > 0] = 255
 
