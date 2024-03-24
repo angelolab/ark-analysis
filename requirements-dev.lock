@@ -464,6 +464,7 @@ numpy==1.23.4
     # via numpy-groupies
     # via ome-zarr
     # via opt-einsum
+    # via pandas
     # via patsy
     # via pims
     # via pyarrow
@@ -770,10 +771,10 @@ soupsieve==2.5
 spatial-image==0.3.0
     # via multiscale-spatial-image
     # via spatialdata
-spatialdata @ git+https://github.com/scverse/spatialdata.git@778f508508bdce6b87312b072345dbbab289a430
+spatialdata==0.1.0
     # via ark
     # via spatialdata-plot
-spatialdata-plot @ git+https://github.com/scverse/spatialdata-plot@71d4f3ea6bfd841432df3e65667f204bc043b5e2
+spatialdata-plot==0.2.0
     # via ark
 sphinx==7.2.6
     # via ark
