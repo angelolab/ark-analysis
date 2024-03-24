@@ -13,7 +13,7 @@ dependencies = [
     "dask-image",
     "scikit-image",
     "flox",
-    "spatialdata>=0.1.0",
+    "spatialdata @ git+https://github.com/srivarra/spatialdata.git@fsspec_update",
     "spatialdata-plot>=0.2.0",
     "xbatcher",
     "torch",
