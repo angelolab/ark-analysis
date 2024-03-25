@@ -17,6 +17,7 @@ def merge_masks_seq(
     cell_mask_dir: Union[pathlib.Path, str],
     cell_mask_suffix: str,
     overlap_percent_threshold: int,
+    first_merge: bool,
     operation_type: str,
     save_path_merge: Union[pathlib.Path, str],
     save_path_remain: Union[pathlib.Path, str],
@@ -34,6 +35,7 @@ def merge_masks_seq(
         cell_mask_dir (Union[str, pathlib.Path]): Path to where the original cell masks are located.
         cell_mask_suffix (str): Name of the cell type you are merging. Usually "whole_cell".
         overlap_percent_threshold (int): Percent overlap of cell's total pixel area needed for object merge.
+        first_merge (bool): Whether or not this is the first merge performed in a dataset.
         operation_type (str): Action performed - either combine objects with cells or remove overlapping cells.
         save_path_merge (Union[str, pathlib.Path]): Directory where combined masks or original objects will be saved.
         save_path_remain: (Union[pathlib.Path, str]): Directory where remaining cell / object mask will be saved.
@@ -42,8 +44,16 @@ def merge_masks_seq(
     # validate paths
     if isinstance(object_mask_dir, str):
         object_mask_dir = pathlib.Path(object_mask_dir)
-    if isinstance(cell_mask_dir, str):
-        cell_mask_dir = pathlib.Path(cell_mask_dir)
+
+    # if first_merge is True, cell mask path is the original cell dir,
+    # Otherwise the cell masks to be used will come from the remain_cell_dir.
+    if first_merge is True:
+        if isinstance(cell_mask_dir, str):
+            cell_mask_dir = pathlib.Path(cell_mask_dir)
+    elif first_merge is False:
+        if isinstance(save_path_remain, str):
+            cell_mask_dir = pathlib.Path(save_path_remain)
+
     if isinstance(save_path_merge, str):
         save_path_merge = pathlib.Path(save_path_merge)
     if isinstance(save_path_remain, str):

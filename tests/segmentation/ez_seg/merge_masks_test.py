@@ -28,6 +28,7 @@ def test_merge_masks_seq():
 
         overlap_thresh: int = 10
         operation_type: str = "combine"
+        first_merge: bool = True
 
         for fov in fov_list:
             cell_mask_data: np.ndarray = np.random.randint(0, 16, (32, 32))
@@ -46,7 +47,7 @@ def test_merge_masks_seq():
         # we're only testing functionality, for in-depth merge testing see test_merge_masks_single
         merge_masks.merge_masks_seq(
             fov_list, object_list, object_mask_dir, cell_mask_dir, cell_mask_suffix, overlap_thresh,
-            operation_type, merged_mask_dir, remain_mask_dir, log_dir
+            operation_type, first_merge, merged_mask_dir, remain_mask_dir, log_dir
         )
 
         for fov in fov_list:
@@ -67,8 +68,9 @@ def test_merge_masks_seq():
         assert log_data[3] == f"cell_mask_path: {str(cell_mask_dir)}\n"
         assert log_data[4] == f"overlap_percent_threshold: {str(overlap_thresh)}\n"
         assert log_data[5] == f"operation_type: {str(operation_type)}\n"
-        assert log_data[6] == f"save_path_merge: {str(merged_mask_dir)}\n"
-        assert log_data[7] == f"save_path_remain: {str(remain_mask_dir)}\n"
+        assert log_data[6] == f"first_merge: {str(first_merge)}\n"
+        assert log_data[7] == f"save_path_merge: {str(merged_mask_dir)}\n"
+        assert log_data[8] == f"save_path_remain: {str(remain_mask_dir)}\n"
 
 
 def test_merge_masks_single():
