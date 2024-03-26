@@ -29,6 +29,7 @@ def test_merge_masks_seq():
         overlap_thresh: int = 10
         operation_type: str = "combine"
         first_merge: bool = True
+        cell_masks_size_filter_value: int = 1
 
         for fov in fov_list:
             cell_mask_data: np.ndarray = np.random.randint(0, 16, (32, 32))
@@ -47,7 +48,7 @@ def test_merge_masks_seq():
         # we're only testing functionality, for in-depth merge testing see test_merge_masks_single
         merge_masks.merge_masks_seq(
             fov_list, object_list, object_mask_dir, cell_mask_dir, cell_mask_suffix, overlap_thresh,
-            operation_type, first_merge, merged_mask_dir, remain_mask_dir, log_dir
+            operation_type, first_merge, merged_mask_dir, remain_mask_dir, log_dir, cell_masks_size_filter_value
         )
 
         for fov in fov_list:
@@ -71,6 +72,7 @@ def test_merge_masks_seq():
         assert log_data[6] == f"first_merge: {str(first_merge)}\n"
         assert log_data[7] == f"save_path_merge: {str(merged_mask_dir)}\n"
         assert log_data[8] == f"save_path_remain: {str(remain_mask_dir)}\n"
+        assert log_data[9] == f"cell_masks_size_filter_value: {str(cell_masks_size_filter_value)}"
 
 
 def test_merge_masks_single():
@@ -82,6 +84,7 @@ def test_merge_masks_single():
     overlap_thresh: int = 10
     merged_mask_name: str = "merged_mask"
     operation_type: str = "combine"
+    cell_masks_size_filter_value: int = 10
 
     # case 1: overlap below threshold, don't merge
     obj1_rows, obj1_cols = disk((7, 7), radius=5, shape=object_mask.shape)
@@ -112,7 +115,8 @@ def test_merge_masks_single():
         os.mkdir(mask_save_dir)
 
         created_cell_mask: np.ndarray = merge_masks.merge_masks_single(
-            object_mask, cell_mask, overlap_thresh, operation_type, merged_mask_name, mask_save_dir
+            object_mask, cell_mask, overlap_thresh, operation_type, cell_masks_size_filter_value,
+            merged_mask_name, mask_save_dir
         )
 
         created_merged_mask: np.ndarray = io.imread(

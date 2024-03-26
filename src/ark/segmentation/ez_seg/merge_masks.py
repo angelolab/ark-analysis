@@ -21,7 +21,8 @@ def merge_masks_seq(
     operation_type: str,
     save_path_merge: Union[pathlib.Path, str],
     save_path_remain: Union[pathlib.Path, str],
-    log_dir: Union[pathlib.Path, str]
+    log_dir: Union[pathlib.Path, str],
+    cell_masks_size_filter_value: int = 100,
 ) -> None:
     """
     Sequentially merge object masks with cell masks. Object list is ordered enforced, e.g. object_list[i] will merge
@@ -40,6 +41,7 @@ def merge_masks_seq(
         save_path_merge (Union[str, pathlib.Path]): Directory where combined masks or original objects will be saved.
         save_path_remain: (Union[pathlib.Path, str]): Directory where remaining cell / object mask will be saved.
         log_dir (Union[str, pathlib.Path]): The directory to save log information to.
+        cell_masks_size_filter_value (int): Filters out any cell mask below this size (pixels) for merging.
     """
     # validate paths
     if isinstance(object_mask_dir, str):
@@ -83,6 +85,7 @@ def merge_masks_seq(
                 cell_mask=curr_cell_mask,
                 overlap_thresh=overlap_percent_threshold,
                 operation=operation_type,
+                cell_masks_size_filter_value=cell_masks_size_filter_value,
                 object_name=obj,
                 mask_save_path=save_path_merge,
             )
@@ -100,8 +103,10 @@ def merge_masks_seq(
         "cell_mask_suffix": cell_mask_suffix,
         "overlap_percent_threshold": overlap_percent_threshold,
         "operation_type": operation_type,
+        "first_merge": first_merge,
         "save_path_merge": save_path_merge,
-        "save_path_remain": save_path_remain
+        "save_path_remain": save_path_remain,
+        "cell_masks_size_filter_value": cell_masks_size_filter_value
     }
     log_creator(variables_to_log, log_dir, "mask_merge_log.txt")
     if operation_type == "combine":
@@ -115,6 +120,7 @@ def merge_masks_single(
     cell_mask: np.ndarray,
     overlap_thresh: int,
     operation: str,
+    cell_masks_size_filter_value: int,
     object_name: str,
     mask_save_path: str
 ) -> np.ndarray:
@@ -127,6 +133,7 @@ def merge_masks_single(
         cell_mask (np.ndarray): The cell mask numpy array.
         overlap_thresh (int): The percentage overlap required for a cell to be merged.
         operation (str): Action performed by function - either combine objects with cells or remove overlapping cells.
+        cell_masks_size_filter_value (int): Filters out any cell mask below this size (pixels) for merging.
         object_name (str): The name of the object.
         mask_save_path (str): The path to save the mask.
 
@@ -166,6 +173,9 @@ def merge_masks_single(
         for cell_label in cell_labels_in_range:
             # Extract a connected component from cell_mask
             cell_mask_component = cell_labels == int(cell_label)
+
+            if cell_masks_size_filter_value < cell_mask_component.sum():
+                continue
 
             # Calculate the overlap between cell_mask_component and object_mask_component
             intersection = np.logical_and(cell_mask_component, object_mask_component)
