@@ -174,7 +174,7 @@ def merge_masks_single(
             # Extract a connected component from cell_mask
             cell_mask_component = cell_labels == int(cell_label)
 
-            if cell_masks_size_filter_value < cell_mask_component.sum():
+            if cell_mask_component.sum() < cell_masks_size_filter_value:
                 continue
 
             # Calculate the overlap between cell_mask_component and object_mask_component
