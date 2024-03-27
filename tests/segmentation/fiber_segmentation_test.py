@@ -185,7 +185,6 @@ def test_generate_tile_stats(min_fiber_num):
         tile_stats = fiber_segmentation.generate_tile_stats(
             fov_fiber_table, fov_fiber_img, fov_length, tile_length, min_fiber_num,
             temp_dir, save_tiles=True)
-        print(tile_stats)
 
         # check tile level values
         # 0,0 tile, fov1 should exclude fiber 6 since located in different tile
@@ -234,7 +233,7 @@ def test_generate_summary_stats(mocker: MockerFixture, min_fiber_num):
         'major_axis_length': random.sample(range(1, 20), 12),
         'minor_axis_length': random.sample(range(1, 20), 12),
         'orientation': [random.uniform(-1.57, 1.57) for _ in range(12)],
-        'area': [1]*12,
+        'area': [2]*12,
         'eccentricity': [random.uniform(0, 1) for _ in range(12)],
         'euler_number': [random.choice([0, 1]) for _ in range(12)],
         'alignment_score': random.sample(range(10, 40), 12),
@@ -271,3 +270,6 @@ def test_generate_summary_stats(mocker: MockerFixture, min_fiber_num):
             np.mean(fiber_object_table.minor_axis_length[0:6])
         assert fov_stats.avg_minor_axis_length[1] == \
             np.mean(fiber_object_table.minor_axis_length[6:12])
+
+        # check fiber and pixel density different
+        assert fov_stats.pixel_density[1] != fov_stats.fiber_density[1]
