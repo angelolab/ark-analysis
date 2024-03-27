@@ -9,7 +9,6 @@ from typing import Generator
 import numpy as np
 import pandas as pd
 import pytest
-import skimage.io as io
 from alpineer import io_utils, test_utils, misc_utils
 from pytest_mock import MockerFixture
 
@@ -192,6 +191,8 @@ def test_generate_tile_stats(min_fiber_num):
         tile_0_0 = tile_stats[np.logical_and(tile_stats.tile_y == 0, tile_stats.tile_x == 0)]
         assert tile_0_0.avg_major_axis_length[0] \
             == np.mean(fov_fiber_table.major_axis_length[0:5])
+        assert tile_0_0.avg_minor_axis_length[0] \
+            == np.mean(fov_fiber_table.minor_axis_length[0:5])
         assert tile_0_0.avg_alignment_score[0] \
             == np.mean(fov_fiber_table.alignment_score[0:5])
 
@@ -232,7 +233,7 @@ def test_generate_summary_stats(mocker: MockerFixture, min_fiber_num):
         'major_axis_length': random.sample(range(1, 20), 12),
         'minor_axis_length': random.sample(range(1, 20), 12),
         'orientation': [random.uniform(-1.57, 1.57) for _ in range(12)],
-        'area': [1]*12,
+        'area': [2]*12,
         'eccentricity': [random.uniform(0, 1) for _ in range(12)],
         'euler_number': [random.choice([0, 1]) for _ in range(12)],
         'alignment_score': random.sample(range(10, 40), 12),
@@ -263,3 +264,12 @@ def test_generate_summary_stats(mocker: MockerFixture, min_fiber_num):
             np.mean(fiber_object_table.major_axis_length[0:6])
         assert fov_stats.avg_major_axis_length[1] == \
             np.mean(fiber_object_table.major_axis_length[6:12])
+
+        # check second metric has correct calculated stat
+        assert fov_stats.avg_minor_axis_length[0] ==\
+            np.mean(fiber_object_table.minor_axis_length[0:6])
+        assert fov_stats.avg_minor_axis_length[1] == \
+            np.mean(fiber_object_table.minor_axis_length[6:12])
+
+        # check fiber and pixel density different
+        assert fov_stats.pixel_density[1] != fov_stats.fiber_density[1]

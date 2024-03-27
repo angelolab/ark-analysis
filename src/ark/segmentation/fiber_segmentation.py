@@ -487,8 +487,8 @@ def generate_tile_stats(fov_table, fov_fiber_img, fov_length, tile_length, min_f
         columns=['fov', 'tile_y', 'tile_x', 'pixel_density', 'fiber_density',
                  'avg_alignment_score'])
 
-    for metric in properties:
-        fov_tile_stats[f"avg_{metric}"] = tile_stats.T[0]
+    for i, metric in enumerate(properties):
+        fov_tile_stats[f"avg_{metric}"] = tile_stats.T[i]
 
     return fov_tile_stats
 
@@ -540,9 +540,9 @@ def generate_summary_stats(fiber_object_table, fibseg_dir, tile_length=512, min_
         avg_stats = fov_table[properties].mean().array
 
         # density
-        fov_p_density, fov_p_density = calculate_density(fov_table, fov_length**2)
+        fov_p_density, fov_f_density = calculate_density(fov_table, fov_length**2)
         fov_pixel_density.append(fov_p_density)
-        fov_fiber_density.append(fov_p_density)
+        fov_fiber_density.append(fov_f_density)
 
         # tile level stats
         fov_tile_stats = generate_tile_stats(fov_table, fov_fiber_img, fov_length, tile_length,
@@ -559,7 +559,7 @@ def generate_summary_stats(fiber_object_table, fibseg_dir, tile_length=512, min_
 
     fov_prop_stats = np.vstack(fov_avg_stats)
     for i, metric in enumerate(properties):
-        fov_stats[f"avg_{metric}"] = fov_prop_stats.T[0]
+        fov_stats[f"avg_{metric}"] = fov_prop_stats.T[i]
 
     fov_stats.to_csv(os.path.join(fibseg_dir, f'fiber_stats_table.csv'), index=False)
 
