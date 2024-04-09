@@ -106,48 +106,81 @@ class TestExampleDataset:
 
         self._ez_seg_files = {
             "fov_names": [f"fov{i}" for i in range(10)],
-            "channel_names": ["Ca40", "GFAP", "Synaptophysin", "PanAmyloidbeta1724",
-                              "Na23", "Reelin", "Presenilin1NTF", "Iba1", "CD105",
-                              "C12", "EEA1", "VGLUT1", "PolyubiK63", "Ta181", "Au197",
-                              "Si28", "PanGAD6567", "CD33Lyo", "MAP2", "Calretinin",
-                              "PolyubiK48", "MAG", "TotalTau", "Amyloidbeta140",
-                              "Background", "CD45", "8OHGuano", "pTDP43", "ApoE4",
-                              "PSD95", "TH", "HistoneH3Lyo", "CD47", "Parvalbumin",
-                              "Amyloidbeta142", "Calbindin", "PanApoE2E3E4", "empty139",
-                              "CD31", "MCT1", "MBP", "SERT", "PHF1Tau", "VGAT",
-                              "VGLUT2", "CD56Lyo", "MFN2"],
+            "channel_names": [
+                "Ca40",
+                "GFAP",
+                "Synaptophysin",
+                "PanAmyloidbeta1724",
+                "Na23",
+                "Reelin",
+                "Presenilin1NTF",
+                "Iba1",
+                "CD105",
+                "C12",
+                "EEA1",
+                "VGLUT1",
+                "PolyubiK63",
+                "Ta181",
+                "Au197",
+                "Si28",
+                "PanGAD6567",
+                "CD33Lyo",
+                "MAP2",
+                "Calretinin",
+                "PolyubiK48",
+                "MAG",
+                "TotalTau",
+                "Amyloidbeta140",
+                "Background",
+                "CD45",
+                "8OHGuano",
+                "pTDP43",
+                "ApoE4",
+                "PSD95",
+                "TH",
+                "HistoneH3Lyo",
+                "CD47",
+                "Parvalbumin",
+                "Amyloidbeta142",
+                "Calbindin",
+                "PanApoE2E3E4",
+                "empty139",
+                "CD31",
+                "MCT1",
+                "MBP",
+                "SERT",
+                "PHF1Tau",
+                "VGAT",
+                "VGLUT2",
+                "CD56Lyo",
+                "MFN2",
+            ],
             "composite_names": [
                 "amyloid",
-                "astrocyte",
-                "microglia",
+                "microglia-composite",
             ],
-            "ez_mask_suffixes": [
-                "amyloid-plaques",
-                "astrocyte-arms",
-                "microglia-arms"
-            ],
+            "ez_mask_suffixes": ["microglia-projections", "plaques"],
+            "merged_mask_suffixes":
+                ["final_whole_cell_remaining", "microglia-projections_merged"],
+            "final_mask_suffixes":
+                ["final_whole_cell_remaining", "microglia-projections_merged", "plaques"],
             "cell_table_names": [
-                "filtered_amyloid-plaques_table_arcsinh_transformed",
-                "filtered_amyloid-plaques_table_size_normalized",
-                "filtered_astrocyte-arms_merged_table_arcsinh_transformed",
-                "filtered_astrocyte-arms_merged_table_size_normalized",
-                "filtered_microglia-arms_merged_table_size_normalized",
-                "filtered_microglia-arms_merged_table_arcsinh_transformed",
-                "filtered_whole_cell_table_size_normalized",
-                "filtered_whole_cell_table_arcsinh_transformed",
+                "cell_and_objects_table_arcsinh_transformed",
                 "cell_and_objects_table_size_normalized",
-                "cell_and_objects_table_arcsinh_transformed"
+                "filtered_final_whole_cell_remaining_table_arcsinh_transformed",
+                "filtered_final_whole_cell_remaining_table_size_normalized",
+                "filtered_microglia-projections_merged_table_arcsinh_transformed",
+                "filtered_microglia-projections_merged_table_size_normalized",
+                "filtered_plaques_table_arcsinh_transformed",
+                "filtered_plaques_table_size_normalized",
             ],
             "log_names": [
-                "amyloid-composite_log",
-                "amyloid-plaques_segmentation_log",
-                "astrocyte_composite_log",
-                "astrocyte-arms_segmentation_log",
+                "amyloid_composite_log",
                 "mask_merge_log",
-                "microglia_composite_log",
-                "microglia-arms_segmentation_log",
-                "test_composite_log"
-            ]
+                "microglia-composite_composite_log",
+                "microglia-projections_segmentation_log",
+                "plaques_segmentation_log"
+            ],
         }
 
         # Mapping the datasets to their respective test functions.
@@ -491,6 +524,7 @@ class TestExampleDataset:
         deepcell_output = dir_p / "segmentation" / "deepcell_output"
         ez_masks = dir_p / "segmentation" / "ez_masks"
         merged_masks = dir_p / "segmentation" / "merged_masks_dir"
+        final_masks = dir_p / "segmentation" / "final_mask_dir"
         mantis_visualization = dir_p / "mantis_visualization"
         logs = dir_p / "logs"
 
@@ -537,14 +571,21 @@ class TestExampleDataset:
         downloaded_merged = list(merged_masks.glob("*.tiff"))
         downloaded_merged_names = [f.stem for f in downloaded_merged]
         actual_merged_names = [
-            f"{fov}_{ez_suffix}_merged"
+            f"{fov}_{merged_mask_suffix}"
             for fov in self._ez_seg_files["fov_names"]
-            for ez_suffix in self._ez_seg_files["ez_mask_suffixes"]
-            if ez_suffix != "amyloid-plaques"
-        ] + [
-            f"{fov}_final_cells_remaining" for fov in self._ez_seg_files["fov_names"]
+            for merged_mask_suffix in self._ez_seg_files["merged_mask_suffixes"]
         ]
         assert set(actual_merged_names) == set(downloaded_merged_names)
+
+        # final masks check
+        downloaded_final = list(final_masks.glob("*.tiff"))
+        downloaded_final_names = [f.stem for f in downloaded_final]
+        actual_final_names = [
+            f"{fov}_{final_mask_suffix}"
+            for fov in self._ez_seg_files["fov_names"]
+            for final_mask_suffix in self._ez_seg_files["final_mask_suffixes"]
+        ]
+        assert set(actual_final_names) == set(downloaded_final_names)
 
         # logs check
         downloaded_logs = list(logs.glob("*.txt"))
