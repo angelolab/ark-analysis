@@ -1,6 +1,7 @@
 import copy
 import warnings
 from typing import List
+import re
 
 import numpy as np
 import pandas as pd
@@ -529,10 +530,15 @@ def generate_cell_table(segmentation_dir, tiff_dir, img_sub_folder="TIFs",
         whole_cell_file = fov_name + '_whole_cell.tiff'
         nuclear_file = fov_name + '_nuclear.tiff'
 
-        # for each label given in the argument. read in that mask for the fov, and proceed with label and table appending
+        # for each label given in the argument, read in that mask for the fov, and proceed with
+        # label and table appending
         mask_files = io_utils.list_files(segmentation_dir, substrs=fov_name)
         mask_types = get_existing_mask_types(fov_names=fovs, mask_names=mask_files)
-        
+ 
+        # remove nuclear from mask_types if nuclear_counts False
+        if not nuclear_counts and "nuclear" in mask_types:
+            mask_types.remove("nuclear")
+
         for mask_type in mask_types:
             # load the segmentation labels in
             fov_mask_name = fov_name + '_' + mask_type + ".tiff"
@@ -592,19 +598,27 @@ def generate_cell_table(segmentation_dir, tiff_dir, img_sub_folder="TIFs",
 
 
 def get_existing_mask_types(fov_names: List[str], mask_names: List[str]) -> List[str]:
-    """
-    Function to strip prefixes from list: fov_names, strip '.tiff' suffix from list: mask names,
+    """ Function to strip prefixes from list: fov_names, strip '.tiff' suffix from list: mask names,
     and remove underscore prefixes, returning unique mask values (i.e. categories of masks).
 
     Args:
         fov_names (List[str]): list of fov names. Matching fov names in mask names will be returned without fov prefix.
-        mask_names (List[str]): list of mask names. Mask names will be returned without tif suffix.
-
+        mask_names (List[str]): list of mask names. Mask names will be returned without tiff suffix.
+        
     Returns:
-        List[str]: Unique mask names (i.e. categories of masks)
+            List[str]: Unique mask names (i.e. categories of masks)
     """
     stripped_mask_names = io_utils.remove_file_extensions(mask_names)
-    result = [mask_name[len(fov_name):] for mask_name in stripped_mask_names for fov_name in fov_names if mask_name.startswith(f"{fov_name}_")]
+
+    # break fov names into tokens, compare against mask names and return only those mask names that also contain the fov
+    result = []
+    for prefix in fov_names:
+        prefix_tokens = list(filter(bool, re.split("[^a-zA-Z0-9]", prefix)))
+        for itemB in stripped_mask_names:
+            itemB_tokens = list(filter(bool, re.split("[^a-zA-Z0-9]", itemB)))
+            if set(prefix_tokens).issubset(itemB_tokens):
+                result.append(itemB[len(prefix):])
+
     # Remove underscore prefixes and return unique values
     cleaned_result = [item.lstrip('_') for item in result]
     unique_result = list(set(cleaned_result))

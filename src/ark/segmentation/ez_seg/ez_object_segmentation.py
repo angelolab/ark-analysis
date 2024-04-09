@@ -71,10 +71,10 @@ def create_object_masks(
         try:
             len(fov_xr.channels)
             channel: xr.DataArray = fov_xr.sel({"channels": channel_to_segment}).astype(
-                int
+                np.float32
             )
         except TypeError:
-            channel: xr.DataArray = fov_xr.astype(int)
+            channel: xr.DataArray = fov_xr.astype(np.float32)
 
         object_masks: np.ndarray = _create_object_mask(
             input_image=channel,

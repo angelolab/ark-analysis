@@ -20,11 +20,10 @@ import xarray as xr
 from ark import settings
 from skimage.segmentation import find_boundaries
 import dask.dataframe as dd
-from dask import delayed
+from pandas.core.groupby.generic import DataFrameGroupBy
 from anndata import AnnData, read_zarr
 from anndata.experimental import AnnCollection
 from anndata.experimental.multi_files._anncollection import ConvertType
-from tqdm.dask import TqdmCallback
 from torchdata.datapipes.iter import IterDataPipe
 from typing import Iterator, Optional
 try:
@@ -133,9 +132,11 @@ class ClusterMaskData:
         ].copy()
 
         # Add a cluster_id_column to the column in case the cluster_column is
-        # non-numeric (i.e. string)
+        # non-numeric (i.e. string), index in ascending order of cell_meta_cluster
         cluster_name_id = pd.DataFrame(
             {self.cluster_column: mapping_data[self.cluster_column].unique()})
+        cluster_name_id.sort_values(by=f'{self.cluster_column}', inplace=True)
+        cluster_name_id.reset_index(drop=True, inplace=True)
 
         cluster_name_id[self.cluster_id_column] = (cluster_name_id.index + 1).astype(np.int32)
 
@@ -447,6 +448,9 @@ def generate_and_save_cell_cluster_masks(
     cluster_map = cmd.mapping.filter([cmd.cluster_column, cmd.cluster_id_column])
     cluster_map = cluster_map.drop_duplicates()
 
+    # drop the cluster_id column from updated_cluster_map if it already exists, otherwise do nothing
+    gui_map = gui_map.drop(columns="cluster_id", errors="ignore")
+
     # add a cluster_id column corresponding to the new mask integers
     updated_cluster_map = gui_map.merge(cluster_map, on=[cmd.cluster_column], how="left")
     updated_cluster_map.to_csv(cluster_id_to_name_path, index=False)
@@ -474,7 +478,8 @@ def generate_and_save_cell_cluster_masks(
 
 
 def generate_pixel_cluster_mask(fov, base_dir, tiff_dir, chan_file_path,
-                                pixel_data_dir, pixel_cluster_col='pixel_meta_cluster'):
+                                pixel_data_dir, cluster_mapping,
+                                pixel_cluster_col='pixel_meta_cluster'):
     """For a fov, create a mask labeling each pixel with their SOM or meta cluster label
 
     Args:
@@ -490,6 +495,8 @@ def generate_pixel_cluster_mask(fov, base_dir, tiff_dir, chan_file_path,
         pixel_data_dir (str):
             The path to the data with full pixel data.
             This data should also have the SOM and meta cluster labels appended.
+        cluster_mapping (pd.DataFrame)
+            Dataframe detailing which meta_cluster IDs map to which cluster_id
         pixel_cluster_col (str):
             Whether to assign SOM or meta clusters
             needs to be `'pixel_som_cluster'` or `'pixel_meta_cluster'`
@@ -536,8 +543,13 @@ def generate_pixel_cluster_mask(fov, base_dir, tiff_dir, chan_file_path,
     # convert to 1D indexing
     coordinates = x_coords * img_data.shape[1] + y_coords
 
-    # get the cooresponding cluster labels for each pixel
+    # get the corresponding cluster labels for each pixel
     cluster_labels = list(fov_data[pixel_cluster_col])
+
+    # relabel meta_cluster numbers with cluster_id
+    cluster_mapping = cluster_mapping.drop_duplicates()[[pixel_cluster_col, 'cluster_id']]
+    id_mapping = dict(zip(cluster_mapping[pixel_cluster_col], cluster_mapping['cluster_id']))
+    cluster_labels = [id_mapping[label] for label in cluster_labels]
 
     # assign each coordinate in pixel_cluster_mask to its respective cluster label
     img_subset = img_data.ravel()
@@ -553,6 +565,7 @@ def generate_and_save_pixel_cluster_masks(fovs: List[str],
                                           tiff_dir: Union[pathlib.Path, str],
                                           chan_file: Union[pathlib.Path, str],
                                           pixel_data_dir: Union[pathlib.Path, str],
+                                          cluster_id_to_name_path: Union[pathlib.Path, str],
                                           pixel_cluster_col: str = 'pixel_meta_cluster',
                                           sub_dir: str = None,
                                           name_suffix: str = ''):
@@ -573,6 +586,9 @@ def generate_and_save_pixel_cluster_masks(fovs: List[str],
         pixel_data_dir (Union[pathlib.Path, str]):
             The path to the data with full pixel data.
             This data should also have the SOM and meta cluster labels appended.
+        cluster_id_to_name_path (Union[str, pathlib.Path]): A path to a CSV identifying the
+            pixel cluster to manually-defined name mapping this is output by the remapping
+            visualization found in `metacluster_remap_gui`.
         pixel_cluster_col (str, optional):
             The path to the data with full pixel data.
             This data should also have the SOM and meta cluster labels appended.
@@ -584,6 +600,19 @@ def generate_and_save_pixel_cluster_masks(fovs: List[str],
         name_suffix (str, optional):
             Specify what to append at the end of every pixel mask. Defaults to `''`.
     """
+    # read in gui cluster mapping file and save cluster_id created in generate_pixel_cluster_mask
+    gui_map = pd.read_csv(cluster_id_to_name_path)
+    cluster_map = gui_map.copy()[[pixel_cluster_col]]
+
+    cluster_map = cluster_map.drop_duplicates().sort_values(by=[pixel_cluster_col])
+    cluster_map["cluster_id"] = list(range(1, len(cluster_map) + 1))
+
+    # drop the cluster_id column from gui_map if it already exists, otherwise do nothing
+    gui_map = gui_map.drop(columns="cluster_id", errors="ignore")
+
+    # add a cluster_id column corresponding to the new mask integers
+    updated_cluster_map = gui_map.merge(cluster_map, on=[pixel_cluster_col], how="left")
+    updated_cluster_map.to_csv(cluster_id_to_name_path, index=False)
 
     # create the pixel cluster masks across each fov
     with tqdm(total=len(fovs), desc="Pixel Cluster Mask Generation", unit="FOVs") \
@@ -599,7 +628,8 @@ def generate_and_save_pixel_cluster_masks(fovs: List[str],
                 generate_pixel_cluster_mask(fov=fov, base_dir=base_dir, tiff_dir=tiff_dir,
                                             chan_file_path=chan_file_path,
                                             pixel_data_dir=pixel_data_dir,
-                                            pixel_cluster_col=pixel_cluster_col)
+                                            pixel_cluster_col=pixel_cluster_col,
+                                            cluster_mapping=updated_cluster_map)
 
             # save the pixel mask generated
             save_fov_mask(fov, data_dir=save_dir, mask_data=pixel_mask, sub_dir=sub_dir,
@@ -821,14 +851,13 @@ def stitch_images_by_shape(data_dir, stitched_dir, img_sub_folder=None, channels
                                current_img)
 
 
-@delayed
-def _convert_ct_fov_to_adata(fov_dd: dd.DataFrame, var_names: list[str], obs_names: list[str], save_dir: os.PathLike) -> str:
+def _convert_ct_fov_to_adata(fov_group: DataFrameGroupBy, var_names: list[str], obs_names: list[str], save_dir: os.PathLike) -> str:
     """Converts the cell table for a single FOV to an `AnnData` object and saves it to disk as a
     `Zarr` store.
 
     Parameters
     ----------
-    fov_dd : dd.DataFrame
+    fov_group : DataFrameGroupBy
         The cell table subset on a single FOV.
     var_names: list[str]
         The marker names to extract from the cell table.
@@ -843,7 +872,7 @@ def _convert_ct_fov_to_adata(fov_dd: dd.DataFrame, var_names: list[str], obs_nam
         The path of the saved `AnnData` object.
     """
     
-    fov_dd: dd.DataFrame = fov_dd.sort_values(by=settings.CELL_LABEL, key=ns.natsort_key).reset_index()
+    fov_dd: dd.DataFrame = fov_group.sort_values(by=settings.CELL_LABEL, key=ns.natsort_key).reset_index()
     fov_id: str = fov_dd[settings.FOV_ID].iloc[0]
 
     # Set the index to be the FOV and the segmentation label to create a unique index
@@ -904,11 +933,10 @@ class ConvertToAnnData:
         
         io_utils.validate_paths(paths=cell_table_path)
         
-        
         # Read in the cell table
-        cell_table: dd.DataFrame = dd.read_csv(cell_table_path)
+        cell_table: pd.DataFrame = pd.read_csv(cell_table_path)
         ct_columns = cell_table.columns
-        
+
         # Get the marker column indices
         marker_index_start: int = ct_columns.get_loc(settings.PRE_CHANNEL_COL) + 1
         marker_index_stop: int = ct_columns.get_loc(settings.POST_CHANNEL_COL)
@@ -968,20 +996,16 @@ class ConvertToAnnData:
         if not save_dir.exists():
             save_dir.mkdir(parents=True, exist_ok=True)
 
+        n_unique_fovs = self.cell_table[settings.FOV_ID].nunique()
 
-        with TqdmCallback(desc="Converting to AnnData"):
-            g: pd.Series = (
-                self.cell_table.groupby(by=settings.FOV_ID, sort=True)
-                .apply(
-                    _convert_ct_fov_to_adata,
-                    var_names=self.var_names,
-                    obs_names=self.obs_names,
-                    save_dir=save_dir,
-                    meta=("anndata_save_results", str),
-                )
-            ).compute()
+        tqdm.pandas(desc="Converting Cell Table to AnnData Tables", total=n_unique_fovs, unit="FOVs")
 
-        return g.to_dict()
+        result: pd.Series = self.cell_table.groupby(by=settings.FOV_ID, sort=True).progress_apply(
+            lambda x: _convert_ct_fov_to_adata(
+                x, var_names=self.var_names, obs_names=self.obs_names, save_dir=save_dir
+            ),
+        )
+        return result.to_dict()
 
 
 class AnnCollectionKwargs(TypedDict):

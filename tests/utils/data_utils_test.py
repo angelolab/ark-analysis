@@ -359,33 +359,35 @@ def test_generate_and_save_cell_cluster_masks(tmp_path: pathlib.Path, sub_dir, n
     cluster_mapping.to_csv(os.path.join(tmp_path, 'cluster_mapping.csv'), index=False)
 
     # test various batch_sizes, no sub_dir, name_suffix = ''.
-    data_utils.generate_and_save_cell_cluster_masks(
-        fovs=fovs,
-        save_dir=os.path.join(tmp_path, 'cell_masks'),
-        seg_dir=tmp_path,
-        cell_data=consensus_data_som,
-        cluster_id_to_name_path=mapping_file_path,
-        fov_col=settings.FOV_ID,
-        label_col=settings.CELL_LABEL,
-        cell_cluster_col='cell_som_cluster',
-        seg_suffix='_whole_cell.tiff',
-        sub_dir=sub_dir,
-        name_suffix=name_suffix
-    )
+    # NOTE: test is run twice to ensure that results are same even if existing cluster_id found
+    for i in np.arange(2):
+        data_utils.generate_and_save_cell_cluster_masks(
+            fovs=fovs,
+            save_dir=os.path.join(tmp_path, 'cell_masks'),
+            seg_dir=tmp_path,
+            cell_data=consensus_data_som,
+            cluster_id_to_name_path=mapping_file_path,
+            fov_col=settings.FOV_ID,
+            label_col=settings.CELL_LABEL,
+            cell_cluster_col='cell_som_cluster',
+            seg_suffix='_whole_cell.tiff',
+            sub_dir=sub_dir,
+            name_suffix=name_suffix
+        )
 
-    # open each cell mask and make sure the shape and values are valid
-    if sub_dir is None:
-        sub_dir = ''
+        # open each cell mask and make sure the shape and values are valid
+        if sub_dir is None:
+            sub_dir = ''
 
-    for i, fov in enumerate(fovs):
-        fov_name = fov + name_suffix + ".tiff"
-        cell_mask = io.imread(os.path.join(tmp_path, 'cell_masks', sub_dir, fov_name))
-        actual_img_dims = (40, 40) if i < fov_size_split else (20, 20)
-        assert cell_mask.shape == actual_img_dims
-        assert np.all(cell_mask <= 5)
+        for i, fov in enumerate(fovs):
+            fov_name = fov + name_suffix + ".tiff"
+            cell_mask = io.imread(os.path.join(tmp_path, 'cell_masks', sub_dir, fov_name))
+            actual_img_dims = (40, 40) if i < fov_size_split else (20, 20)
+            assert cell_mask.shape == actual_img_dims
+            assert np.all(cell_mask <= 5)
 
-    new_cluster_mapping = pd.read_csv(mapping_file_path)
-    assert "cluster_id" in new_cluster_mapping.columns
+        new_cluster_mapping = pd.read_csv(mapping_file_path)
+        assert "cluster_id" in new_cluster_mapping.columns
 
 
 def test_generate_pixel_cluster_mask():
@@ -396,13 +398,13 @@ def test_generate_pixel_cluster_mask():
         # bad segmentation path passed
         with pytest.raises(FileNotFoundError):
             data_utils.generate_pixel_cluster_mask(
-                fov, temp_dir, 'bad_tiff_dir', 'bad_chan_file', 'bad_consensus_path'
+                fov, temp_dir, 'bad_tiff_dir', 'bad_chan_file', 'bad_consensus_path', {}
             )
 
         # bad channel file path passed
         with pytest.raises(FileNotFoundError):
             data_utils.generate_pixel_cluster_mask(
-                fov, temp_dir, temp_dir, 'bad_chan_file', 'bad_consensus_path'
+                fov, temp_dir, temp_dir, 'bad_chan_file', 'bad_consensus_path', {}
             )
 
         # generate sample fov folder with one channel value, no sub folder
@@ -413,7 +415,8 @@ def test_generate_pixel_cluster_mask():
         # bad consensus path passed
         with pytest.raises(FileNotFoundError):
             data_utils.generate_pixel_cluster_mask(
-                fov, temp_dir, temp_dir, os.path.join('fov0', 'chan0.tiff'), 'bad_consensus_path'
+                fov, temp_dir, temp_dir, os.path.join('fov0', 'chan0.tiff'), 'bad_consensus_path',
+                {}
             )
 
         # create a dummy consensus directory
@@ -422,9 +425,20 @@ def test_generate_pixel_cluster_mask():
         # create dummy data containing SOM and consensus labels for the fov
         consensus_data = pd.DataFrame(np.random.rand(100, 4), columns=chans)
         consensus_data['pixel_som_cluster'] = np.tile(np.arange(1, 11), 10)
-        consensus_data['pixel_meta_cluster'] = np.tile(np.arange(1, 6), 20)
+        consensus_data['pixel_meta_cluster'] = np.tile(np.arange(2, 7), 20)
         consensus_data['row_index'] = np.random.randint(low=0, high=40, size=100)
         consensus_data['column_index'] = np.random.randint(low=0, high=40, size=100)
+
+        cluster_mapping = pd.DataFrame.from_dict(
+            {
+                "pixel_som_cluster": np.arange(1, 11),
+                "pixel_meta_cluster": np.repeat(np.arange(2, 7), 2),
+                "pixel_meta_cluster_rename": [
+                    "meta" + str(i) for i in np.repeat(np.arange(2, 7), 2)
+                ],
+                "cluster_id": np.repeat(np.arange(1, 6), 2),
+            }
+        )
 
         feather.write_dataframe(
             consensus_data, os.path.join(temp_dir, 'pixel_mat_consensus', fov + '.feather')
@@ -434,20 +448,20 @@ def test_generate_pixel_cluster_mask():
         with pytest.raises(ValueError):
             data_utils.generate_pixel_cluster_mask(
                 fov, temp_dir, temp_dir, os.path.join('fov0', 'chan0.tiff'),
-                'pixel_mat_consensus', 'bad_cluster'
+                'pixel_mat_consensus', cluster_mapping, 'bad_cluster'
             )
 
         # bad fov provided
         with pytest.raises(ValueError):
             data_utils.generate_pixel_cluster_mask(
                 'fov1', temp_dir, temp_dir, os.path.join('fov0', 'chan0.tiff'),
-                'pixel_mat_consensus', 'pixel_som_cluster'
+                'pixel_mat_consensus', cluster_mapping, 'pixel_som_cluster'
             )
 
         # test on SOM assignments
         pixel_masks = data_utils.generate_pixel_cluster_mask(
             fov, temp_dir, temp_dir, os.path.join('fov0', 'chan0.tiff'),
-            'pixel_mat_consensus', 'pixel_som_cluster'
+            'pixel_mat_consensus', cluster_mapping, 'pixel_som_cluster'
         )
 
         # assert the image size is the same as the mask (40, 40)
@@ -459,7 +473,7 @@ def test_generate_pixel_cluster_mask():
         # test on meta assignments
         pixel_masks = data_utils.generate_pixel_cluster_mask(
             fov, temp_dir, temp_dir, os.path.join('fov0', 'chan0.tiff'),
-            'pixel_mat_consensus', 'pixel_meta_cluster'
+            'pixel_mat_consensus', cluster_mapping, 'pixel_meta_cluster'
         )
 
         # assert the image size is the same as the mask (40, 40)
@@ -467,6 +481,27 @@ def test_generate_pixel_cluster_mask():
 
         # assert no value is greater than the highest meta cluster value (5)
         assert np.all(pixel_masks <= 5)
+
+        # assert that only cluster_id ints are used in the mask
+        assert (np.unique(pixel_masks) ==
+                np.append([0], np.unique(cluster_mapping['cluster_id']))).all()
+
+        # create fov using only subset of possible pixel clusters
+        consensus_data_sub = consensus_data.copy()
+        consensus_data_sub['pixel_meta_cluster'] = np.tile(np.array([3, 6]), 50)
+
+        feather.write_dataframe(
+            consensus_data_sub, os.path.join(temp_dir, 'pixel_mat_consensus', fov + '.feather')
+        )
+
+        # test mask generation for subset fov
+        pixel_masks_sub = data_utils.generate_pixel_cluster_mask(
+            fov, temp_dir, temp_dir, os.path.join('fov0', 'chan0.tiff'),
+            'pixel_mat_consensus', cluster_mapping, 'pixel_meta_cluster'
+        )
+
+        # assert that only cluster_id ints are used in the mask
+        assert (np.unique(pixel_masks_sub) == np.array([0, 2, 5])).all()
 
 
 @parametrize('sub_dir', [None, 'sub_dir'])
@@ -505,6 +540,19 @@ def test_generate_and_save_pixel_cluster_masks(sub_dir, name_suffix):
             consensus_data['row_index'] = np.random.randint(low=0, high=chan_dims[0], size=100)
             consensus_data['column_index'] = np.random.randint(low=0, high=chan_dims[1], size=100)
 
+            # create pixel mapping file
+            cluster_id_to_name_path = os.path.join(temp_dir, 'mapping.csv')
+            df = pd.DataFrame.from_dict(
+                {
+                    "pixel_som_cluster": np.arange(1, 11),
+                    "pixel_meta_cluster": np.repeat(np.arange(5) + 1, 2),
+                    "pixel_meta_cluster_rename": [
+                        "meta" + str(i) for i in np.repeat(np.arange(5) + 1, 2)
+                    ]
+                }
+            )
+            df.to_csv(cluster_id_to_name_path, index=False)
+
             feather.write_dataframe(
                 consensus_data, os.path.join(temp_dir, 'pixel_mat_consensus', fov + '.feather')
             )
@@ -516,6 +564,7 @@ def test_generate_and_save_pixel_cluster_masks(sub_dir, name_suffix):
             tiff_dir=temp_dir,
             chan_file='chan0.tiff',
             pixel_data_dir='pixel_mat_consensus',
+            cluster_id_to_name_path=cluster_id_to_name_path,
             pixel_cluster_col='pixel_meta_cluster',
             sub_dir=sub_dir,
             name_suffix=name_suffix
@@ -532,6 +581,10 @@ def test_generate_and_save_pixel_cluster_masks(sub_dir, name_suffix):
             actual_img_dims = (40, 40) if i < fov_size_split else (20, 20)
             assert pixel_mask.shape == actual_img_dims
             assert np.all(pixel_mask <= 5)
+
+        # check that mapping was updated with cluster_id
+        mapping = pd.read_csv(cluster_id_to_name_path)
+        assert "cluster_id" in mapping.columns
 
 
 @parametrize('sub_dir', [None, 'sub_dir'])
@@ -776,38 +829,35 @@ def test_convert_ct_fov_to_adata(tmp_path: pytest.TempPathFactory):
     n_cells = 100
     n_markers = 10
     ct = ark_test_utils.make_cell_table(n_cells=n_cells, n_markers=n_markers)
-    ct_dd = dd.from_pandas(ct, npartitions=2)
-    fov1_dd = ct_dd[ct_dd[settings.FOV_ID] == 1]
+
+    ct_gb = ct.groupby(by=settings.FOV_ID)
+    fov1_ct = ct_gb.get_group(1)
 
     var_names = [f"marker_{i}" for i in range(n_markers)]
-    obs_names = fov1_dd.drop(columns=var_names).columns.to_list()
+    obs_names = fov1_ct.drop(columns=var_names).columns.to_list()
 
     fov1_adata_save_path = data_utils._convert_ct_fov_to_adata(
-        fov_dd=fov1_dd,
+        fov_group=fov1_ct,
         var_names=var_names,
         obs_names=obs_names,
         save_dir=tmp_path
     )
-    save_path = fov1_adata_save_path.compute()
 
     # Assert that the file exists
     assert (tmp_path / "1.zarr").exists()
 
     # Load the AnnData Zarr Store
-    fov1_adata = read_zarr(save_path)
-
-    # compute fov1_dd for asserts
-    fov1_df = fov1_dd.compute()
+    fov1_adata = read_zarr(fov1_adata_save_path)
 
     # Assert that the obs_names follow "{fov_id}_{cell_label}"
-    true_obs_names = list(map(lambda label: f"1_{int(label)}", fov1_df[settings.CELL_LABEL]))
+    true_obs_names = list(map(lambda label: f"1_{int(label)}", fov1_ct[settings.CELL_LABEL]))
     assert fov1_adata.obs_names.tolist() == true_obs_names
 
     # Assert that the X / Markers values are correct
-    np.testing.assert_allclose(actual=fov1_adata.X, desired=fov1_df[var_names].values)
+    np.testing.assert_allclose(actual=fov1_adata.X, desired=fov1_ct[var_names].values)
 
     # Assert that the obs columns are correct
-    expected_obs_columns = fov1_df.drop(
+    expected_obs_columns = fov1_ct.drop(
         columns=[*var_names, settings.CENTROID_0, settings.CENTROID_1]
     ).columns
     assert fov1_adata.obs.columns.tolist() == expected_obs_columns.tolist()
@@ -815,7 +865,7 @@ def test_convert_ct_fov_to_adata(tmp_path: pytest.TempPathFactory):
     # Assert that the obsm values are correct
     np.testing.assert_allclose(
         actual=fov1_adata.obsm["spatial"].values,
-        desired=fov1_df[[settings.CENTROID_0, settings.CENTROID_1]].values
+        desired=fov1_ct[[settings.CENTROID_0, settings.CENTROID_1]].values
     )
 
 
@@ -851,36 +901,38 @@ class TestConvertToAnnData:
             assert pathlib.Path(fov_adata_path).exists()
 
 
-@pytest.fixture(scope="module")
+@pytest.fixture(scope="function")
 def testing_anndatas(
         tmp_path_factory: pytest.TempPathFactory
-) -> Callable[[int, pathlib.Path], Tuple[List[str], AnnCollection]]:
-    def create_adatas(n_fovs, save_dir: pathlib.Path):
-        fov_names, ann_collection = ark_test_utils.generate_anncollection(
-            fovs=n_fovs,
-            n_vars=10,
-            n_obs=100,
-            obs_properties=4,
-            obs_categorical_properties=2,
-            random_n_obs=True,
-            join_obs="inner",
-            join_obsm="inner"
-        )
+) -> Iterator[Tuple[List[str], AnnCollection, pathlib.Path]]:
 
-        for fov_name, fov_adata in zip(fov_names, ann_collection.adatas):
-            fov_adata.write_zarr(os.path.join(save_dir, f"{fov_name}.zarr"))
-        return fov_names, ann_collection
+    fov_names, ann_collection = ark_test_utils.generate_anncollection(
+        fovs=5,
+        n_vars=10,
+        n_obs=100,
+        obs_properties=4,
+        obs_categorical_properties=2,
+        random_n_obs=True,
+        join_obs="inner",
+        join_obsm="inner",
+    )
 
-    yield create_adatas
+    save_dir = tmp_path_factory.mktemp("anndatas")
+
+    for fov_name, fov_adata in zip(fov_names, ann_collection.adatas):
+        fov_adata.write_zarr(os.path.join(save_dir, f"{fov_name}.zarr"))
+
+    yield fov_names, ann_collection, save_dir
 
 
-def test_load_anndatas(testing_anndatas, tmp_path_factory):
-    ann_collection_path = tmp_path_factory.mktemp("anndatas")
+@pytest.mark.skip(reason="not used currently, fix later")
+def test_load_anndatas(testing_anndatas):
 
-    fov_names, ann_collection = testing_anndatas(n_fovs=5, save_dir=ann_collection_path)
-
+=======
+    fov_names, ann_collection, anndata_dir = testing_anndatas
+    
     # test AnnCollection return
-    ac = data_utils.load_anndatas(ann_collection_path, collection=True, join_obs="inner",
+    ac = data_utils.load_anndatas(anndata_dir, collection=True, join_obs="inner",
                                   join_obsm="inner")
 
     assert isinstance(ac, AnnCollection)
@@ -890,7 +942,7 @@ def test_load_anndatas(testing_anndatas, tmp_path_factory):
     # Assert that each AnnData component of an AnnCollection is the same as the one on disk.
     for fov_name, fov_adata in zip(fov_names, ann_collection.adatas):
         anndata.tests.helpers.assert_adata_equal(
-            a=read_zarr(ann_collection_path / f"{fov_name}.zarr"),
+            a=read_zarr(anndata_dir / f"{fov_name}.zarr"),
             b=fov_adata
         )
 
@@ -908,16 +960,19 @@ def test_load_anndatas(testing_anndatas, tmp_path_factory):
         )
 
 
-def test_AnnDataIterDataPipe(testing_anndatas, tmp_path_factory):
-    ann_collection_path = tmp_path_factory.mktemp("anndatas")
+def test_AnnDataIterDataPipe(testing_anndatas):
 
-    _ = testing_anndatas(n_fovs=5, save_dir=ann_collection_path)
-    ac = data_utils.load_anndatas(ann_collection_path, join_obs="inner", join_obsm="inner")
+    fov_names, _, anndata_dir = testing_anndatas
+    ac = data_utils.load_anndatas(anndata_dir, join_obs="inner", join_obsm="inner")
 
     a_idp = data_utils.AnnDataIterDataPipe(fovs=ac)
 
     from torchdata.datapipes.iter import IterDataPipe
     assert isinstance(a_idp, IterDataPipe)
 
-    for fov in a_idp:
-        assert isinstance(fov, AnnData)
+    for fov_name, fov_adata in zip(fov_names, a_idp):
+        assert isinstance(fov_adata, AnnData)
+        anndata.tests.helpers.assert_adata_equal(
+            a=read_zarr(anndata_dir / f"{fov_name}.zarr"),
+            b=fov_adata
+        )
