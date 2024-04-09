@@ -927,8 +927,6 @@ def testing_anndatas(
 
 @pytest.mark.skip(reason="not used currently, fix later")
 def test_load_anndatas(testing_anndatas):
-
-=======
     fov_names, ann_collection, anndata_dir = testing_anndatas
     
     # test AnnCollection return
