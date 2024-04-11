@@ -809,7 +809,7 @@ def convert_to_anndata_table(anndata_dir, cell_table_path, dist_mats):
     _ = convert_to_anndata.convert_to_adata(save_dir=anndata_dir)
 
     # write distance matrices
-    for fov in io_utils.list_folders(anndata_dir, substrs='fov'):
+    for fov in io_utils.list_folders(anndata_dir):
         adata = read_zarr(os.path.join(anndata_dir, fov))
 
         # sort dist mat by index and save to AnnData
