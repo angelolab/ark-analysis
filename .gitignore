@@ -41,3 +41,6 @@ data/*
 .venv/
 .virtual_documents
 .history/
+requirements-dev.lock
+requirements.lock
+.editorconfig
