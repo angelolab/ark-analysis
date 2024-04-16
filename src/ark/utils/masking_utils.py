@@ -7,8 +7,8 @@ from ark.segmentation.ez_seg.composites import composite_builder
 from ark.segmentation.ez_seg.ez_object_segmentation import _create_object_mask
 
 
-def generate_signal_masks(img_dir, mask_dir, channels, mask_name, intensity_thresh_perc=None,
-                          sigma=2,min_mask_size=5000, max_hole_size=1000):
+def generate_signal_masks(img_dir, mask_dir, channels, mask_name, intensity_thresh_perc="auto",
+                          sigma=2, min_mask_size=5000, max_hole_size=1000):
     """Creates a single signal mask for each FOV when given the channels to aggregate.
 
     Args:
@@ -16,7 +16,8 @@ def generate_signal_masks(img_dir, mask_dir, channels, mask_name, intensity_thre
         mask_dir (str): path where the masks will be saved
         channels (list): list of channels to combine to create a single mask for
         mask_name (str): name for the new mask file created
-        intensity_thresh_perc (int): percentile to threshold intensity values in the image
+        intensity_thresh_perc (int): percentile to threshold intensity values in the image,
+            defaults to "auto" which will calculate an appropriate percentile for the user
         sigma (float): sigma for gaussian blur
         min_mask_size (int): minimum size of masked objects to include
         max_hole_size (int): maximum size of holes to leave in masked objects
@@ -29,9 +30,6 @@ def generate_signal_masks(img_dir, mask_dir, channels, mask_name, intensity_thre
     channel_list = io_utils.remove_file_extensions(
         io_utils.list_files(os.path.join(img_dir, fovs[0])))
     misc_utils.verify_in_list(input_channels=channels, all_channels=channel_list)
-
-    if not intensity_thresh_perc:
-        intensity_thresh_perc = "auto"
 
     # create composite image (or read in single image)
     composite_imgs = composite_builder(
