@@ -30,7 +30,6 @@ except ImportError:
     from typing_extensions import TypedDict, Unpack
 
 
-
 def save_fov_mask(fov, data_dir, mask_data, sub_dir=None, name_suffix=''):
     """Saves a provided cluster label mask overlay for a FOV.
 
