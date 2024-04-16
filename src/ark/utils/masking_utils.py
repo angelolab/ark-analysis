@@ -1,7 +1,6 @@
 import os
 
 import numpy as np
-import skimage.io as io
 
 from skimage import morphology
 from skimage.measure import label
@@ -9,6 +8,7 @@ from scipy.ndimage import gaussian_filter
 
 from alpineer import io_utils, misc_utils, load_utils
 from ark.utils import data_utils
+from ark.segmentation.ez_seg.composites import composite_builder
 
 
 def create_mask(arr, intensity_thresh, sigma, min_mask_size, max_hole_size):
@@ -37,28 +37,6 @@ def create_mask(arr, intensity_thresh, sigma, min_mask_size, max_hole_size):
     return label_mask
 
 
-def create_composite_image(img_dir, fov, channels):
-    """Read in specified channel tiffs and create a composite image.
-    Args:
-        img_dir (str): path to the image tiff directory
-        fov (str): which FOV to use
-        channels(list): list of channels to combine to create a single mask for
-
-    Returns:
-        numpy.ndarray: image array of aggregated signal
-    """
-    # check correct image directory path
-    io_utils.validate_paths([img_dir])
-
-    # create empty array of correct size
-    imgs_arr = load_utils.load_imgs_from_tree(img_dir, fovs=[fov], channels=channels)
-
-    # aggregate array along channel dimension
-    composite_arr = imgs_arr.sum(dim="channels")
-
-    return composite_arr
-
-
 def generate_signal_masks(img_dir, mask_dir, channels, mask_name, intensity_thresh=350, sigma=2,
                           min_mask_size=5000, max_hole_size=1000):
     """Creates a single signal mask for each FOV when given the channels to aggregate.
@@ -82,11 +60,14 @@ def generate_signal_masks(img_dir, mask_dir, channels, mask_name, intensity_thre
         io_utils.list_files(os.path.join(img_dir, fovs[0])))
     misc_utils.verify_in_list(input_channels=channels, all_channels=channel_list)
 
-    for fov in fovs:
-        # create composite image (or read in single image)
-        img = create_composite_image(img_dir, fov, channels)
+    # create composite image (or read in single image)
+    composite_imgs = composite_builder(
+        img_dir, img_sub_folder='', fov_list=fovs, images_to_add=channels, images_to_subtract=[],
+        image_type='total', composite_method='total')
 
+    for fov in fovs:
         # create mask
+        img = composite_imgs[fov]
         mask = create_mask(img, intensity_thresh, sigma, min_mask_size, max_hole_size)
 
         # save mask

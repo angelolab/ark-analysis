@@ -23,21 +23,6 @@ def test_create_mask():
     assert np.all(np.equal(processed_mask, np.zeros((4, 4))))
 
 
-def test_create_composite_image():
-    with tempfile.TemporaryDirectory() as temp_dir:
-        _, arr = create_paired_xarray_fovs(
-            temp_dir, fov_names=["fov1"], channel_names=["chan1", "chan2", "chan3"], fills=True)
-
-        # check for single channel image
-        single_channel_img = masking_utils.create_composite_image(temp_dir, "fov1", ["chan2"])
-        assert np.all(single_channel_img == np.array(arr[0, :, :, 1]))
-
-        # check for composite image
-        composite_img = masking_utils.create_composite_image(
-            temp_dir, "fov1",  ["chan2", "chan3"])
-        assert np.all(composite_img == np.array(arr[0, :, :, 1])+np.array(arr[0, :, :, 2]))
-
-
 def test_generate_signal_masks():
     with tempfile.TemporaryDirectory() as temp_dir:
         img_dir = os.path.join(temp_dir, "image_data")
