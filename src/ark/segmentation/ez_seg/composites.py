@@ -76,12 +76,12 @@ def composite_builder(
                 fov_data, composite_array, images_to_subtract, image_type, composite_method
             )
 
-        # Create the fov dir within the composite dir
-        composite_fov_dir = composite_directory / fov
-        composite_fov_dir.mkdir(parents=True, exist_ok=True)
-
-        # Save the composite image
         if composite_directory:
+            # Create the fov dir within the composite dir
+            composite_fov_dir = composite_directory / fov
+            composite_fov_dir.mkdir(parents=True, exist_ok=True)
+
+            # Save the composite image
             image_utils.save_image(
                 fname=composite_directory / fov / f"{composite_name}.tiff",
                 data=composite_array.astype(np.uint32)
