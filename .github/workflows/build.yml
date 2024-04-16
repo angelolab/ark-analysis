@@ -14,31 +14,31 @@ jobs:
       # Ensure that a wheel builder finishes even if another fails
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, windows-latest, macos-12]
+        os: [ubuntu-latest, windows-latest, macos-13]
 
     steps:
       - name: Checkout ${{ github.repository }}
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
       - name: Set up QEMU (For Linux ARM)
         if: runner.os == 'Linux'
-        uses: docker/setup-qemu-action@v2
+        uses: docker/setup-qemu-action@v3
         with:
           platforms: arm64
 
       - name: Build Wheels
-        uses: pypa/cibuildwheel@v2.13.0
+        uses: pypa/cibuildwheel@v2.16.5
         with:
           package-dir: .
           output-dir: wheelhouse
           config-file: "{package}/pyproject.toml"
 
       - name: Store Wheel Artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
-          name: distributions
+          name: dist-${{ matrix.os }}
           path: wheelhouse/*.whl
 
   build_sdist:
@@ -46,7 +46,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout ${{ github.repository }}
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Build sdist
         run: pipx run build --sdist
@@ -55,7 +55,7 @@ jobs:
         run: pipx run twine check dist/*
 
       - name: Store sdist Artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
-          name: distributions
+          name: dist-sdist
           path: dist/*.tar.gz

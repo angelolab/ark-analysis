@@ -122,7 +122,7 @@ def run_pixel_som_assignment(pixel_data_path, pixel_pysom_obj, overwrite, num_pa
 
     # if the overwrite flag was set in cluster_pixels, drop the pixel_som_cluster column
     if overwrite:
-        fov_data = fov_data.drop(columns="pixel_som_cluster")
+        fov_data = fov_data.drop(columns="pixel_som_cluster", errors="ignore")
 
     # assign the SOM labels to fov_data, overwrite flag indicates if data needs normalization
     fov_data = pixel_pysom_obj.assign_som_clusters(
@@ -136,7 +136,7 @@ def run_pixel_som_assignment(pixel_data_path, pixel_pysom_obj, overwrite, num_pa
     return fov, 0
 
 
-def cluster_pixels(fovs, channels, base_dir, pixel_pysom, data_dir='pixel_mat_data',
+def cluster_pixels(fovs, base_dir, pixel_pysom, data_dir='pixel_mat_data',
                    multiprocess=False, batch_size=5, num_parallel_pixels=1000000,
                    overwrite=False):
     """Uses trained SOM weights to assign cluster labels on full pixel data.
@@ -146,8 +146,6 @@ def cluster_pixels(fovs, channels, base_dir, pixel_pysom, data_dir='pixel_mat_da
     Args:
         fovs (list):
             The list of fovs to subset on
-        channels (list):
-            The list of channels to subset on
         base_dir (str):
             The path to the data directory
         pixel_pysom (cluster_helpers.PixelSOMCluster):
@@ -218,9 +216,10 @@ def cluster_pixels(fovs, channels, base_dir, pixel_pysom, data_dir='pixel_mat_da
         pixel_data_columns=sample_fov.columns.values
     )
 
-    # if overwrite flag set, run on all FOVs in data_dir
+    # if overwrite flag set, run on all FOVs in data_dir, make sure to reset SOM clusters seen
     if overwrite:
         print('Overwrite flag set, reassigning SOM cluster labels to all FOVs')
+        pixel_pysom.som_clusters_seen = set()
         os.mkdir(data_path + '_temp')
         fovs_list = io_utils.remove_file_extensions(
             io_utils.list_files(data_path, substrs='.feather')
@@ -308,7 +307,8 @@ def _ignore_extended_attributes(func: Callable, filename: str, exc_info: Tuple[A
 
 def generate_som_avg_files(fovs, channels, base_dir, pixel_pysom, data_dir='pixel_data_dir',
                            pc_chan_avg_som_cluster_name='pixel_channel_avg_som_cluster.csv',
-                           num_fovs_subset=100, seed=42, overwrite=False):
+                           num_fovs_subset=100, require_all_som_clusters=True, seed=42,
+                           overwrite=False):
     """Computes and saves the average channel expression across pixel SOM clusters.
 
     Args:
@@ -326,6 +326,8 @@ def generate_som_avg_files(fovs, channels, base_dir, pixel_pysom, data_dir='pixe
             The name of the file to save the average channel expression across all SOM clusters
         num_fovs_subset (int):
             The number of FOVs to subset on for SOM cluster channel averaging
+        require_all_som_clusters (bool):
+            Whether to require all SOM clusters to have at least one pixel assigned
         seed (int):
             The random seed to set for subsetting FOVs
         overwrite (bool):
@@ -355,7 +357,7 @@ def generate_som_avg_files(fovs, channels, base_dir, pixel_pysom, data_dir='pixe
         channels,
         base_dir,
         'pixel_som_cluster',
-        pixel_pysom.weights.shape[0],
+        len(pixel_pysom.som_clusters_seen) if require_all_som_clusters else None,
         data_dir,
         num_fovs_subset=num_fovs_subset,
         seed=seed,

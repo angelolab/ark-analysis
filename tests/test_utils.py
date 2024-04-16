@@ -1,24 +1,33 @@
+from collections.abc import Mapping
 from copy import deepcopy
+from functools import partial
 from random import choices
 from string import ascii_lowercase
-
+from anndata import AnnData
+from anndata.experimental import AnnCollection
 import numpy as np
 import pandas as pd
 import synthetic_spatial_datagen
 import xarray as xr
+from ark.utils.data_utils import AnnCollectionKwargs
 
 import ark.settings as settings
+from typing import Tuple, List, Union
+try:
+    from typing import Unpack, Literal
+except ImportError:
+    from typing_extensions import Unpack
 
-TEST_MARKERS = list('ABCDEFG')
 
-
-def make_cell_table(num_cells, extra_cols=None):
-    """ Generate a cell table with default column names for testing purposes.
+def make_cell_table(n_cells: int, n_markers: int, extra_cols: Mapping = None):
+    """Generate a cell table with default column names for testing purposes.
 
     Args:
-        num_cells (int):
+        n_cells (int):
             Number of rows (cells) in the cell table
-        extra_cols (dict):
+        n_markers (int):
+            Number of markers / channels in the cell table.
+        extra_cols (Mapping):
             Extra columns to add in the format ``{'Column_Name' : data_1D, ...}``
 
     Returns:
@@ -28,36 +37,63 @@ def make_cell_table(num_cells, extra_cols=None):
 
     """
     # columns from regionprops extraction
-    region_cols = [x for x in settings.REGIONPROPS_BASE if
-                   x not in ['label', 'area', 'centroid']] + settings.REGIONPROPS_SINGLE_COMP
-    region_cols += settings.REGIONPROPS_MULTI_COMP
-    # consistent ordering of column names
-    column_names = [settings.FOV_ID,
-                    settings.PATIENT_ID,
-                    settings.CELL_LABEL,
-                    settings.CELL_TYPE,
-                    settings.CELL_SIZE] + TEST_MARKERS + region_cols + ['centroid-0', 'centroid-1']
+    region_cols = [
+        x for x in settings.REGIONPROPS_BASE if x not in ("label", "area", "centroid")
+    ]
+    post_marker_columns = [
+        settings.CELL_LABEL,
+        *region_cols,
+        *settings.REGIONPROPS_SINGLE_COMP,
+        *settings.REGIONPROPS_MULTI_COMP,
+        settings.FOV_ID,
+        settings.PATIENT_ID,
+        settings.CENTROID_0,
+        settings.CENTROID_1,
+        settings.CELL_TYPE,
+    ]
+
+    test_markers = [f"marker_{i}" for i in range(n_markers)]
+
+    cell_table_column_names = [settings.CELL_SIZE, *test_markers, *post_marker_columns]
 
     if extra_cols is not None:
-        column_names += list(extra_cols.values())
+        cell_table_column_names += list(extra_cols.keys())
 
-    # random filler data
-    cell_data = pd.DataFrame(np.random.random(size=(num_cells, len(column_names))),
-                             columns=column_names)
-    # not-so-random filler data
-    centroids = pd.DataFrame(np.array([(x, y) for x in range(1024) for y in range(1024)]))
-    centroid_loc = np.random.choice(range(1024 ** 2), size=num_cells, replace=False)
-    fields = [(settings.FOV_ID, choices(range(1, 5), k=num_cells)),
-              (settings.PATIENT_ID, choices(range(1, 10), k=num_cells)),
-              (settings.CELL_LABEL, list(range(num_cells))),
-              (settings.CELL_TYPE, choices(ascii_lowercase, k=num_cells)),
-              (settings.CELL_SIZE, np.random.uniform(100, 300, size=num_cells)),
-              (settings.CENTROID_0, np.array(centroids.iloc[centroid_loc, 0])),
-              (settings.CENTROID_1, np.array(centroids.iloc[centroid_loc, 1]))
-              ]
+    cell_data = pd.DataFrame(
+        data=np.empty((n_cells, len(cell_table_column_names))),
+        columns=cell_table_column_names,
+    )
 
-    for name, col in fields:
-        cell_data[name] = col
+    rng = np.random.default_rng()
+
+    cell_data[settings.CELL_SIZE] = rng.integers(low=90, high=2000, size=n_cells)
+    cell_data[test_markers] = rng.random(size=(n_cells, n_markers))
+    cell_data[settings.CELL_LABEL] = np.arange(n_cells)
+
+    # Region Columns
+    for rc in region_cols:
+        cell_data[rc] = rng.random(size=n_cells)
+
+    # Region props single component
+    for rc in settings.REGIONPROPS_SINGLE_COMP:
+        cell_data[rc] = rng.random(size=n_cells)
+
+    # Region props multi component
+    for rc in settings.REGIONPROPS_MULTI_COMP:
+        cell_data[rc] = rng.random(size=n_cells)
+
+    # FOV ID
+    cell_data[settings.FOV_ID] = rng.integers(low=0, high=10, size=n_cells)
+
+    # Patient ID
+    cell_data[settings.PATIENT_ID] = rng.integers(low=0, high=5, size=n_cells)
+
+    # Centroid
+    cell_data[settings.CENTROID_0] = rng.integers(low=0, high=1024, size=n_cells)
+    cell_data[settings.CENTROID_1] = rng.integers(low=0, high=1024, size=n_cells)
+
+    # Cell Type
+    cell_data[settings.CELL_TYPE] = rng.choice(a=["A", "B", "C"], size=n_cells)
 
     return cell_data
 
@@ -621,3 +657,135 @@ def generate_sample_fovs_list(fov_coords, fov_names):
         )
 
     return sample_fovs_list
+
+
+def generate_anndata_table(
+    rng: np.random.Generator,
+    n_obs: int,
+    n_vars: int,
+    fov_id: Union[str, int],
+    obs_properties: int,
+    obs_categorical_properties: int,
+) -> AnnData:
+    """Generates an AnnData Table with the following structure:
+
+     `AnnData`
+
+     ├── `X`: `n_obs` x `n_vars`
+
+     ├── `obs`: `n_obs` x (1 + `obs_properties` + `obs_categorical_properties`)
+
+     └── `obsm`: `n_obs` x 2
+
+    Args:
+        rng (np.random.Generator): The random number generator for reproducibility.
+        n_obs (int): The number of observations (cells, fiber segments, ezseg objects, etc...)
+        n_vars (int): The number of markers (channels).
+        fov_id (Union[str, int]): The FOV ID, can be a integer or a string used as a suffix.
+        `1` would make a FOV named `"fov_1"`, `"test"` would make a FOV named `"fov_test"`.
+        obs_properties (int): The number of floating point properties to add to the `obs` table.
+        obs_categorical_properties (int): The number of categorical properties to add to the
+        `obs` table.
+
+    Returns:
+        AnnData: The generated AnnData table.
+    """
+
+    _index = [f"cell_{i}" for i in range(n_obs)]
+
+    _X = pd.DataFrame(
+        data=rng.random(size=(n_obs, n_vars)),
+        index=_index,
+        columns=[f"channel_{i}" for i in range(n_vars)],
+    )
+
+    _obs = pd.DataFrame(
+        data={
+            settings.FOV_ID: [fov_id for _ in range(n_obs)],
+            settings.CELL_LABEL: np.arange(n_obs),
+            settings.CELL_TYPE: [
+                f"cell_type_{i}" for i in rng.integers(0, 10, size=n_obs)
+            ],
+            **{f"obs_prop_{i}": rng.random(size=n_obs) for i in range(obs_properties)},
+            **{
+                f"obs_cat_prop_{i}": [
+                    f"obs_cat_prop_{j}" for j in rng.integers(0, 10, size=n_obs)
+                ]
+                for i in range(obs_categorical_properties)
+            },
+        },
+        index=_index,
+    )
+    _obsm = {
+        "spatial": pd.DataFrame(
+            data={
+                "centroid_y": rng.integers(0, 1024, size=n_obs),
+                "centroid_x": rng.integers(0, 1024, size=n_obs),
+            },
+            index=_index,
+        )
+    }
+
+    adata = AnnData(
+        X=_X,
+        obs=_obs,
+        obsm=_obsm,
+    )
+
+    return adata
+
+
+def generate_anncollection(
+    rng: np.random.Generator = np.random.default_rng(),
+    fovs: Union[int, list[str]] = 10,
+    n_obs: int = 100,
+    n_vars: int = 10,
+    obs_properties: int = 10,
+    obs_categorical_properties: int = 10,
+    random_n_obs: bool = True,
+    **anncollection_kwargs: Unpack[AnnCollectionKwargs],
+) -> Tuple[List[str], AnnCollection]:
+    """Generates an AnnCollection with the following parameters:
+
+
+    Args:
+        rng (np.random.Generator): The random number generator for reproducibility.
+        fovs (Union[int, list[str]]): The number of FOVs to generate, or a list of FOV IDs.
+        n_obs (int): The number of observations (cells, fiber segments, ezseg objects, etc...)
+        per FOV / AnnData Table.
+        n_vars (int): The number of markers (channels).
+        obs_properties (int): The number of floating point properties to add to the `obs` table.
+        obs_categorical_properties (int): The number of categorical properties to add to the
+        `obs` table.
+        random_n_obs (bool, optional): If True, `n_obs` is the upper bound for the number of
+        observations per FOV / AnnData Table.The number of `obs` is drawn from the discrete
+        uniform from [0, n_obs]. Defaults to True.
+
+    Returns:
+        Tuple[List[str], AnnCollection]: A list of FOV IDs and the generated AnnCollection.
+    """
+    if isinstance(fovs, int):
+        fovs = [f"fov_{i}" for i in range(fovs)]
+
+    adatas = {}
+
+    gen_ct_adata_func = partial(
+        generate_anndata_table,
+        rng=rng,
+        n_vars=n_vars,
+        obs_properties=obs_properties,
+        obs_categorical_properties=obs_categorical_properties,
+    )
+
+    for fov in fovs:
+        if random_n_obs:
+            n_obs_rand = rng.integers(n_obs)
+
+            fov_adata = gen_ct_adata_func(
+                n_obs=n_obs_rand, fov_id=fov
+            )
+        else:
+            fov_adata = gen_ct_adata_func(n_obs=n_obs, fov_id=fov)
+        adatas[fov] = fov_adata
+
+    return (fovs, AnnCollection(adatas=adatas, **anncollection_kwargs))

@@ -735,6 +735,8 @@ def test_generate_cell_table_tree_loading():
             img_sub_folder=img_sub_folder, is_mibitiff=False, fovs=fovs_subset,
             nuclear_counts=True)
 
+        # setting nuclear_counts True generates data for both whole_cell and nuclear
+        # so there should be double the number of columns, but not rows
         assert norm_data_nuc.shape[0] == norm_data_fov_sub.shape[0]
         assert norm_data_nuc.shape[1] == norm_data_fov_sub.shape[1] * 2
         misc_utils.verify_in_list(
@@ -746,7 +748,7 @@ def test_generate_cell_table_tree_loading():
         assert arcsinh_data_nuc.shape[1] == norm_data_fov_sub.shape[1] * 2
         misc_utils.verify_in_list(
             nuclear_col='nc_ratio',
-            nuc_cell_table_cols=norm_data_nuc.columns.values
+            nuc_cell_table_cols=arcsinh_data_nuc.columns.values
         )
 
 
@@ -766,8 +768,10 @@ def test_generate_cell_table_mibitiff_loading():
         fovs_subset_ext[1] = str(fovs_subset_ext[1]) + ".tiff"
 
         tiff_dir = os.path.join(temp_dir, "mibitiff_inputs")
+        seg_dir = os.path.join(temp_dir, "segmentation_masks")
 
         os.mkdir(tiff_dir)
+        os.mkdir(seg_dir)
         create_paired_xarray_fovs(
             base_dir=tiff_dir,
             fov_names=fovs,
@@ -787,41 +791,39 @@ def test_generate_cell_table_mibitiff_loading():
         for fov in range(cell_masks.shape[0]):
             fov_whole_cell = cell_masks[fov, :, :, 0]
             fov_nuclear = cell_masks[fov, :, :, 1]
-            image_utils.save_image(os.path.join(temp_dir, 'fov%d_whole_cell.tiff' % fov),
+            image_utils.save_image(os.path.join(seg_dir, 'fov%d_whole_cell.tiff' % fov),
                                    fov_whole_cell)
-            image_utils.save_image(os.path.join(temp_dir, 'fov%d_nuclear.tiff' % fov),
+            image_utils.save_image(os.path.join(seg_dir, 'fov%d_nuclear.tiff' % fov),
                                    fov_nuclear)
 
         # generate sample norm and arcsinh data for all fovs
         norm_data_all_fov, arcsinh_data_all_fov = marker_quantification.generate_cell_table(
-            segmentation_dir=temp_dir, tiff_dir=tiff_dir,
-            img_sub_folder=tiff_dir, is_mibitiff=True, fovs=None)
+            segmentation_dir=seg_dir, tiff_dir=tiff_dir, is_mibitiff=True, fovs=None)
 
         assert norm_data_all_fov.shape[0] > 0 and norm_data_all_fov.shape[1] > 0
         assert arcsinh_data_all_fov.shape[0] > 0 and arcsinh_data_all_fov.shape[1] > 0
 
         # generate sample norm and arcsinh data for a subset of fovs
         norm_data_fov_sub, arcsinh_data_fov_sub = marker_quantification.generate_cell_table(
-            segmentation_dir=temp_dir, tiff_dir=tiff_dir,
-            img_sub_folder=tiff_dir, is_mibitiff=True, fovs=fovs_subset)
+            segmentation_dir=seg_dir, tiff_dir=tiff_dir, is_mibitiff=True, fovs=fovs_subset)
 
         assert norm_data_fov_sub.shape[0] > 0 and norm_data_fov_sub.shape[1] > 0
         assert arcsinh_data_fov_sub.shape[0] > 0 and arcsinh_data_fov_sub.shape[1] > 0
 
         # generate sample norm and arcsinh data for a subset of fovs with extensions
         norm_data_fov_ext, arcsinh_data_fov_ext = marker_quantification.generate_cell_table(
-            segmentation_dir=temp_dir, tiff_dir=tiff_dir,
-            img_sub_folder=tiff_dir, is_mibitiff=True, fovs=fovs_subset_ext)
+            segmentation_dir=seg_dir, tiff_dir=tiff_dir, is_mibitiff=True, fovs=fovs_subset_ext)
 
         assert norm_data_fov_ext.shape[0] > 0 and norm_data_fov_ext.shape[1] > 0
         assert arcsinh_data_fov_ext.shape[0] > 0 and arcsinh_data_fov_ext.shape[1] > 0
 
         # test nuclear_counts True
         norm_data_nuc, arcsinh_data_nuc = marker_quantification.generate_cell_table(
-            segmentation_dir=temp_dir, tiff_dir=tiff_dir,
-            img_sub_folder=tiff_dir, is_mibitiff=True, fovs=fovs_subset,
+            segmentation_dir=seg_dir, tiff_dir=tiff_dir, is_mibitiff=True, fovs=fovs_subset,
             nuclear_counts=True)
 
+        # setting nuclear_counts True generates data for both whole_cell and nuclear
+        # so there should be double the number of rows
         assert norm_data_nuc.shape[0] == norm_data_fov_sub.shape[0]
         assert norm_data_nuc.shape[1] == norm_data_fov_sub.shape[1] * 2
         misc_utils.verify_in_list(
@@ -833,7 +835,7 @@ def test_generate_cell_table_mibitiff_loading():
         assert arcsinh_data_nuc.shape[1] == norm_data_fov_sub.shape[1] * 2
         misc_utils.verify_in_list(
             nuclear_col='nc_ratio',
-            nuc_cell_table_cols=norm_data_nuc.columns.values
+            nuc_cell_table_cols=arcsinh_data_nuc.columns.values
         )
 
 
@@ -873,18 +875,23 @@ def test_generate_cell_table_extractions():
 
         default_norm_data, _ = marker_quantification.generate_cell_table(
             segmentation_dir=temp_dir, tiff_dir=tiff_dir,
-            img_sub_folder=img_sub_folder, is_mibitiff=False
+            img_sub_folder=img_sub_folder, is_mibitiff=False,
+            nuclear_counts=True
         )
 
-        # verify total intensity extraction, same for whole_cell and nuclear mask types
-        for mask_type in ["whole_cell", "nuclear"]:
-            assert np.all(
-                default_norm_data.loc[
-                    (default_norm_data[settings.CELL_LABEL] == 1) &
-                    (default_norm_data["mask_type"] == mask_type)
-                ][chans].values
-                == np.arange(9).reshape(3, 3)
-            )
+        # verify total intensity extraction
+        assert np.all(
+            default_norm_data.loc[
+                (default_norm_data[settings.CELL_LABEL] == 1) &
+                (default_norm_data["mask_type"] == "whole_cell")
+            ][chans].values
+            == np.arange(9).reshape(3, 3)
+        )
+        assert np.unique(default_norm_data.mask_type) == ["whole_cell"]
+
+        # check for nuclear extractions
+        nuc_columns = [col for col in default_norm_data.columns if '_nuclear' in col]
+        assert nuc_columns
 
         # define a specific threshold for positive pixel extraction
         thresh_kwargs = {
@@ -908,22 +915,16 @@ def test_generate_cell_table_extractions():
         assert np.all(positive_pixel_data_wc.iloc[:4][['chan0', 'chan1']].values == 0)
         assert np.all(positive_pixel_data_wc.iloc[4:][chans].values == 1)
 
-        # verify thresh kwarg passes through and nuclear counts True
-        positive_pixel_data, _ = marker_quantification.generate_cell_table(
-            segmentation_dir=temp_dir, tiff_dir=tiff_dir,
-            img_sub_folder=img_sub_folder, is_mibitiff=False,
-            extraction='positive_pixel', nuclear_counts=True, **thresh_kwargs
-        )
+        # check that nuclear counts not extracted
+        nuc_columns = [col for col in positive_pixel_data_wc.columns if '_nuclear' in col]
+        assert not nuc_columns
 
-        # check explicitly for nuclear mask types
-        positive_pixel_data_nuc = positive_pixel_data[
-            positive_pixel_data["mask_type"] == "nuclear"
-        ]
-        assert np.all(positive_pixel_data_nuc.iloc[:4][['chan0', 'chan1']].values == 0)
-        assert np.all(positive_pixel_data_nuc.iloc[4:][chans].values == 1)
-        assert positive_pixel_data_nuc.shape[0] == positive_pixel_data.shape[0] / 2
-        assert positive_pixel_data_nuc.shape[1] == positive_pixel_data.shape[1]
-        misc_utils.verify_in_list(
-            nuclear_col='nc_ratio',
-            nuc_cell_table_cols=positive_pixel_data_nuc.columns.values
-        )
+
+def test_get_existing_mask_types():
+    fov_names = ["fov1", "fov2"]
+    mask_names = ["fov1_type1.tiff", "fov1_type2.tiff", "fov10_type3.tiff", "fov10_type4.tiff",
+                  "fov2_type5.tiff", "fov20_type6.tiff"]
+
+    # test stripping suffix
+    processed_names = marker_quantification.get_existing_mask_types(fov_names, mask_names)
+    assert sorted(processed_names) == ["type1", "type2", "type5"]

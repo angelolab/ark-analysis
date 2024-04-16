@@ -115,6 +115,7 @@ def test_multiple_mask_display(mask_data: MaskDataPaths):
         mask_name=mask0,
         object_mask_dir=mask_data.object_mask_dir,
         cell_mask_dir=mask_data.cell_mask_dir,
+        cell_mask_suffix="whole_cell",
         merged_mask_dir=mask_data.merged_mask_dir,
     )
 
@@ -124,6 +125,7 @@ def test_multiple_mask_display(mask_data: MaskDataPaths):
             mask_name="bad_mask_name",
             object_mask_dir=mask_data.object_mask_dir,
             cell_mask_dir=mask_data.cell_mask_dir,
+            cell_mask_suffix="whole_cell",
             merged_mask_dir=mask_data.merged_mask_dir,
         )
 
@@ -134,6 +136,7 @@ def test_create_overlap_and_merge_visual(mask_data: MaskDataPaths):
         mask_name="mask_0",
         object_mask_dir=mask_data.object_mask_dir,
         cell_mask_dir=mask_data.cell_mask_dir,
+        cell_mask_suffix="whole_cell",
         merged_mask_dir=mask_data.merged_mask_dir,
     )
 

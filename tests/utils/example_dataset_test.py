@@ -9,17 +9,17 @@ from ark.settings import EXAMPLE_DATASET_REVISION
 from ark.utils.example_dataset import ExampleDataset, get_example_dataset
 
 
-@pytest.fixture(scope="session", params=["segment_image_data",
-                                         "cluster_pixels",
-                                         "cluster_cells",
-                                         "post_clustering",
-                                         "fiber_segmentation",
-                                         "LDA_preprocessing",
-                                         "LDA_training_inference",
-                                         "neighborhood_analysis",
-                                         "pairwise_spatial_enrichment",
-                                         "ome_tiff",
-                                         "ez_seg_data"])
+@pytest.fixture(scope="class", params=["segment_image_data",
+                                       "cluster_pixels",
+                                       "cluster_cells",
+                                       "post_clustering",
+                                       "fiber_segmentation",
+                                       "LDA_preprocessing",
+                                       "LDA_training_inference",
+                                       "neighborhood_analysis",
+                                       "pairwise_spatial_enrichment",
+                                       "ome_tiff",
+                                       "ez_seg_data"])
 def dataset_download(request, dataset_cache_dir) -> Iterator[ExampleDataset]:
     """
     A Fixture which instantiates and downloads the dataset with respect to each
@@ -32,13 +32,13 @@ def dataset_download(request, dataset_cache_dir) -> Iterator[ExampleDataset]:
     Yields:
         Iterator[ExampleDataset]: The iterable Example Dataset.
     """
-
     # Set up ExampleDataset class
-    example_dataset: ExampleDataset = ExampleDataset(
+    example_dataset = ExampleDataset(
         dataset=request.param,
         cache_dir=dataset_cache_dir,
         revision=EXAMPLE_DATASET_REVISION
     )
+
     # Download example data for a particular notebook
     example_dataset.download_example_dataset()
     yield example_dataset
@@ -106,50 +106,84 @@ class TestExampleDataset:
 
         self._ez_seg_files = {
             "fov_names": [f"fov{i}" for i in range(10)],
-            "channel_names": ["Ca40", "GFAP", "Synaptophysin", "PanAmyloidbeta1724",
-                              "Na23", "Reelin", "Presenilin1NTF", "Iba1", "CD105",
-                              "C12", "EEA1", "VGLUT1", "PolyubiK63", "Ta181", "Au197",
-                              "Si28", "PanGAD6567", "CD33Lyo", "MAP2", "Calretinin",
-                              "PolyubiK48", "MAG", "TotalTau", "Amyloidbeta140",
-                              "Background", "CD45", "8OHGuano", "pTDP43", "ApoE4",
-                              "PSD95", "TH", "HistoneH3Lyo", "CD47", "Parvalbumin",
-                              "Amyloidbeta142", "Calbindin", "PanApoE2E3E4", "empty139",
-                              "CD31", "MCT1", "MBP", "SERT", "PHF1Tau", "VGAT",
-                              "VGLUT2", "CD56Lyo", "MFN2"],
+            "channel_names": [
+                "Ca40",
+                "GFAP",
+                "Synaptophysin",
+                "PanAmyloidbeta1724",
+                "Na23",
+                "Reelin",
+                "Presenilin1NTF",
+                "Iba1",
+                "CD105",
+                "C12",
+                "EEA1",
+                "VGLUT1",
+                "PolyubiK63",
+                "Ta181",
+                "Au197",
+                "Si28",
+                "PanGAD6567",
+                "CD33Lyo",
+                "MAP2",
+                "Calretinin",
+                "PolyubiK48",
+                "MAG",
+                "TotalTau",
+                "Amyloidbeta140",
+                "Background",
+                "CD45",
+                "8OHGuano",
+                "pTDP43",
+                "ApoE4",
+                "PSD95",
+                "TH",
+                "HistoneH3Lyo",
+                "CD47",
+                "Parvalbumin",
+                "Amyloidbeta142",
+                "Calbindin",
+                "PanApoE2E3E4",
+                "empty139",
+                "CD31",
+                "MCT1",
+                "MBP",
+                "SERT",
+                "PHF1Tau",
+                "VGAT",
+                "VGLUT2",
+                "CD56Lyo",
+                "MFN2",
+            ],
             "composite_names": [
                 "amyloid",
-                "astrocyte",
-                "microglia",
+                "microglia-composite",
             ],
-            "ez_mask_suffixes": [
-                "amyloid-plaques",
-                "astrocyte-arms",
-                "microglia-arms"
-            ],
+            "ez_mask_suffixes": ["microglia-projections", "plaques"],
+            "merged_mask_suffixes":
+                ["final_whole_cell_remaining", "microglia-projections_merged"],
+            "final_mask_suffixes":
+                ["final_whole_cell_remaining", "microglia-projections_merged", "plaques"],
             "cell_table_names": [
-                "filtered_amyloid-plaques_table_arcsinh_transformed",
-                "filtered_amyloid-plaques_table_size_normalized",
-                "filtered_astrocyte-arms_merged_table_arcsinh_transformed",
-                "filtered_astrocyte-arms_merged_table_size_normalized",
-                "filtered_microglia-arms_merged_table_size_normalized",
-                "filtered_microglia-arms_merged_table_arcsinh_transformed",
-                "filtered_whole_cell_table_size_normalized",
-                "filtered_whole_cell_table_arcsinh_transformed",
+                "cell_and_objects_table_arcsinh_transformed",
                 "cell_and_objects_table_size_normalized",
-                "cell_and_objects_table_arcsinh_transformed"
+                "filtered_final_whole_cell_remaining_table_arcsinh_transformed",
+                "filtered_final_whole_cell_remaining_table_size_normalized",
+                "filtered_microglia-projections_merged_table_arcsinh_transformed",
+                "filtered_microglia-projections_merged_table_size_normalized",
+                "filtered_plaques_table_arcsinh_transformed",
+                "filtered_plaques_table_size_normalized",
             ],
             "log_names": [
-                "amyloid-composite_log",
-                "amyloid-plaques_segmentation_log",
-                "astrocyte_composite_log",
-                "astrocyte-arms_segmentation_log",
+                "amyloid_composite_log",
                 "mask_merge_log",
-                "microglia_composite_log",
-                "microglia-arms_segmentation_log",
-                "test_composite_log"
-            ]
+                "microglia-composite_composite_log",
+                "microglia-projections_segmentation_log",
+                "plaques_segmentation_log"
+            ],
         }
 
+        # Mapping the datasets to their respective test functions.
         self.dataset_test_fns: dict[str, Callable] = {
             "image_data": self._image_data_check,
             "cell_table": self._cell_table_check,
@@ -162,7 +196,6 @@ class TestExampleDataset:
             "ez_seg_data": self._ez_seg_data_check
         }
 
-        # Mapping the datasets to their respective test functions.
         # Should be the same as `example_dataset.ExampleDataset.path_suffixes`
         self.move_path_suffixes = {
             "image_data": "image_data",
@@ -182,16 +215,16 @@ class TestExampleDataset:
 
         Args:
             dataset_download (ExampleDataset): Fixture for the dataset, respective to each
-            partition (`segment_image_data`, `cluster_pixels`, `cluster_cells`,
-            `post_clustering`).
         """
+        import os
         dataset_names = list(
-            dataset_download.dataset_paths[dataset_download.dataset].features.keys())
-
+            dataset_download.dataset_paths[dataset_download.dataset].keys()
+        )
         for ds_n in dataset_names:
             dataset_cache_path = pathlib.Path(
-                dataset_download.dataset_paths[dataset_download.dataset][ds_n][0])
-            self.dataset_test_fns[ds_n](dir_p=dataset_cache_path / ds_n)
+                dataset_download.dataset_paths[dataset_download.dataset][ds_n]
+            )
+            self.dataset_test_fns[ds_n](dir_p=dataset_cache_path)
 
     @pytest.mark.parametrize("_overwrite_existing", [True, False])
     def test_move_example_dataset(self, cleanable_tmp_path, dataset_download: ExampleDataset,
@@ -491,6 +524,7 @@ class TestExampleDataset:
         deepcell_output = dir_p / "segmentation" / "deepcell_output"
         ez_masks = dir_p / "segmentation" / "ez_masks"
         merged_masks = dir_p / "segmentation" / "merged_masks_dir"
+        final_masks = dir_p / "segmentation" / "final_mask_dir"
         mantis_visualization = dir_p / "mantis_visualization"
         logs = dir_p / "logs"
 
@@ -537,14 +571,21 @@ class TestExampleDataset:
         downloaded_merged = list(merged_masks.glob("*.tiff"))
         downloaded_merged_names = [f.stem for f in downloaded_merged]
         actual_merged_names = [
-            f"{fov}_{ez_suffix}_merged"
+            f"{fov}_{merged_mask_suffix}"
             for fov in self._ez_seg_files["fov_names"]
-            for ez_suffix in self._ez_seg_files["ez_mask_suffixes"]
-            if ez_suffix != "amyloid-plaques"
-        ] + [
-            f"{fov}_final_cells_remaining" for fov in self._ez_seg_files["fov_names"]
+            for merged_mask_suffix in self._ez_seg_files["merged_mask_suffixes"]
         ]
         assert set(actual_merged_names) == set(downloaded_merged_names)
+
+        # final masks check
+        downloaded_final = list(final_masks.glob("*.tiff"))
+        downloaded_final_names = [f.stem for f in downloaded_final]
+        actual_final_names = [
+            f"{fov}_{final_mask_suffix}"
+            for fov in self._ez_seg_files["fov_names"]
+            for final_mask_suffix in self._ez_seg_files["final_mask_suffixes"]
+        ]
+        assert set(actual_final_names) == set(downloaded_final_names)
 
         # logs check
         downloaded_logs = list(logs.glob("*.txt"))
@@ -567,7 +608,7 @@ class TestExampleDataset:
             Generator: Yields the data directory for the files to be moved, and the dataset name.
         """
         dataset_names = list(
-            dataset_download.dataset_paths[dataset_download.dataset].features.keys()
+            dataset_download.dataset_paths[dataset_download.dataset].keys()
         )
 
         ds_n_suffixes = [self.move_path_suffixes[ds_n] for ds_n in dataset_names]

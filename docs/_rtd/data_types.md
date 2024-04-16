@@ -40,8 +40,9 @@ For each cell, the following morphology features calculated from `skimage.measur
 * `perimeter`: perimeter of object which approximates the contour as a line through the centers of border pixels using a 4-connectivity.
 * `convex_area`: the area of the convex hull.
 * `equivalent_diameter`: the diameter of the circle with the same area as the cell.
-* `centroid-0`: the $x$-coordinate of the centroid.
-* `centroid-1`: the $y$-coordinate of the centroid.
+* Centroids: Note that all the arrays are NumPy arrays, therefore the origin $(0,0)$ is in the "top-left corner" of the image / array.
+  * `centroid-0`: the $y$-coordinate of the centroid.
+  * `centroid-1`: the $x$-coordinate of the centroid.
 * `fov`: The FOV from which the cell originates from.
 
 The base `regionprops` metric often don't provide enough morphological information about each cell on their own. We add the following derived metrics to provide more complete information about the segmented cells:
@@ -49,7 +50,7 @@ The base `regionprops` metric often don't provide enough morphological informati
 * `perim_square_over_area`: the square of the perimeter divided by the area. 
 * `major_axis_equiv_diam_ratio`: the major axis length divided by the equivalent diameter.
 * `convex_hull_resid`: the difference between the convex area and the area divided by the convex area.
-* `centroid_dif`: the normalized euclidian distance between the cell centroid and the corresponding convex hull centroid.
+* `centroid_dif`: the normalized euclidean distance between the cell centroid and the corresponding convex hull centroid.
 * `num_concavities`: the number of concavities of the region.
 * `nc_ratio`: for nuclear segmentation only. The nuclear area divided by the total area.
 
@@ -90,3 +91,93 @@ The CSV should contain the following columns
 * `fov`: name of the FOV the cell comes from
 * `label`: the name of the segmentation label
 * A set of expression columns defining the properties of each cell desired for clustering
+
+---
+
+Name: AnnData   
+Type: anndata.AnnData   
+Created by: [ConvertToAnnData](https://ark-analysis.readthedocs.io/en/latest/_markdown/ark.utils.html#ark.utils.data_utils.ConvertToAnnData)    
+Used by: [anndata_conversion.ipynb](https://github.com/angelolab/ark-analysis/blob/main/templates/anndata_conversion.ipynb)
+
+<p align="center">
+  <img width="50%" src="../_images/anndata_schema.png" alt="AnnData Schema"/>
+</p>
+
+
+`AnnData` is a data structure consisting of matrices, annotated by DataFrames and Indexes. The goal is to transition over to `AnnData` from the Cell Table as the primary tabular data structure for storing, and interacting with multiplexed spatial single cell data.
+This section will illustrate the components of the `AnnData` object, and provide brief examples of which cell table columns map to which `AnnData` components.
+
+A `AnnData` object is composed of the following components:
+
+- **X**
+- **var**
+- **obs**
+- **obsm**
+- **obsp**
+- **varm**
+- **varp**
+
+There will be one `AnnData` object per FOV. Each of these components have specific use cases and will be described below:
+
+### 1. X, var, obs
+
+<p align="center">
+  <img width="50%" alt="image" src="https://github.com/angelolab/ark-analysis/assets/8909315/a5011077-d350-4aab-b8f8-609b11087bba">
+</p>
+
+- `X` is a matrix of shape `(n_obs, n_vars)` where `n_obs` is the number of observations (currently cell segmentations) and `n_vars` is the number of variables (currently number of channels / markers). 
+
+For example the following columns from the Cell Table are mapped to the `X` component of the `AnnData` object:
+
+| CD14     | CD163    | CD20     | CD3      | CD31     | CD4      | CD45     | $\cdots$ | SMA      | Vim      |
+|----------|----------|----------|----------|----------|----------|----------|----------|----------|----------|
+| 0.1      | 0.3      | 0.4      | 0.1      | 0.3      | 0.1      | 0.1      | $\cdots$ | 0.4      | 0.8      |
+| $\vdots$ | $\vdots$ | $\vdots$ | $\vdots$ | $\vdots$ | $\vdots$ | $\vdots$ | $\vdots$ | $\vdots$ | $\vdots$ |
+| $\vdots$ | $\vdots$ | $\vdots$ | $\vdots$ | $\vdots$ | $\vdots$ | $\vdots$ | $\vdots$ | $\vdots$ | $\vdots$ |
+| 0.1      | 0.1      | 0.3      | 0.7      | 0.8      | 0.8      | 0.8      | $\cdots$ | 0.3      | 0.6      |
+
+- `var`: A `DataFrame` of shape `(..., n_vars)`, where the index is `var_names`. This `DataFrame` contains attributes of each variable. Currently, this goes unused as there is not a Cell Table analogue of this compartment, but in the future this may change.
+  - `var_names` is a `Pandas` Index where each value is a unique identifier for each variable. These are the names of the channels and should be unique.
+  - `n_vars` is the number of variables, and in this case it is the number of channels. Each channel is a variable, and each observation has a value for each channel.
+- `obs` A `DataFrame` of shape `(n_obs, ...)`, where the index is `obs_names`. This `DataFrame` contains information about each observation, such as numeric metrics from `regionprops` or categorical data such as cell phenotype, or patient-level information.
+  - `obs_names` is a `Pandas` Index where each value is a unique identifier for each observation. These are the names of the segmented regions, and should be unique.
+  - `n_obs` is the number of segmented regions or objects of interest. In this case, it is the number of segmented cells.
+
+For example, the following columns from the Cell Table are mapped to the `obs` component of the `AnnData` object:
+
+| label    | area     | eccentricity | $\cdots$ | centroid_dif | num_concavities | fov      |
+|----------|----------|--------------|----------|--------------|-----------------|----------|
+| 1        | 345      | 0.2          | $\cdots$ | 0.01         | 0               | fov1     |
+| 2        | $\vdots$ | $\vdots$     | $\vdots$ | $\vdots$     | $\vdots$        | $\vdots$ |
+| $\vdots$ | $\vdots$ | $\vdots$     | $\vdots$ | $\vdots$     | $\vdots$        | $\vdots$ |
+| 1112     | 460      | 0.11         | $\cdots$ | 0.1          | 12              | fov1    |
+
+
+
+### 2. obsm, varm
+
+<p align="center">
+  <img width="50%" alt="image" src="https://github.com/angelolab/ark-analysis/assets/8909315/8ea1c794-f80b-49a3-b814-3357d2718f7b">
+</p>
+
+- `obsm` is a key-value store where the values are matrices of shape `(n_obs, a)`, where `a` is an integer. This contains observation level matrices, and we use a mapping `str -> NDArray` to store them. For example, `"X_umap"` would store the UMAP embedding of the sparse matrix `X`, and `"X_pca"` would store the PCA embedding of `X`.
+  - Currently, from the Cell Table we store the `y` and `x` centroids in the `"spatial"` slot of the `obsm` component.
+- `varm` is a key-value store where the values are matrices of shape `(n_vars, b)`, where `b` is an integer. This contains variable level matrices, and we use a mapping `str -> NDArray` to store them. For example, `"Marker_umap"` would store the UMAP embedding of the matrix `var`.
+
+
+### 3. obsp, varp
+
+<p align="center">
+  <img width="50%" alt="image" src="https://github.com/angelolab/ark-analysis/assets/8909315/2201f36d-3a7c-4154-8ab6-e875e9811eb4">
+</p>
+
+- `obsp` is a square matrix of shape `(n_obs, n_obs)`, and its purpose is to store pairwise computations between observations.
+  - For example neighborhood information.
+- `varp` is a square matrix of shape `(n_vars, n_vars)`, and its purpose is to store pairwise computations between variables.
+### 4. **uns**
+
+<p align="center">
+  <img width="303" alt="image" src="https://github.com/angelolab/ark-analysis/assets/8909315/881a2c63-3ea4-4874-b6d6-b0bc2532f283">
+</p>
+
+- `uns` is a free slot for storing *almost* anything. It's a mapping from a string label to anything.
