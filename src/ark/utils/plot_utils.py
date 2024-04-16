@@ -54,7 +54,6 @@ class MetaclusterColormap:
     background_color: Tuple[float, ...] = field(init=False)
     metacluster_id_to_name: pd.DataFrame = field(init=False)
     mc_colors: np.ndarray = field(init=False)
-    metacluster_to_index: Dict = field(init=False)
     cmap: colors.ListedColormap = field(init=False)
     norm: colors.BoundaryNorm = field(init=False)
 
@@ -93,44 +92,45 @@ class MetaclusterColormap:
         cluster_id_to_name: pd.DataFrame = pd.read_csv(self.cluster_id_to_name_path)
 
         # The mapping file needs to contain the following columns:
-        # 'cluster', 'metacluster', and 'mc_name'
+        # '*_som_cluster', '*_meta_cluster', '*_meta_cluster_rename', 'cluster_id'
         misc_utils.verify_in_list(
             required_cols=[
                 f"{self.cluster_type}_som_cluster",
                 f"{self.cluster_type}_meta_cluster",
                 f"{self.cluster_type}_meta_cluster_rename",
+                f"cluster_id",
             ],
             cluster_mapping_cols=cluster_id_to_name.columns.values
         )
 
         # subset on just metacluster and mc_name
         metacluster_id_to_name = cluster_id_to_name[
-            [f"{self.cluster_type}_meta_cluster", f"{self.cluster_type}_meta_cluster_rename"]
-        ].copy()
+            [f"{self.cluster_type}_meta_cluster", f"{self.cluster_type}_meta_cluster_rename",
+             "cluster_id"]].copy()
 
-        unassigned_id: int = int(
+        unassigned_meta_cluster: int = int(
             metacluster_id_to_name[f"{self.cluster_type}_meta_cluster"].max() + 1)
+        unassigned_cluster_id: int = int(
+            metacluster_id_to_name["cluster_id"].max() + 1)
 
-        # Extract unique pairs of (metacluster-ID,  name)
-        # Set the unassigned cluster ID to be the max ID + 1
+        # Extract unique pairs of (metacluster-ID,  name, cluster_id)
+        # Set the unassigned meta cluster to be the max ID + 1
         # Set 0 as the Empty value
         metacluster_id_to_name: pd.DataFrame = pd.concat(
             [
                 metacluster_id_to_name.drop_duplicates(),
                 pd.DataFrame(
                     data={
-                        f"{self.cluster_type}_meta_cluster": [unassigned_id, 0],
-                        f"{self.cluster_type}_meta_cluster_rename": ["Unassigned", "Empty"]
+                        f"{self.cluster_type}_meta_cluster": [unassigned_meta_cluster, 0],
+                        f"{self.cluster_type}_meta_cluster_rename": ["Unassigned", "Empty"],
+                        "cluster_id": [unassigned_cluster_id, 0]
                     }
                 )
             ]
         )
 
-        # sort by metacluster id ascending, this will help when making the colormap
-        metacluster_id_to_name.sort_values(by=f'{self.cluster_type}_meta_cluster', inplace=True)
-
         # add the unassigned color to the metacluster_colors dict
-        self.metacluster_colors.update({unassigned_id: self.unassigned_color})
+        self.metacluster_colors.update({unassigned_meta_cluster: self.unassigned_color})
 
         # add the no cluster color to the metacluster_colors dict
         self.metacluster_colors.update({0: self.background_color})
@@ -147,14 +147,12 @@ class MetaclusterColormap:
             f"{self.cluster_type}_meta_cluster"
         ].map(self.metacluster_colors)
 
-        # Convert the list of tuples to a numpy array, each index is a color
-
-        mc_colors: np.ndarray = np.array(metacluster_id_to_name['color'].to_list())
-
-        metacluster_to_index = {}
+        # sort by cluster_id ascending, so colors align with mask integers
+        metacluster_id_to_name.sort_values(by="cluster_id", inplace=True)
         metacluster_id_to_name.reset_index(drop=True, inplace=True)
-        for index, row in metacluster_id_to_name.reset_index(drop=True).iterrows():
-            metacluster_to_index[row[f'{self.cluster_type}_meta_cluster']] = index
+
+        # Convert the list of tuples to a numpy array, each index is a color
+        mc_colors: np.ndarray = np.array(metacluster_id_to_name['color'].to_list())
 
         # generate the colormap
         cmap = colors.ListedColormap(mc_colors)
@@ -166,25 +164,8 @@ class MetaclusterColormap:
         # Assign created values to dataclass attributes
         self.metacluster_id_to_name = metacluster_id_to_name
         self.mc_colors = mc_colors
-        self.metacluster_to_index = metacluster_to_index
         self.cmap = cmap
         self.norm = norm
-
-    def assign_metacluster_cmap(self, fov_img: np.ndarray) -> np.ndarray:
-        """Assigns the metacluster colormap to the provided image.
-
-        Args:
-            fov_img (np.ndarray): The metacluster image to assign the colormap index to.
-
-        Returns:
-            np.ndarray: The image with the colormap index assigned.
-        """
-        # explicitly relabel each value in fov_img with its index in mc_colors
-        # to ensure proper indexing into colormap
-        relabeled_fov = np.copy(fov_img)
-        for mc, mc_color_idx in self.metacluster_to_index.items():
-            relabeled_fov[fov_img == mc] = mc_color_idx
-        return relabeled_fov
 
 
 def create_cmap(cmap: Union[np.ndarray, list[str], str],
@@ -453,10 +434,8 @@ def plot_pixel_cell_cluster(
         if erode:
             fov = erode_mask(seg_mask=fov, connectivity=2, mode="thick", background=0)
 
-        fov_img = mcc.assign_metacluster_cmap(fov_img=fov)
-
         fig: Figure = plot_cluster(
-            image=fov_img,
+            image=fov,
             fov=fov_name,
             cmap=mcc.cmap,
             norm=mcc.norm,
@@ -740,7 +719,7 @@ def create_mantis_dir(fovs: List[str], mantis_project_path: Union[str, pathlib.P
     if not new_mask_suffix:
         new_mask_suffix = mask_suffix
 
-    cluster_id_key = 'cluster_id' if cluster_type == 'cell' else 'pixel_meta_cluster'
+    cluster_id_key = 'cluster_id'
     map_df = map_df.loc[:, [cluster_id_key, f'{cluster_type}_meta_cluster_rename']]
     # remove duplicates from df
     map_df = map_df.drop_duplicates()
@@ -895,11 +874,8 @@ def save_colored_masks(
                 xr_channel_names=None,
             )
 
-            # The values in the colored_mask are the indices of the colors in mcc.mc_colors
             # Make a new array with the actual colors, multiply by uint8 max to get 0-255 range
-
-            colored_mask: np.ndarray = (mcc.mc_colors[mcc.assign_metacluster_cmap(
-                mask.values.squeeze())] * 255.999).astype(np.uint8)
+            colored_mask: np.ndarray = (mcc.mc_colors[mask.squeeze()] * 255.999).astype(np.uint8)
 
             image_utils.save_image(
                 fname=save_dir / f"{fov}_{cluster_type}_mask_colored.tiff",

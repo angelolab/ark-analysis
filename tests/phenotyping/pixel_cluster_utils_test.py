@@ -473,11 +473,18 @@ def test_compute_pixel_cluster_channel_avg(cluster_col, keep_count, corrupt):
             result = np.repeat(np.array([[0.1, 0.2, 0.3]]), repeats=num_repeats, axis=0)
             assert np.array_equal(result, np.round(cluster_avg[cluster_avg_cols].values, 1))
 
+        # if a hard threshold is set, ensure if not all SOM clusters assigned error out
         with pytest.raises(ValueError, match='Average expression file not written'):
             pixel_cluster_utils.compute_pixel_cluster_channel_avg(
                 fovs[1:], chans, temp_dir, cluster_col, 1000,
                 'pixel_mat_consensus', num_fovs_subset=1, keep_count=keep_count
             )
+
+        # otherwise, the function should run to completion
+        pixel_cluster_utils.compute_pixel_cluster_channel_avg(
+            fovs[1:], chans, temp_dir, cluster_col, None,
+            'pixel_mat_consensus', num_fovs_subset=1, keep_count=keep_count
+        )
 
 
 def test_find_fovs_missing_col_no_temp():

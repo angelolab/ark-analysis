@@ -3,7 +3,8 @@ import itertools
 import os
 import pathlib
 import re
-from typing import List, Union
+from typing import List, Literal, Union, Sequence
+
 from numpy.typing import ArrayLike, DTypeLike
 from numpy import ma
 import feather
@@ -17,6 +18,18 @@ from tqdm.notebook import tqdm_notebook as tqdm
 import xarray as xr
 from ark import settings
 from skimage.segmentation import find_boundaries
+import dask.dataframe as dd
+from pandas.core.groupby.generic import DataFrameGroupBy
+from anndata import AnnData, read_zarr
+from anndata.experimental import AnnCollection
+from anndata.experimental.multi_files._anncollection import ConvertType
+from torchdata.datapipes.iter import IterDataPipe
+from typing import Iterator, Optional
+try:
+    from typing import TypedDict, Unpack
+except ImportError:
+    from typing_extensions import TypedDict, Unpack
+
 
 
 def save_fov_mask(fov, data_dir, mask_data, sub_dir=None, name_suffix=''):
@@ -118,9 +131,11 @@ class ClusterMaskData:
         ].copy()
 
         # Add a cluster_id_column to the column in case the cluster_column is
-        # non-numeric (i.e. string)
+        # non-numeric (i.e. string), index in ascending order of cell_meta_cluster
         cluster_name_id = pd.DataFrame(
             {self.cluster_column: mapping_data[self.cluster_column].unique()})
+        cluster_name_id.sort_values(by=f'{self.cluster_column}', inplace=True)
+        cluster_name_id.reset_index(drop=True, inplace=True)
 
         cluster_name_id[self.cluster_id_column] = (cluster_name_id.index + 1).astype(np.int32)
 
@@ -177,7 +192,6 @@ class ClusterMaskData:
         """
         misc_utils.verify_in_list(requested_fov=[fov], all_fovs=self.unique_fovs)
         fov_data: pd.DataFrame = self.mapping[self.mapping[self.fov_column] == fov]
-
         return fov_data.reset_index(drop=True)
 
     @property
@@ -433,6 +447,9 @@ def generate_and_save_cell_cluster_masks(
     cluster_map = cmd.mapping.filter([cmd.cluster_column, cmd.cluster_id_column])
     cluster_map = cluster_map.drop_duplicates()
 
+    # drop the cluster_id column from updated_cluster_map if it already exists, otherwise do nothing
+    gui_map = gui_map.drop(columns="cluster_id", errors="ignore")
+
     # add a cluster_id column corresponding to the new mask integers
     updated_cluster_map = gui_map.merge(cluster_map, on=[cmd.cluster_column], how="left")
     updated_cluster_map.to_csv(cluster_id_to_name_path, index=False)
@@ -460,7 +477,8 @@ def generate_and_save_cell_cluster_masks(
 
 
 def generate_pixel_cluster_mask(fov, base_dir, tiff_dir, chan_file_path,
-                                pixel_data_dir, pixel_cluster_col='pixel_meta_cluster'):
+                                pixel_data_dir, cluster_mapping,
+                                pixel_cluster_col='pixel_meta_cluster'):
     """For a fov, create a mask labeling each pixel with their SOM or meta cluster label
 
     Args:
@@ -476,6 +494,8 @@ def generate_pixel_cluster_mask(fov, base_dir, tiff_dir, chan_file_path,
         pixel_data_dir (str):
             The path to the data with full pixel data.
             This data should also have the SOM and meta cluster labels appended.
+        cluster_mapping (pd.DataFrame)
+            Dataframe detailing which meta_cluster IDs map to which cluster_id
         pixel_cluster_col (str):
             Whether to assign SOM or meta clusters
             needs to be `'pixel_som_cluster'` or `'pixel_meta_cluster'`
@@ -522,8 +542,13 @@ def generate_pixel_cluster_mask(fov, base_dir, tiff_dir, chan_file_path,
     # convert to 1D indexing
     coordinates = x_coords * img_data.shape[1] + y_coords
 
-    # get the cooresponding cluster labels for each pixel
+    # get the corresponding cluster labels for each pixel
     cluster_labels = list(fov_data[pixel_cluster_col])
+
+    # relabel meta_cluster numbers with cluster_id
+    cluster_mapping = cluster_mapping.drop_duplicates()[[pixel_cluster_col, 'cluster_id']]
+    id_mapping = dict(zip(cluster_mapping[pixel_cluster_col], cluster_mapping['cluster_id']))
+    cluster_labels = [id_mapping[label] for label in cluster_labels]
 
     # assign each coordinate in pixel_cluster_mask to its respective cluster label
     img_subset = img_data.ravel()
@@ -539,6 +564,7 @@ def generate_and_save_pixel_cluster_masks(fovs: List[str],
                                           tiff_dir: Union[pathlib.Path, str],
                                           chan_file: Union[pathlib.Path, str],
                                           pixel_data_dir: Union[pathlib.Path, str],
+                                          cluster_id_to_name_path: Union[pathlib.Path, str],
                                           pixel_cluster_col: str = 'pixel_meta_cluster',
                                           sub_dir: str = None,
                                           name_suffix: str = ''):
@@ -559,6 +585,9 @@ def generate_and_save_pixel_cluster_masks(fovs: List[str],
         pixel_data_dir (Union[pathlib.Path, str]):
             The path to the data with full pixel data.
             This data should also have the SOM and meta cluster labels appended.
+        cluster_id_to_name_path (Union[str, pathlib.Path]): A path to a CSV identifying the
+            pixel cluster to manually-defined name mapping this is output by the remapping
+            visualization found in `metacluster_remap_gui`.
         pixel_cluster_col (str, optional):
             The path to the data with full pixel data.
             This data should also have the SOM and meta cluster labels appended.
@@ -570,6 +599,19 @@ def generate_and_save_pixel_cluster_masks(fovs: List[str],
         name_suffix (str, optional):
             Specify what to append at the end of every pixel mask. Defaults to `''`.
     """
+    # read in gui cluster mapping file and save cluster_id created in generate_pixel_cluster_mask
+    gui_map = pd.read_csv(cluster_id_to_name_path)
+    cluster_map = gui_map.copy()[[pixel_cluster_col]]
+
+    cluster_map = cluster_map.drop_duplicates().sort_values(by=[pixel_cluster_col])
+    cluster_map["cluster_id"] = list(range(1, len(cluster_map) + 1))
+
+    # drop the cluster_id column from gui_map if it already exists, otherwise do nothing
+    gui_map = gui_map.drop(columns="cluster_id", errors="ignore")
+
+    # add a cluster_id column corresponding to the new mask integers
+    updated_cluster_map = gui_map.merge(cluster_map, on=[pixel_cluster_col], how="left")
+    updated_cluster_map.to_csv(cluster_id_to_name_path, index=False)
 
     # create the pixel cluster masks across each fov
     with tqdm(total=len(fovs), desc="Pixel Cluster Mask Generation", unit="FOVs") \
@@ -585,7 +627,8 @@ def generate_and_save_pixel_cluster_masks(fovs: List[str],
                 generate_pixel_cluster_mask(fov=fov, base_dir=base_dir, tiff_dir=tiff_dir,
                                             chan_file_path=chan_file_path,
                                             pixel_data_dir=pixel_data_dir,
-                                            pixel_cluster_col=pixel_cluster_col)
+                                            pixel_cluster_col=pixel_cluster_col,
+                                            cluster_mapping=updated_cluster_map)
 
             # save the pixel mask generated
             save_fov_mask(fov, data_dir=save_dir, mask_data=pixel_mask, sub_dir=sub_dir,
@@ -805,3 +848,213 @@ def stitch_images_by_shape(data_dir, stitched_dir, img_sub_folder=None, channels
         current_img = stitched_data.loc['stitched_image', :, :, chan].values
         image_utils.save_image(os.path.join(stitched_subdir, chan + '_stitched' + file_ext),
                                current_img)
+
+
+def _convert_ct_fov_to_adata(fov_group: DataFrameGroupBy, var_names: list[str], obs_names: list[str], save_dir: os.PathLike) -> str:
+    """Converts the cell table for a single FOV to an `AnnData` object and saves it to disk as a
+    `Zarr` store.
+
+    Parameters
+    ----------
+    fov_group : DataFrameGroupBy
+        The cell table subset on a single FOV.
+    var_names: list[str]
+        The marker names to extract from the cell table.
+    obs_names: list[str]
+        The cell-level measurements and properties to extract from the cell table.
+    save_dir: os.PathLike
+        The directory to save the `AnnData` object to.
+
+    Returns
+    -------
+    str
+        The path of the saved `AnnData` object.
+    """
+    
+    fov_dd: dd.DataFrame = fov_group.sort_values(by=settings.CELL_LABEL, key=ns.natsort_key).reset_index()
+    fov_id: str = fov_dd[settings.FOV_ID].iloc[0]
+
+    # Set the index to be the FOV and the segmentation label to create a unique index
+    fov_dd.index = list(map(lambda label: f"{fov_id}_{int(label)}", fov_dd[settings.CELL_LABEL]))
+
+    # Extract the X matrix
+    X_dd: dd.DataFrame = fov_dd[var_names]
+    
+    # Extract the obs dataframe and convert the cell label to integer
+    obs_dd: dd.DataFrame = fov_dd[obs_names].astype({settings.CELL_LABEL: int, settings.FOV_ID: str})
+    obs_dd["cell_meta_cluster"] = pd.Categorical(obs_dd["cell_meta_cluster"].astype(str))
+
+    # Move centroids from obs to obsm["spatial"]
+    obsm_dd = obs_dd[[settings.CENTROID_0, settings.CENTROID_1]].rename(columns={settings.CENTROID_0: "centroid_y", settings.CENTROID_1: "centroid_x"})
+    obs_dd = obs_dd.drop(columns=[settings.CENTROID_0, settings.CENTROID_1])
+
+    # Create the AnnData object
+    adata: AnnData = AnnData(X=X_dd, obs=obs_dd, obsm={"spatial": obsm_dd})
+
+    # Convert any extra string labels to categorical if it's beneficial.
+    adata.strings_to_categoricals()
+
+    adata.write_zarr(pathlib.Path(save_dir, f"{fov_id}.zarr"), chunks=(1000, 1000))
+    return pathlib.Path(save_dir, f"{fov_id}.zarr").as_posix()
+
+
+class ConvertToAnnData:
+    """ A class which converts the Cell Table `.csv` file to a series of `AnnData` objects,
+    one object per FOV.
+    
+    The default parameters stored in the `.obs` slot include:
+    - `area`
+    - `cell_meta_cluster`
+    - `centroid_dif`
+    - `convex_area`
+    - `convex_hull_resid`
+    - `cell_meta_cluster`
+    - `eccentricity`
+    - `fov`
+    - `major_axis_equiv_diam_ratio`
+
+    Visit the Data Types document to see the full list of parameters.
+    The default parameters stored in the `.obs` slot include:       
+    - `centroid_x`
+    - `centroid_y`
+
+    Args:
+        cell_table_path (os.PathLike): The path to the cell table.
+        markers (list[str], "auto"): The markers to extract and store in `.X`. Defaults to "auto",
+        which will extract all markers.
+        extra_obs_parameters (list[str], optional): Extra parameters to load in `.obs`. Defaults
+        to None.
+    """
+
+    def __init__(self, cell_table_path: os.PathLike,
+                 markers: Union[list[str], Literal["auto"]] = "auto",
+                 extra_obs_parameters: list[str] = None) -> None:
+        
+        io_utils.validate_paths(paths=cell_table_path)
+        
+        # Read in the cell table
+        cell_table: pd.DataFrame = pd.read_csv(cell_table_path)
+        ct_columns = cell_table.columns
+
+        # Get the marker column indices
+        marker_index_start: int = ct_columns.get_loc(settings.PRE_CHANNEL_COL) + 1
+        marker_index_stop: int = ct_columns.get_loc(settings.POST_CHANNEL_COL)
+        obs_index_start: int = ct_columns.get_loc(settings.POST_CHANNEL_COL) + 1
+        
+        if markers == "auto":
+            # Default to all markers based on settings Pre and Post channel column values
+            markers: list[str] = ct_columns[marker_index_start:marker_index_stop].to_list()
+        else:
+            # Verify that the correct markers exist
+            misc_utils.verify_in_list(requested_markers=markers, 
+                                    all_markers=ct_columns[marker_index_start:marker_index_stop].to_list())
+        self.var_names = markers
+        
+        # Verify extra obs parameters
+        if extra_obs_parameters:
+            misc_utils.verify_in_list(requested_parameters=extra_obs_parameters, 
+                                    all_parameters=ct_columns[obs_index_start:].to_list())
+        else:
+            extra_obs_parameters = []
+
+        obs_names = [
+            settings.CELL_LABEL,
+            settings.CELL_SIZE,
+            *ct_columns[obs_index_start:].to_list(),
+            *extra_obs_parameters
+        ]
+
+        # Use "area" as the default area id instead of settings.CELL_SIZE to account for
+        # non-cellular observations (ez_seg, fiber, etc...)
+        if settings.CELL_SIZE in obs_names:
+            obs_names.remove(settings.CELL_SIZE)
+            if "area" not in obs_names:
+                cell_table = cell_table.rename(columns={settings.CELL_SIZE: "area"})
+                obs_names.append("area")
+        
+        self.obs_names: list[str] = obs_names
+        self.cell_table = cell_table
+
+    def convert_to_adata(
+        self,
+        save_dir: os.PathLike,
+    ) -> dict[str, str]:
+        """Converts the cell table to a FOV-level `AnnData` object, and saves the results as
+        a `Zarr` store to disk in the `save_dir`.
+
+        Args:
+            save_dir (os.PathLike): The directory to save the `AnnData` objects to.
+
+        Returns:
+            dict[str, str]: A dictionary containing the names of the FOVs and the paths where
+            they were saved.
+        """
+
+        if not isinstance(save_dir, pathlib.Path):
+            save_dir = pathlib.Path(save_dir)
+        if not save_dir.exists():
+            save_dir.mkdir(parents=True, exist_ok=True)
+
+        n_unique_fovs = self.cell_table[settings.FOV_ID].nunique()
+
+        tqdm.pandas(desc="Converting Cell Table to AnnData Tables", total=n_unique_fovs, unit="FOVs")
+
+        result: pd.Series = self.cell_table.groupby(by=settings.FOV_ID, sort=True).progress_apply(
+            lambda x: _convert_ct_fov_to_adata(
+                x, var_names=self.var_names, obs_names=self.obs_names, save_dir=save_dir
+            ),
+        )
+        return result.to_dict()
+
+
+class AnnCollectionKwargs(TypedDict):
+    join_obs: Optional[Literal["inner", "outer"]]
+    join_obsm: Optional[Literal["inner"]]
+    join_vars: Optional[Literal["inner"]]
+    label: Optional[str]
+    keys: Optional[Sequence[str]]
+    index_unique: Optional[str]
+    convert: Optional[ConvertType]
+    harmonize_dtypes: bool
+    indices_strict: bool
+
+
+def load_anndatas(anndata_dir: os.PathLike, **anncollection_kwargs: Unpack[AnnCollectionKwargs]) -> AnnCollection:
+    """Lazily loads a directory of `AnnData` objects into an `AnnCollection`. The concatination happens across the `.obs` axis.
+    
+    For `AnnCollection` kwargs, see https://anndata.readthedocs.io/en/latest/generated/anndata.experimental.AnnCollection.html
+        
+    Args:
+        anndata_dir (os.PathLike): The directory containing the `AnnData` objects.
+
+    Returns:
+        AnnCollection: The `AnnCollection` containing the `AnnData` objects.
+    """
+    if not isinstance(anndata_dir, pathlib.Path):
+        anndata_dir = pathlib.Path(anndata_dir)
+    
+    adata_zarr_stores = {f.stem: read_zarr(f) for f in ns.natsorted(anndata_dir.glob("*.zarr"))}
+    return AnnCollection(adatas=adata_zarr_stores, **anncollection_kwargs)
+
+
+class AnnDataIterDataPipe(IterDataPipe):
+    """The TorchData Iterable-style DataPipe. Takes an `AnnCollection`
+    and makes it iterable by FOV for easy and flexible data pipelines.
+
+    Args:
+        fovs (AnnCollection): The `AnnCollection` containing the `AnnData` objects.
+    """
+
+    @property
+    def fovs(self) -> AnnCollection:
+        return self._fovs
+
+    @fovs.setter
+    def fovs(self, value: AnnCollection) -> None:
+        self._fovs: AnnCollection = value
+
+    def __init__(self, fovs: AnnCollection):
+        self.fovs = fovs
+
+    def __iter__(self) -> Iterator[AnnData]:
+        yield from self.fovs.adatas

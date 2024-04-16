@@ -6,10 +6,12 @@ import numpy as np
 import pytest
 import test_utils
 import xarray as xr
+import pandas as pd
 
 import ark.settings as settings
 import ark.spLDA.processing as pros
 from ark.analysis import visualize
+import test_utils as ark_test_utils
 
 
 def test_draw_heatmap():
@@ -55,72 +57,78 @@ def test_draw_heatmap():
         assert os.path.exists(os.path.join(temp_dir, "z_score_viz.png"))
 
 
-def test_draw_boxplot():
+@pytest.fixture
+def test_cell_table() -> pd.DataFrame:
+    n_cells = 300
+    n_markers = 5
+    cell_table = ark_test_utils.make_cell_table(n_cells=n_cells, n_markers=n_markers)
+    yield cell_table
+
+
+def test_draw_boxplot(test_cell_table: pd.DataFrame):
     # trim random data so we don't have to visualize as many facets
-    start_time = timeit.default_timer()
-    random_data = test_utils.make_cell_table(100)
-    random_data = random_data[random_data[settings.PATIENT_ID].isin(np.arange(1, 5))]
+    random_data = test_cell_table[test_cell_table[settings.PATIENT_ID].isin(np.arange(1, 5))]
 
     # basic error testing
     with pytest.raises(ValueError):
         # non-existant col_name
-        visualize.draw_boxplot(cell_data=random_data, col_name="AA")
+        visualize.draw_boxplot(cell_data=random_data, col_name="bad_marker")
 
     with pytest.raises(ValueError):
         # split_vals specified but not col_split
-        visualize.draw_boxplot(cell_data=random_data, col_name="A", split_vals=[])
+        visualize.draw_boxplot(cell_data=random_data, col_name="marker_1", split_vals=[])
 
     with pytest.raises(ValueError):
         # non-existant col_split specified
-        visualize.draw_boxplot(cell_data=random_data, col_name="A", col_split="AA")
+        visualize.draw_boxplot(cell_data=random_data, col_name="marker_1", col_split="AA")
 
     with pytest.raises(ValueError):
         # split_vals not found in col_split found
-        visualize.draw_boxplot(cell_data=random_data, col_name="A",
+        visualize.draw_boxplot(cell_data=random_data, col_name="marker_1",
                                col_split=settings.PATIENT_ID, split_vals=[3, 4, 5, 6])
 
     with pytest.raises(FileNotFoundError):
         # trying to save to a non-existant directory
-        visualize.draw_boxplot(cell_data=random_data, col_name="A",
+        visualize.draw_boxplot(cell_data=random_data, col_name="marker_1",
                                save_dir="bad_dir")
 
     # highest level: data, a column name, a split column, and split vals
     with tempfile.TemporaryDirectory() as temp_dir:
-        visualize.draw_boxplot(cell_data=random_data, col_name="A",
+        visualize.draw_boxplot(cell_data=random_data, col_name="marker_1",
                                col_split=settings.PATIENT_ID, split_vals=[1, 2],
                                save_dir=temp_dir, save_file="boxplot_viz.png")
         assert os.path.exists(os.path.join(temp_dir, "boxplot_viz.png"))
 
 
-def test_get_sort_data():
-    random_data = test_utils.make_cell_table(100)
-    sorted_data = visualize.get_sorted_data(random_data, settings.PATIENT_ID, settings.CELL_TYPE)
+def test_get_sort_data(test_cell_table: pd.DataFrame):
+    sorted_data = visualize.get_sorted_data(
+        test_cell_table,
+        settings.PATIENT_ID,
+        settings.CELL_TYPE
+    )
 
     row_sums = [row.sum() for index, row in sorted_data.iterrows()]
     assert list(reversed(row_sums)) == sorted(row_sums)
 
 
-def test_plot_barchart():
+def test_plot_barchart(test_cell_table):
     # mostly error checking here, test_visualize_cells tests the meat of the functionality
-    random_data = test_utils.make_cell_table(100)
 
     with pytest.raises(FileNotFoundError):
         # trying to save to a non-existant directory
-        visualize.plot_barchart(random_data, "Random Title", "Random X Label",
+        visualize.plot_barchart(test_cell_table, "Random Title", "Random X Label",
                                 "Random Y Label", save_dir="bad_dir")
 
     with pytest.raises(FileNotFoundError):
         # setting save_dir but not setting save_file
-        visualize.plot_barchart(random_data, "Random Title", "Random X Label",
+        visualize.plot_barchart(test_cell_table, "Random Title", "Random X Label",
                                 "Random Y Label", save_dir=".")
 
 
-def test_visualize_patient_population_distribution():
-    random_data = test_utils.make_cell_table(100)
-
+def test_visualize_patient_population_distribution(test_cell_table):
     with tempfile.TemporaryDirectory() as temp_dir:
         # test without a save_dir, check that we do not save the files
-        visualize.visualize_patient_population_distribution(random_data, settings.PATIENT_ID,
+        visualize.visualize_patient_population_distribution(test_cell_table, settings.PATIENT_ID,
                                                             settings.CELL_TYPE)
 
         assert not os.path.exists(os.path.join(temp_dir, "PopulationDistribution.png"))
@@ -128,7 +136,7 @@ def test_visualize_patient_population_distribution():
         assert not os.path.exists(os.path.join(temp_dir, "PopulationProportion.png"))
 
         # now test with a save_dir, which will check that we do save the files
-        visualize.visualize_patient_population_distribution(random_data, settings.PATIENT_ID,
+        visualize.visualize_patient_population_distribution(test_cell_table, settings.PATIENT_ID,
                                                             settings.CELL_TYPE, save_dir=temp_dir)
 
         # Check if correct plots are saved
@@ -162,11 +170,10 @@ def test_visualize_neighbor_cluster_metrics():
         assert os.path.exists(os.path.join(temp_dir, "neighborhood_silhouette_scores.png"))
 
 
-def test_visualize_topic_eda():
+def test_visualize_topic_eda(test_cell_table: pd.DataFrame):
     # Create/format/featurize testing cell table
-    cell_table = test_utils.make_cell_table(num_cells=1000)
-    all_clusters = list(np.unique(cell_table[settings.CELL_TYPE]))
-    cell_table_format = pros.format_cell_table(cell_table, clusters=all_clusters)
+    all_clusters = list(np.unique(test_cell_table[settings.CELL_TYPE]))
+    cell_table_format = pros.format_cell_table(test_cell_table, clusters=all_clusters)
     cell_table_features = pros.featurize_cell_table(cell_table_format)
 
     # Run topic EDA
@@ -201,11 +208,10 @@ def test_visualize_topic_eda():
                                            "topic_eda_cell_counts_k_{}.png".format(tops[0])))
 
 
-def test_visualize_fov_stats():
+def test_visualize_fov_stats(test_cell_table: pd.DataFrame):
     # Create/format/featurize testing cell table
-    cell_table = test_utils.make_cell_table(num_cells=1000)
-    all_clusters = list(np.unique(cell_table[settings.CELL_TYPE]))
-    cell_table_format = pros.format_cell_table(cell_table, clusters=all_clusters)
+    all_clusters = list(np.unique(test_cell_table[settings.CELL_TYPE]))
+    cell_table_format = pros.format_cell_table(test_cell_table, clusters=all_clusters)
 
     # Run topic EDA
     fov_stats = pros.fov_density(cell_table_format)
@@ -227,10 +233,9 @@ def test_visualize_fov_stats():
         assert os.path.exists(os.path.join(temp_dir, "fov_metrics_total_cells.png"))
 
 
-def test_visualize_fov_graphs():
-    cell_table = test_utils.make_cell_table(num_cells=1000)
-    all_clusters = list(np.unique(cell_table[settings.CELL_TYPE]))
-    cell_table_format = pros.format_cell_table(cell_table, clusters=all_clusters)
+def test_visualize_fov_graphs(test_cell_table: pd.DataFrame):
+    all_clusters = list(np.unique(test_cell_table[settings.CELL_TYPE]))
+    cell_table_format = pros.format_cell_table(test_cell_table, clusters=all_clusters)
     cell_table_features = pros.featurize_cell_table(cell_table_format)
     diff_mats = pros.create_difference_matrices(cell_table_format, cell_table_features)
 

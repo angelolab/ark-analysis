@@ -1,5 +1,7 @@
 import os
 import pathlib
+import itertools
+
 from typing import List, Union
 
 import matplotlib.pyplot as plt
@@ -167,3 +169,40 @@ def create_mantis_project(
         img_sub_folder="",
         seg_suffix_name=seg_suffix_name,
     )
+
+
+def generate_new_cluster_resolution(cell_table, cluster_col, new_cluster_col, cluster_mapping,
+                                    save_path):
+    """Add new column of more broad cell cluster assignments to the cell table.
+
+    Args:
+        cell_table (pd.DataFrame): cell table with clustered cell populations
+        cluster_col (str): column containing the cell phenotype
+        new_cluster_col (str): new column to create
+        cluster_mapping (dict): dictionary with keys detailing the new cluster names and values
+            explaining which cell types to group together
+        save_path (str): where to save the new cell table
+    """
+    # validation checks
+    misc_utils.verify_in_list(cluster_col=[cluster_col], cell_table_columns=cell_table.columns)
+    if new_cluster_col in cell_table.columns:
+        raise ValueError(f"The column {new_cluster_col} already exists in the cell table. "
+                         f"Please specify a different name for the new column.")
+
+    cluster_mapping_values = list(cluster_mapping.values())
+    not_list = [type(group) != list for group in cluster_mapping_values]
+    if any(not_list):
+        raise ValueError(f"Please make sure all values of the dictionary specify a list.")
+    cluster_list = list(itertools.chain.from_iterable(cluster_mapping_values))
+    misc_utils.verify_same_elements(
+        specified_cell_clusters=cluster_list,
+        cell_clusters_in_table=list(cell_table[cluster_col].unique()))
+
+    # assign each cell to new cluster
+    for new_cluster in cluster_mapping:
+        pops = cluster_mapping[new_cluster]
+        idx = np.isin(cell_table[cluster_col].values, pops)
+        cell_table.loc[idx, new_cluster_col] = new_cluster
+
+    # save updated cell table
+    cell_table.to_csv(os.path.join(save_path), index=False)
