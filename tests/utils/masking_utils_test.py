@@ -43,7 +43,7 @@ def test_create_cell_mask():
     # single cell mask with no blurring
     exact_single_mask = masking_utils.create_cell_mask(
         seg_mask, cell_table, "fov1", cell_types=["cluster_1"], cluster_col="cluster_name",
-        sigma=0)
+        sigma=0, min_mask_size=0, max_hole_size=0)
 
     cluster_mask = seg_mask.copy()
     cluster_mask[cluster_mask > 1] = 0
@@ -52,7 +52,7 @@ def test_create_cell_mask():
     # multiple cell mask with no blurring
     exact_mask = masking_utils.create_cell_mask(
         seg_mask, cell_table, "fov1", cell_types=["cluster_1", "cluster_2"],
-        cluster_col="cluster_name", sigma=0)
+        cluster_col="cluster_name", sigma=0, min_mask_size=0, max_hole_size=0)
     cluster_mask = seg_mask.copy()
     cluster_mask[cluster_mask > 2] = 0
     cluster_mask[cluster_mask == 2] = 1
@@ -75,7 +75,7 @@ def test_generate_cell_masks():
             cells = np.unique(segmentation_data[i, :, :, 0])
             fov_table = pd.DataFrame(
                 {
-                    "fov": ["fov1"] * len(cells),
+                    "fov": [fov] * len(cells),
                     "label": cells,
                     "cluster_name": [f"cluster_{cell}" for cell in cells]
                 }
@@ -91,4 +91,5 @@ def test_generate_cell_masks():
             seg_dir, mask_dir, cell_table, ["cluster_1"], "cluster_name", mask_name="cell_mask")
 
         for fov in fovs:
+            os.listdir(os.path.join(mask_dir, fov))
             assert os.path.exists(os.path.join(mask_dir, fov, "cell_mask.tiff"))

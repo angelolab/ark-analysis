@@ -53,7 +53,7 @@ def generate_signal_masks(img_dir, mask_dir, channels, mask_name, intensity_thre
 
 
 def create_cell_mask(seg_mask, cell_table, fov_name, cell_types, cluster_col, sigma,
-                     min_mask_size=0, max_hole_size=0):
+                     min_mask_size=0, max_hole_size=1000):
     """Generates a binary from the cells listed in `cell_types`
 
     Args:
@@ -75,7 +75,7 @@ def create_cell_mask(seg_mask, cell_table, fov_name, cell_types, cluster_col, si
     cell_labels = cell_subset['label'].values
 
     # create mask for cell type
-    cell_mask = np.isin(seg_mask, cell_labels)
+    cell_mask = np.isin(seg_mask, cell_labels).astype(np.int32)
     img_size = cell_mask.shape[0] * cell_mask.shape[1]
 
     # binarize and blur mask, no minimum size requirement or hole removal for cell masks
@@ -88,7 +88,7 @@ def create_cell_mask(seg_mask, cell_table, fov_name, cell_types, cluster_col, si
 
 
 def generate_cell_masks(seg_dir, mask_dir, cell_table, cell_types, cluster_col, mask_name,
-                        sigma=10):
+                        sigma=10, min_mask_size=0, max_hole_size=1000):
     """Creates a single cell mask for each FOV when given the cell types to aggregate.
 
     Args:
@@ -99,24 +99,25 @@ def generate_cell_masks(seg_dir, mask_dir, cell_table, cell_types, cluster_col, 
         cluster_col (str): column in cell table containing cell cluster
         mask_name (str): name for the new mask file created
         sigma (float): sigma for gaussian smoothing
+        min_mask_size (int): minimum size of a mask to include, default 0
+        max_hole_size (int): maximum size of a hole to leave without filling, default 0
     """
 
-    fov_files = io_utils.list_files(seg_dir)
+    fovs = np.unique(cell_table.fov)
 
-    for files in fov_files:
-        fov_name = files.replace('_whole_cell.tiff', '')
-
+    for fov in fovs:
         seg_mask = load_utils.load_imgs_from_dir(
-            data_dir=seg_dir, files=[files], xr_dim_name='compartments',
+            data_dir=seg_dir, files=[fov + '_whole_cell.tiff'], xr_dim_name='compartments',
             xr_channel_names=['whole_cell']
         )
 
         # create mask
         mask = create_cell_mask(
-            np.array(seg_mask[0, :, :, 0]), cell_table, fov_name, cell_types, cluster_col, sigma)
+            np.array(seg_mask[0, :, :, 0]), cell_table, fov, cell_types, cluster_col, sigma,
+            min_mask_size, max_hole_size)
 
         # save mask
-        save_dir = os.path.join(mask_dir, fov_name)
+        save_dir = os.path.join(mask_dir, fov)
         if not os.path.exists(save_dir):
             os.makedirs(save_dir)
         data_utils.save_fov_mask(mask_name, save_dir, mask)

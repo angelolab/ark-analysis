@@ -87,7 +87,7 @@ def composite_builder(
                 data=composite_array.astype(np.uint32)
             )
 
-        composite_images[fov] = composite_array.astype(np.uint32)
+        composite_images[fov] = composite_array.astype(np.float32)
         
     # Write a log saving composite builder info
     if log_dir:
