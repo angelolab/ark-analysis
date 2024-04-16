@@ -1,44 +1,14 @@
 import os
-
 import numpy as np
-
-from skimage import morphology
-from skimage.measure import label
-from scipy.ndimage import gaussian_filter
 
 from alpineer import io_utils, misc_utils, load_utils
 from ark.utils import data_utils
 from ark.segmentation.ez_seg.composites import composite_builder
+from ark.segmentation.ez_seg.ez_object_segmentation import _create_object_mask
 
 
-def create_mask(arr, intensity_thresh, sigma, min_mask_size, max_hole_size):
-    """Generates a binary mask from a signal image
-
-    Args:
-        arr (np.ndarray): array to be masked
-        intensity_thresh (float): threshold for the array values to use for masking
-        sigma (float): sigma for gaussian blur
-        min_mask_size (int): minimum size of masked objects to include
-        max_hole_size (int): maximum size of holes to leave in masked objects
-    """
-    # create a binary mask
-    arr_smoothed = gaussian_filter(arr.astype(float), sigma=sigma)
-    arr_mask = (arr_smoothed > intensity_thresh).astype(int)
-
-    # if no post-processing return as is
-    if min_mask_size == 0:
-        return arr_mask
-
-    # otherwise, clean up the mask before returning
-    label_mask = label(arr_mask)
-    label_mask = morphology.remove_small_objects(label_mask, min_size=min_mask_size)
-    label_mask = morphology.remove_small_holes(label_mask, area_threshold=max_hole_size)
-
-    return label_mask
-
-
-def generate_signal_masks(img_dir, mask_dir, channels, mask_name, intensity_thresh=350, sigma=2,
-                          min_mask_size=5000, max_hole_size=1000):
+def generate_signal_masks(img_dir, mask_dir, channels, mask_name, intensity_thresh_perc=None,
+                          sigma=2,min_mask_size=5000, max_hole_size=1000):
     """Creates a single signal mask for each FOV when given the channels to aggregate.
 
     Args:
@@ -46,7 +16,7 @@ def generate_signal_masks(img_dir, mask_dir, channels, mask_name, intensity_thre
         mask_dir (str): path where the masks will be saved
         channels (list): list of channels to combine to create a single mask for
         mask_name (str): name for the new mask file created
-        intensity_thresh (float): threshold for the array values to use for masking
+        intensity_thresh_perc (int): percentile to threshold intensity values in the image
         sigma (float): sigma for gaussian blur
         min_mask_size (int): minimum size of masked objects to include
         max_hole_size (int): maximum size of holes to leave in masked objects
@@ -60,6 +30,9 @@ def generate_signal_masks(img_dir, mask_dir, channels, mask_name, intensity_thre
         io_utils.list_files(os.path.join(img_dir, fovs[0])))
     misc_utils.verify_in_list(input_channels=channels, all_channels=channel_list)
 
+    if not intensity_thresh_perc:
+        intensity_thresh_perc = "auto"
+
     # create composite image (or read in single image)
     composite_imgs = composite_builder(
         img_dir, img_sub_folder='', fov_list=fovs, images_to_add=channels, images_to_subtract=[],
@@ -68,7 +41,10 @@ def generate_signal_masks(img_dir, mask_dir, channels, mask_name, intensity_thre
     for fov in fovs:
         # create mask
         img = composite_imgs[fov]
-        mask = create_mask(img, intensity_thresh, sigma, min_mask_size, max_hole_size)
+        img_size = img.shape[0] * img.shape[1]
+        mask = _create_object_mask(img, 'blob', sigma, intensity_thresh_perc, max_hole_size,
+                                   fov_dim=400, min_object_area=min_mask_size,
+                                   max_object_area=img_size)
 
         # save mask
         save_dir = os.path.join(mask_dir, fov)
@@ -78,7 +54,7 @@ def generate_signal_masks(img_dir, mask_dir, channels, mask_name, intensity_thre
         data_utils.save_fov_mask(mask_name, save_dir, mask)
 
 
-def create_cell_mask(seg_mask, cell_table, fov_name, cell_types, cluster_col, sigma, smooth_thresh,
+def create_cell_mask(seg_mask, cell_table, fov_name, cell_types, cluster_col, sigma,
                      min_mask_size=0, max_hole_size=0):
     """Generates a binary from the cells listed in `cell_types`
 
@@ -89,7 +65,6 @@ def create_cell_mask(seg_mask, cell_table, fov_name, cell_types, cluster_col, si
         cell_types (list): list of cell types to include in the mask
         cluster_col (str): column in cell table containing cell cluster
         sigma (float): sigma for gaussian smoothing
-        smooth_thresh (float): threshold for including a pixel in the smoothed mask
         min_mask_size (int): minimum size of a mask to include, default 0
         max_hole_size (int): maximum size of a hole to leave without filling, default 0
 
@@ -103,16 +78,19 @@ def create_cell_mask(seg_mask, cell_table, fov_name, cell_types, cluster_col, si
 
     # create mask for cell type
     cell_mask = np.isin(seg_mask, cell_labels)
+    img_size = cell_mask.shape[0] * cell_mask.shape[1]
 
     # binarize and blur mask, no minimum size requirement or hole removal for cell masks
-    cell_mask = create_mask(arr=cell_mask, intensity_thresh=smooth_thresh,
-                            sigma=sigma, min_mask_size=min_mask_size, max_hole_size=max_hole_size)
+    cell_mask = _create_object_mask(cell_mask, 'blob', sigma, None, max_hole_size,
+                                    fov_dim=0, min_object_area=min_mask_size,
+                                    max_object_area=img_size)
+    cell_mask[cell_mask > 0] = 1
 
     return cell_mask
 
 
-def generate_cell_masks(seg_dir, mask_dir, cell_table, cell_types, cluster_col, mask_name, sigma=10,
-                        smooth_thresh=0.3):
+def generate_cell_masks(seg_dir, mask_dir, cell_table, cell_types, cluster_col, mask_name,
+                        sigma=10):
     """Creates a single cell mask for each FOV when given the cell types to aggregate.
 
     Args:
@@ -123,7 +101,6 @@ def generate_cell_masks(seg_dir, mask_dir, cell_table, cell_types, cluster_col, 
         cluster_col (str): column in cell table containing cell cluster
         mask_name (str): name for the new mask file created
         sigma (float): sigma for gaussian smoothing
-        smooth_thresh (float): threshold for including a pixel in the smoothed mask
     """
 
     fov_files = io_utils.list_files(seg_dir)
@@ -138,8 +115,7 @@ def generate_cell_masks(seg_dir, mask_dir, cell_table, cell_types, cluster_col, 
 
         # create mask
         mask = create_cell_mask(
-            np.array(seg_mask[0, :, :, 0]), cell_table, fov_name, cell_types, cluster_col, sigma,
-            smooth_thresh)
+            np.array(seg_mask[0, :, :, 0]), cell_table, fov_name, cell_types, cluster_col, sigma)
 
         # save mask
         save_dir = os.path.join(mask_dir, fov_name)

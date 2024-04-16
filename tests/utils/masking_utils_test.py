@@ -8,21 +8,6 @@ from alpineer import image_utils
 from ark.utils import masking_utils
 
 
-def test_create_mask():
-    test_img = np.array([[0, 2, 3, 0], [3, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0]])
-
-    # check for blur in masking
-    mask = masking_utils.create_mask(test_img, intensity_thresh=1, sigma=1, min_mask_size=0,
-                                     max_hole_size=0)
-    assert np.all(
-        np.equal(mask, np.array([[1, 1, 1, 0], [1, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0]])))
-
-    # check for removal of small objects
-    processed_mask = masking_utils.create_mask(test_img, intensity_thresh=1, sigma=1,
-                                               min_mask_size=5, max_hole_size=0)
-    assert np.all(np.equal(processed_mask, np.zeros((4, 4))))
-
-
 def test_generate_signal_masks():
     with tempfile.TemporaryDirectory() as temp_dir:
         img_dir = os.path.join(temp_dir, "image_data")
@@ -34,7 +19,8 @@ def test_generate_signal_masks():
             img_dir, fov_names=fovs, channel_names=["chan1", "chan2"])
 
         masking_utils.generate_signal_masks(
-            img_dir, mask_dir, channels=["chan1", "chan2"], mask_name="composite_mask")
+            img_dir, mask_dir, channels=["chan1", "chan2"], mask_name="composite_mask",
+            min_mask_size=0)
 
         for fov in fovs:
             assert os.path.exists(os.path.join(mask_dir, fov, "composite_mask.tiff"))
@@ -57,7 +43,7 @@ def test_create_cell_mask():
     # single cell mask with no blurring
     exact_single_mask = masking_utils.create_cell_mask(
         seg_mask, cell_table, "fov1", cell_types=["cluster_1"], cluster_col="cluster_name",
-        sigma=0, smooth_thresh=0.3)
+        sigma=0)
 
     cluster_mask = seg_mask.copy()
     cluster_mask[cluster_mask > 1] = 0
@@ -66,8 +52,7 @@ def test_create_cell_mask():
     # multiple cell mask with no blurring
     exact_mask = masking_utils.create_cell_mask(
         seg_mask, cell_table, "fov1", cell_types=["cluster_1", "cluster_2"],
-        cluster_col="cluster_name", sigma=0, smooth_thresh=0.3)
-
+        cluster_col="cluster_name", sigma=0)
     cluster_mask = seg_mask.copy()
     cluster_mask[cluster_mask > 2] = 0
     cluster_mask[cluster_mask == 2] = 1
