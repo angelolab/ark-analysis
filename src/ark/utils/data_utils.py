@@ -18,7 +18,6 @@ from tqdm.notebook import tqdm_notebook as tqdm
 import xarray as xr
 from ark import settings
 from skimage.segmentation import find_boundaries
-import dask.dataframe as dd
 from pandas.core.groupby.generic import DataFrameGroupBy
 from anndata import AnnData, read_zarr
 from anndata.experimental import AnnCollection
@@ -871,25 +870,25 @@ def _convert_ct_fov_to_adata(fov_group: DataFrameGroupBy, var_names: list[str], 
         The path of the saved `AnnData` object.
     """
     
-    fov_dd: dd.DataFrame = fov_group.sort_values(by=settings.CELL_LABEL, key=ns.natsort_key).reset_index()
-    fov_id: str = fov_dd[settings.FOV_ID].iloc[0]
+    fov_pd: pd.DataFrame = fov_group.sort_values(by=settings.CELL_LABEL, key=ns.natsort_key).reset_index()
+    fov_id: str = fov_pd[settings.FOV_ID].iloc[0]
 
     # Set the index to be the FOV and the segmentation label to create a unique index
-    fov_dd.index = list(map(lambda label: f"{fov_id}_{int(label)}", fov_dd[settings.CELL_LABEL]))
+    fov_pd.index = list(map(lambda label: f"{fov_id}_{int(label)}", fov_pd[settings.CELL_LABEL]))
 
     # Extract the X matrix
-    X_dd: dd.DataFrame = fov_dd[var_names]
+    X_dd: pd.DataFrame = fov_pd[var_names]
     
     # Extract the obs dataframe and convert the cell label to integer
-    obs_dd: dd.DataFrame = fov_dd[obs_names].astype({settings.CELL_LABEL: int, settings.FOV_ID: str})
-    obs_dd["cell_meta_cluster"] = pd.Categorical(obs_dd["cell_meta_cluster"].astype(str))
+    obs_pd: pd.DataFrame = fov_pd[obs_names].astype({settings.CELL_LABEL: int, settings.FOV_ID: str})
+    obs_pd["cell_meta_cluster"] = pd.Categorical(obs_pd["cell_meta_cluster"].astype(str))
 
     # Move centroids from obs to obsm["spatial"]
-    obsm_dd = obs_dd[[settings.CENTROID_0, settings.CENTROID_1]].rename(columns={settings.CENTROID_0: "centroid_y", settings.CENTROID_1: "centroid_x"})
-    obs_dd = obs_dd.drop(columns=[settings.CENTROID_0, settings.CENTROID_1])
+    obsm_pd = obs_pd[[settings.CENTROID_0, settings.CENTROID_1]].rename(columns={settings.CENTROID_0: "centroid_y", settings.CENTROID_1: "centroid_x"})
+    obs_pd = obs_pd.drop(columns=[settings.CENTROID_0, settings.CENTROID_1])
 
     # Create the AnnData object
-    adata: AnnData = AnnData(X=X_dd, obs=obs_dd, obsm={"spatial": obsm_dd})
+    adata: AnnData = AnnData(X=X_dd, obs=obs_pd, obsm={"spatial": obsm_pd})
 
     # Convert any extra string labels to categorical if it's beneficial.
     adata.strings_to_categoricals()
