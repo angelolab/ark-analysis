@@ -60,11 +60,6 @@ def composite_builder(
             composite_method=composite_method, options=["binary", "total"]
         )
 
-        # make composite dir if not there already
-        if isinstance(composite_directory, str):
-            composite_directory = pathlib.Path(composite_directory)
-            composite_directory.mkdir(parents=True, exist_ok=True)
-
         # Initialize composite array, and add & subtract channels
         composite_array = np.zeros(shape=image_shape, dtype=np.float32)
         if images_to_add:
