@@ -20,7 +20,7 @@ def test_generate_signal_masks():
 
         masking_utils.generate_signal_masks(
             img_dir, mask_dir, channels=["chan1", "chan2"], mask_name="composite_mask",
-            min_mask_size=0)
+            min_object_area=0)
 
         for fov in fovs:
             assert os.path.exists(os.path.join(mask_dir, fov, "composite_mask.tiff"))
@@ -43,7 +43,7 @@ def test_create_cell_mask():
     # single cell mask with no blurring
     exact_single_mask = masking_utils.create_cell_mask(
         seg_mask, cell_table, "fov1", cell_types=["cluster_1"], cluster_col="cluster_name",
-        sigma=0, min_mask_size=0, max_hole_size=0)
+        sigma=0, min_object_area=0, max_hole_area=0)
 
     cluster_mask = seg_mask.copy()
     cluster_mask[cluster_mask > 1] = 0
@@ -52,7 +52,7 @@ def test_create_cell_mask():
     # multiple cell mask with no blurring
     exact_mask = masking_utils.create_cell_mask(
         seg_mask, cell_table, "fov1", cell_types=["cluster_1", "cluster_2"],
-        cluster_col="cluster_name", sigma=0, min_mask_size=0, max_hole_size=0)
+        cluster_col="cluster_name", sigma=0, min_object_area=0, max_hole_area=0)
     cluster_mask = seg_mask.copy()
     cluster_mask[cluster_mask > 2] = 0
     cluster_mask[cluster_mask == 2] = 1
@@ -88,7 +88,8 @@ def test_generate_cell_masks():
         cell_table = pd.concat(cell_table)
 
         masking_utils.generate_cell_masks(
-            seg_dir, mask_dir, cell_table, ["cluster_1"], "cluster_name", mask_name="cell_mask")
+            seg_dir, mask_dir, cell_table, ["cluster_1"], mask_name="cell_mask",
+            cluster_col="cluster_name", )
 
         for fov in fovs:
             os.listdir(os.path.join(mask_dir, fov))
