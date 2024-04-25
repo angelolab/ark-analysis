@@ -73,12 +73,12 @@ def composite_builder(
 
         if composite_directory:
             # Create the fov dir within the composite dir
-            composite_fov_dir = composite_directory / fov
+            composite_fov_dir = pathlib.Path(composite_directory) / fov
             composite_fov_dir.mkdir(parents=True, exist_ok=True)
 
             # Save the composite image
             image_utils.save_image(
-                fname=composite_directory / fov / f"{composite_name}.tiff",
+                fname=pathlib.Path(composite_directory) / fov / f"{composite_name}.tiff",
                 data=composite_array.astype(np.uint32)
             )
 
