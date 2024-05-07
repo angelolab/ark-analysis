@@ -925,10 +925,11 @@ def testing_anndatas(
 
 @pytest.mark.skip(reason="not used currently, fix later")
 def test_load_anndatas(testing_anndatas):
-
     fov_names, ann_collection, anndata_dir = testing_anndatas
-
-    ac = data_utils.load_anndatas(anndata_dir, join_obs="inner", join_obsm="inner")
+    
+    # test AnnCollection return
+    ac = data_utils.load_anndatas(anndata_dir, collection=True, join_obs="inner",
+                                  join_obsm="inner")
 
     assert isinstance(ac, AnnCollection)
     assert len(ac.adatas) == len(fov_names)
@@ -938,6 +939,19 @@ def test_load_anndatas(testing_anndatas):
     for fov_name, fov_adata in zip(fov_names, ann_collection.adatas):
         anndata.tests.helpers.assert_adata_equal(
             a=read_zarr(anndata_dir / f"{fov_name}.zarr"),
+            b=fov_adata
+        )
+
+    # test AnnData table return
+    adata_table = data_utils.load_anndatas(ann_collection_path, collection=False, join_obs="inner",
+                                           join_obsm="inner")
+    assert isinstance(adata_table, AnnData)
+    # Assert that each fov data of the combined table is the same as the one on disk.
+    for fov_name in fov_names:
+        fov_adata = adata_table[adata_table.obs.fov == fov_name]
+
+        anndata.tests.helpers.assert_adata_equal(
+            a=read_zarr(ann_collection_path / f"{fov_name}.zarr"),
             b=fov_adata
         )
 

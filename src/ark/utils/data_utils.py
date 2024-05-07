@@ -1,3 +1,4 @@
+import anndata
 import numba as nb
 import itertools
 import os
@@ -1017,13 +1018,16 @@ class AnnCollectionKwargs(TypedDict):
     indices_strict: bool
 
 
-def load_anndatas(anndata_dir: os.PathLike, **anncollection_kwargs: Unpack[AnnCollectionKwargs]) -> AnnCollection:
-    """Lazily loads a directory of `AnnData` objects into an `AnnCollection`. The concatination happens across the `.obs` axis.
-    
-    For `AnnCollection` kwargs, see https://anndata.readthedocs.io/en/latest/generated/anndata.experimental.AnnCollection.html
+def load_anndatas(anndata_dir: os.PathLike, collection=True,
+                  **anncollection_kwargs: Unpack[AnnCollectionKwargs]) -> AnnCollection:
+    """Lazily loads a directory of `AnnData` objects into an `AnnCollection`.
+    The concatenation happens across the `.obs` axis.
+    For `AnnCollection` kwargs,
+    see https://anndata.readthedocs.io/en/latest/generated/anndata.experimental.AnnCollection.html
         
     Args:
         anndata_dir (os.PathLike): The directory containing the `AnnData` objects.
+        collection (bool): Whether to return a collection or a single merged AnnData object.
 
     Returns:
         AnnCollection: The `AnnCollection` containing the `AnnData` objects.
@@ -1032,7 +1036,11 @@ def load_anndatas(anndata_dir: os.PathLike, **anncollection_kwargs: Unpack[AnnCo
         anndata_dir = pathlib.Path(anndata_dir)
     
     adata_zarr_stores = {f.stem: read_zarr(f) for f in ns.natsorted(anndata_dir.glob("*.zarr"))}
-    return AnnCollection(adatas=adata_zarr_stores, **anncollection_kwargs)
+    if collection:
+        return AnnCollection(adatas=adata_zarr_stores, **anncollection_kwargs)
+    else:
+        adata_zarr_list = list(adata_zarr_stores.values())
+        return anndata.concat(adata_zarr_list)
 
 
 class AnnDataIterDataPipe(IterDataPipe):
