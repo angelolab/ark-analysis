@@ -44,7 +44,7 @@ dependencies = [
     "xmltodict>=0.13.0,<1",
     "zstandard>=0.19.0,<1",
     "zarr",
-    "dateutil>=2.9.0",
+    "python-dateutil>=2.9.0",
     "ark-analysis[colors]",
 ]
 name = "ark-analysis"
