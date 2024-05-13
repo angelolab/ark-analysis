@@ -31,7 +31,7 @@ jobs:
   publish-to-testpypi:
     # Test PyPI publish, requires wheels and source dist to pass
     name: >-
-      Publish Python 🐍 distribution 📦 ${{ github.repository }} to TestPyPI
+      Publish Python 🐍 distribution 📦 to TestPyPI
     needs: [test, build]
     runs-on: ubuntu-latest
 
@@ -58,7 +58,7 @@ jobs:
   publish-to-pypi:
     # PyPI publish requires test, wheels, source dist, and testpypi to pass
     name: >-
-      Publish Python 🐍 Distributions 📦 ${{ github.repository }} to PyPI
+      Publish Python 🐍 Distributions 📦 to PyPI
     needs: [test, build, publish-to-testpypi]
     runs-on: ubuntu-latest
 
