@@ -52,8 +52,6 @@ jobs:
 
       - name: Publish distributions 📦 to TestPyPI
         uses: pypa/gh-action-pypi-publish@release/v1.8
-        with:
-          repository-url: https://test.pypi.org/legacy/ark-analysis
 
   publish-to-pypi:
     # PyPI publish requires test, wheels, source dist, and testpypi to pass
