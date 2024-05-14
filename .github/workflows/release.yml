@@ -52,6 +52,9 @@ jobs:
 
       - name: Publish distributions 📦 to TestPyPI
         uses: pypa/gh-action-pypi-publish@release/v1.8
+        with:
+          repository-url: https://test.pypi.org/legacy/
+
 
   publish-to-pypi:
     # PyPI publish requires test, wheels, source dist, and testpypi to pass
@@ -79,6 +82,7 @@ jobs:
 
       - name: Publish Distributions 📦 to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1.8
+        
 
   github-release-upload-dists:
     name: >-
