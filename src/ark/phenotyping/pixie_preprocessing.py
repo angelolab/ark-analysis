@@ -16,7 +16,7 @@ multiprocessing.set_start_method('spawn', force=True)
 
 
 def create_fov_pixel_data(fov, channels, img_data, seg_labels, pixel_thresh_val,
-                          blur_factor=2, subset_proportion=0.1):
+                          rowsum_norm=True, blur_factor=2, subset_proportion=0.1):
     """Preprocess pixel data for one fov
 
     Args:
@@ -30,6 +30,8 @@ def create_fov_pixel_data(fov, channels, img_data, seg_labels, pixel_thresh_val,
             Array representing segmentation labels for one fov
         pixel_thresh_val (float):
             value used to determine per-pixel cutoff for total signal inclusion
+        rowsum_norm (bool):
+            Whether to row sum normalize each pixel's expression across all channels
         blur_factor (int):
             The sigma to set for the Gaussian blur
         subset_proportion (float):
@@ -72,7 +74,8 @@ def create_fov_pixel_data(fov, channels, img_data, seg_labels, pixel_thresh_val,
     pixel_mat = pixel_mat.loc[(pixel_mat[channels] != 0).any(axis=1), :].reset_index(drop=True)
 
     # normalize the row sums of pixel mat
-    pixel_mat = pixel_cluster_utils.normalize_rows(pixel_mat, channels, seg_labels is not None)
+    if rowsum_norm:
+        pixel_mat = pixel_cluster_utils.normalize_rows(pixel_mat, channels, seg_labels is not None)
 
     # subset the pixel matrix for training
     pixel_mat_subset = pixel_mat.sample(frac=subset_proportion)
@@ -82,7 +85,7 @@ def create_fov_pixel_data(fov, channels, img_data, seg_labels, pixel_thresh_val,
 
 def preprocess_fov(base_dir, tiff_dir, data_dir, subset_dir, seg_dir, seg_suffix,
                    img_sub_folder, is_mibitiff, channels, blur_factor,
-                   subset_proportion, pixel_thresh_val, seed, channel_norm_df, fov):
+                   subset_proportion, pixel_thresh_val, rowsum_norm, seed, channel_norm_df, fov):
     """Helper function to read in the FOV-level pixel data, run `create_fov_pixel_data`,
     and save the preprocessed data.
 
@@ -114,6 +117,8 @@ def preprocess_fov(base_dir, tiff_dir, data_dir, subset_dir, seg_dir, seg_suffix
             The proportion of pixels to take from each fov
         pixel_thresh_val (float):
             The value to normalize the pixels by
+        rowsum_norm (bool):
+            Whether to row sum normalize each pixel's expression across all channels
         seed (int):
             The random seed to set for subsetting
         channel_norm_df (pandas.DataFrame):
@@ -164,7 +169,7 @@ def preprocess_fov(base_dir, tiff_dir, data_dir, subset_dir, seg_dir, seg_suffix
     # create the full and subsetted fov matrices
     pixel_mat, pixel_mat_subset = create_fov_pixel_data(
         fov=fov, channels=channels, img_data=img_data, seg_labels=seg_labels,
-        pixel_thresh_val=pixel_thresh_val, blur_factor=blur_factor,
+        pixel_thresh_val=pixel_thresh_val, rowsum_norm=rowsum_norm, blur_factor=blur_factor,
         subset_proportion=subset_proportion
     )
 
@@ -192,7 +197,7 @@ def create_pixel_matrix(fovs, channels, base_dir, tiff_dir, seg_dir,
                         subset_dir='pixel_mat_subsetted',
                         norm_vals_name_pre_rownorm='channel_norm_pre_rownorm.feather',
                         norm_vals_name_post_rownorm='channel_norm_post_rownorm.feather',
-                        pixel_thresh_name='pixel_thresh.feather',
+                        pixel_thresh_name='pixel_thresh.feather', rowsum_norm=True,
                         channel_percentile_pre_rownorm=0.99, channel_percentile_post_rownorm=0.999,
                         is_mibitiff=False, blur_factor=2, subset_proportion=0.1, seed=42,
                         multiprocess=False, batch_size=5):
@@ -233,6 +238,8 @@ def create_pixel_matrix(fovs, channels, base_dir, tiff_dir, seg_dir,
             The name of the file to store the post-pixel-normalized norm values
         pixel_thresh_name (str):
             The name of the file to store the pixel threshold value
+        rowsum_norm (bool):
+            Whether to row sum normalize each pixel's expression across all channels
         channel_percentile_pre_rownorm (float):
             Percentile used to normalize channels before pixel normalization
         channel_percentile_post_rownorm (float):
@@ -375,7 +382,7 @@ def create_pixel_matrix(fovs, channels, base_dir, tiff_dir, seg_dir,
     fov_data_func = partial(
         preprocess_fov, base_dir, tiff_dir, data_dir, subset_dir,
         seg_dir, seg_suffix, img_sub_folder, is_mibitiff, channels, blur_factor,
-        subset_proportion, pixel_thresh_val, seed, channel_norm_pre_rownorm_df
+        subset_proportion, pixel_thresh_val, rowsum_norm, seed, channel_norm_pre_rownorm_df
     )
 
     # define variable to keep track of number of fovs processed
