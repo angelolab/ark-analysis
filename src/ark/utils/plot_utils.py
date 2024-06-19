@@ -7,7 +7,7 @@ from typing import Dict, List, Literal, Optional, Tuple, Union
 from matplotlib import gridspec
 from matplotlib.axes import Axes
 
-import matplotlib.cm as cm
+# import matplotlib.cm as cm
 import matplotlib.colors as colors
 from matplotlib import colormaps, patches
 from matplotlib.figure import Figure
@@ -346,7 +346,7 @@ def plot_neighborhood_cluster_result(img_xr: xr.DataArray,
     misc_utils.verify_in_list(fovs=fovs, unique_fovs=img_xr.fovs.values)
 
     # define the colormap
-    my_colors = cm.get_cmap(cmap_name, k).colors
+    my_colors = plt.get_cmap(cmap_name, k).colors
 
     cmap, norm = create_cmap(my_colors, n_clusters=k)
 
