@@ -38,7 +38,7 @@ jobs:
       - name: Checkout ${{ github.repository }}
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0
+          fetch-depth: 1
           # Checkout the latest release branch
           ref: ${{ github.event.workflow_run.head_sha }}
 

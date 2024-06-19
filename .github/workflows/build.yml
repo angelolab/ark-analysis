@@ -20,7 +20,7 @@ jobs:
       - name: Checkout ${{ github.repository }}
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0
+          fetch-depth: 1
 
       - name: Set up QEMU (For Linux ARM)
         if: runner.os == 'Linux'
