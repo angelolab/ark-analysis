@@ -7,7 +7,6 @@ from typing import Dict, List, Literal, Optional, Tuple, Union
 from matplotlib import gridspec
 from matplotlib.axes import Axes
 
-# import matplotlib.cm as cm
 import matplotlib.colors as colors
 from matplotlib import colormaps, patches
 from matplotlib.figure import Figure
@@ -296,7 +295,7 @@ def plot_cluster(
         divider = make_axes_locatable(fig.gca())
         cax = divider.append_axes(position="right", size="5%", pad="3%")
 
-        cbar = fig.colorbar(cm.ScalarMappable(norm=norm, cmap=cmap),
+        cbar = fig.colorbar(plt.ScalarMappable(norm=norm, cmap=cmap),
                             cax=cax, orientation="vertical", use_gridspec=True, pad=0.1,
                             shrink=0.9, drawedges=True)
         cbar.ax.set_yticks(
