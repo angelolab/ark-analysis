@@ -4,6 +4,7 @@ requires = [
     "Cython>=3",
     "numpy>=1.20,<1.24",
     "setuptools_scm[toml]>=8",
+    "build",
 ]
 build-backend = "setuptools.build_meta"
 
@@ -66,6 +67,11 @@ dynamic = ["version"]
 urls = { repository = "https://github.com/angelolab/ark-analysis" }
 
 [project.optional-dependencies]
+dev = [
+    "ark-analysis[test]",
+    "build>=1.2.1",
+    "setuptools-scm>=8.1.0",
+]
 colors = [
     "palettable",
     "cmasher",
@@ -96,7 +102,7 @@ lab_ext = [
 
 [tool.setuptools_scm]
 version_scheme = "release-branch-semver"
-local_scheme = "no-local-version"
+local_scheme = "node-and-timestamp"
 
 [tool.cibuildwheel]
 before-all = "uname -a"
