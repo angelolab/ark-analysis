@@ -19,7 +19,7 @@ permissions:
 jobs:
   get_dataset:
     env:
-      cache-name: dataset
+      cache-name: dataset-cache
 
     name: Get / Update Example Dataset
     runs-on: ubuntu-latest
@@ -31,7 +31,6 @@ jobs:
 
       - name: Restore Example Dataset Cache
         uses: actions/cache@v4
-        id: dataset-cache
         with:
           path: ./data/cache/
           key: huggingface-${{ env.cache-name }}

@@ -7,7 +7,7 @@ datasets.disable_progress_bar()
 
 DATASET_PATH = "angelolab/ark_example"
 
-valid_configs = datasets.get_dataset_config_names(DATASET_PATH)
+valid_configs = datasets.get_dataset_config_names(DATASET_PATH, trust_remote_code=True)
 
 def load_dataset(cache_dir: Path, name: str):
     _ = datasets.load_dataset(

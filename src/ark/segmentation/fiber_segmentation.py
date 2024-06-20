@@ -4,6 +4,7 @@ import pathlib
 from typing import Dict, Optional, Union
 
 import matplotlib.pyplot as plt
+from matplotlib import colormaps
 import natsort as ns
 import numpy as np
 import pandas as pd
@@ -26,7 +27,7 @@ from ark.utils.plot_utils import set_minimum_color_for_colormap
 def plot_fiber_segmentation_steps(data_dir, fov_name, fiber_channel, img_sub_folder=None, blur=2,
                                   contrast_scaling_divisor=128, fiber_widths=range(1, 10, 2),
                                   ridge_cutoff=0.1, sobel_blur=1, min_fiber_size=15,
-                                  img_cmap=plt.cm.bone, labels_cmap=plt.cm.cool):
+                                  img_cmap="bone", labels_cmap="cool"):
     """Plots output from each fiber segmentation step for single FoV
 
     Args:
@@ -53,9 +54,9 @@ def plot_fiber_segmentation_steps(data_dir, fov_name, fiber_channel, img_sub_fol
             Gaussian blur radius for sobel driven elevation map creation
         min_fiber_size (int):
             Minimum area of fiber object
-        img_cmap (matplotlib.cm.Colormap):
+        img_cmap (matplotlib.Colormap):
             Matplotlib colormap to use for (non-labeled) images
-        labels_cmap (matplotlib.cm.Colormap):
+        labels_cmap (matplotlib.Colormap):
             Base matplotlib colormap to use for labeled images.  This will only be applied to the
             non-zero labels, with the zero-region being colored black.
     """
@@ -79,6 +80,8 @@ def plot_fiber_segmentation_steps(data_dir, fov_name, fiber_channel, img_sub_fol
     channel_data = data_xr.loc[fov_name, :, :, fiber_channel].values
 
     _, axes = plt.subplots(3, 3)
+    img_cmap = colormaps[img_cmap]
+    labels_cmap = colormaps[labels_cmap]
 
     axes[0, 0].imshow(channel_data, cmap=img_cmap)
     axes[0, 0].set_title(f"{fov_name} {fiber_channel} raw image")

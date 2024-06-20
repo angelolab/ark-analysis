@@ -1,0 +1,121 @@
+name: Build Wheels and upload to PyPI
+
+on:
+  pull_request:
+    branches: ["releases/**"]
+    types: [labeled, opened, synchronize, reopened]
+  release:
+    types: [published]
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read # to fetch code (actions/checkout)
+
+jobs:
+  test:
+    name: Test
+    permissions:
+      contents: read
+    secrets: inherit
+    uses: ./.github/workflows/test.yml
+
+  build:
+    name: Build distribution 📦
+    uses: ./.github/workflows/build.yml
+    secrets: inherit
+
+  publish-to-testpypi:
+    # Test PyPI publish, requires wheels and source dist to pass
+    name: >-
+      Publish Python 🐍 distribution 📦 to TestPyPI
+    needs: [test, build]
+    runs-on: ubuntu-latest
+
+    environment:
+        name: testpypi
+        url: https://test.pypi.org/p/ark-analysis
+
+    permissions:
+      id-token: write # Necessary for trusted publishing
+
+    steps:
+      - name: Download Built Distributions 📦
+        uses: actions/download-artifact@v4
+        with:
+          pattern: dist-*
+          merge-multiple: true
+          path: dist
+
+      - name: Publish distributions 📦 to TestPyPI
+        uses: pypa/gh-action-pypi-publish@release/v1.9
+        with:
+          repository-url: https://test.pypi.org/legacy/
+
+
+  publish-to-pypi:
+    # PyPI publish requires test, wheels, source dist, and testpypi to pass
+    name: >-
+      Publish Python 🐍 Distributions 📦 to PyPI
+    needs: [test, build, publish-to-testpypi]
+    runs-on: ubuntu-latest
+
+    environment:
+      name: pypi
+      url: https://pypi.org/p/ark-analysis
+
+    permissions:
+        id-token: write
+
+    # Publish when a GitHub Release is created, use the following rule:
+    if: github.event_name == 'release' && github.event.action == 'published'
+    steps:
+      - name: Download Built Distributions 📦
+        uses: actions/download-artifact@v4
+        with:
+          pattern: dist-*
+          merge-multiple: true
+          path: dist/
+
+      - name: Publish Distributions 📦 to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1.9
+        
+
+  github-release-upload-dists:
+    name: >-
+      Sign the Python 🐍 distribution 📦 with Sigstore
+      and upload them to the GitHub Release
+    needs: [test, build, publish-to-testpypi, publish-to-pypi]
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: write  # IMPORTANT: mandatory for making GitHub Releases
+      id-token: write  # IMPORTANT: mandatory for sigstore
+
+    steps:
+      - name: Download Built Distributions 📦
+        uses: actions/download-artifact@v4
+        with:
+          pattern: dist-*
+          merge-multiple: true
+          path: dist/
+
+      - name: Sign the dists with Sigstore
+        uses: sigstore/gh-action-sigstore-python@v2.1.1
+        with:
+          inputs: >-
+            ./dist/*.tar.gz
+            ./dist/*.whl
+      - name: Upload artifact signatures to GitHub Release
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        # Upload to GitHub Release using the `gh` CLI.
+        # `dist/` contains the built packages, and the
+        # sigstore-produced signatures and certificates.
+        run: >-
+          gh release upload
+          '${{ github.ref_name }}' dist/**
+          --repo '${{ github.repository }}'

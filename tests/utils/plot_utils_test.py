@@ -5,7 +5,6 @@ import tempfile
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Dict, Generator, List
-from matplotlib import cm
 
 import matplotlib.colors as colors
 import natsort
@@ -17,6 +16,7 @@ import xarray as xr
 from alpineer import image_utils, test_utils, io_utils
 from skimage.draw import disk
 from matplotlib import colormaps
+import matplotlib.pyplot as plt
 
 from ark.utils import plot_utils
 
@@ -80,7 +80,7 @@ def test_plot_cluster(
         rng: np.random.Generator, cbar_visible: bool, cbar_labels: list[str]
 ):
     cluster_image: np.ndarray = rng.integers(0, 3, size=(10, 10))
-    cmap = cm.get_cmap("tab20")
+    cmap = plt.get_cmap("tab20")
     norm = colors.BoundaryNorm(np.arange(5), cmap.N)
 
     fig = plot_utils.plot_cluster(
