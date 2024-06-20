@@ -102,7 +102,7 @@ lab_ext = [
 
 [tool.setuptools_scm]
 version_scheme = "release-branch-semver"
-local_scheme = "node-and-timestamp"
+local_scheme = "no-local-version"
 
 [tool.cibuildwheel]
 before-all = "uname -a"
