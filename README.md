@@ -100,14 +100,14 @@ However, the repository will still need to be cloned if you wish to use the Jupy
 
 #### Download the Repo
 
-We recommend using the latest release of `ark`. You can find all the versions available in the [Releases Section](https://github.com/angelolab/ark-analysis/releases).
+You can find all the versions available in the [Releases Section](https://github.com/angelolab/ark-analysis/releases).
 Open terminal and navigate to where you want the code stored. 
 
 
 If you would like to use the latest version of `ark` simply clone the project and create the Conda environment.
 
 ```sh
-git clone -b v0.7.0 https://github.com/angelolab/ark-analysis.git
+git clone https://github.com/angelolab/ark-analysis.git
 cd ark-analysis
 conda env create -f environment.yml
 ```
@@ -129,7 +129,7 @@ Our repo runs best on Linux-based systems (including MacOS). If you need to run 
 
 Enter the following command into terminal from the same directory you ran the above commands:
 
-```
+```sh
 ./start_docker.sh
 ``` 
 
@@ -245,16 +245,16 @@ This project is still under development, and we are making frequent changes and 
 
 First, get the latest version of the repository.
 
-```
+```sh
 git pull
 ```
 
 Then, run the command below to update the Jupyter notebooks to the latest version
-```
+```sh
 ./start_docker.sh --update
 ```
 or
-```
+```sh
 ./start_docker.sh -u
 ```
 
