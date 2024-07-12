@@ -5,8 +5,7 @@ import numpy as np
 import pandas as pd
 import pytest
 import test_utils
-import xarray as xr
-from alpineer.test_utils import _write_labels
+from anndata import read_zarr
 
 import ark.settings as settings
 from ark.analysis import spatial_analysis_utils
@@ -14,45 +13,50 @@ from ark.analysis import spatial_analysis_utils
 
 def test_calc_dist_matrix():
     with tempfile.TemporaryDirectory() as base_dir:
-        # create sample label_dir and save_path folders
-        label_dir = os.path.join(base_dir, 'sample_label_dir')
-        save_path = os.path.join(base_dir, 'sample_save_path')
-        os.mkdir(label_dir)
-        os.mkdir(save_path)
+        # generate sample data
+        anndata_dir = os.path.join(base_dir, "anndata")
+        os.makedirs(anndata_dir)
 
-        # generate sample label data
-        # NOTE: this function should support varying FOV sizes
-        _write_labels(label_dir, ["fov8"], ["label"], (10, 10),
-                      '', True, np.uint8, suffix='_whole_cell')
-        _write_labels(label_dir, ["fov9"], ["label"], (5, 5),
-                      '', True, np.uint8, suffix='_whole_cell')
+        centroids_8 = [(0, 0), (3, 4), (6, 0), (6, 8)]
+        centroids_9 = [(6, 8), (0, 16), (0, 0), (12, 0)]
+        for fov_num in [8, 9]:
+            adata = test_utils.generate_anndata_table(rng=np.random.default_rng(), n_obs=4,
+                                                      n_vars=2, fov_id=fov_num, obs_properties=0,
+                                                      obs_categorical_properties=0)
+            centroid_list = centroids_8 if fov_num == 8 else centroids_9
+
+            for i in adata.obs.label:
+                adata.obsm['spatial'].centroid_y[f"cell_{i}"] = centroid_list[i][0]
+                adata.obsm['spatial'].centroid_x[f"cell_{i}"] = centroid_list[i][1]
+            adata.write_zarr(os.path.join(anndata_dir, f"fov_{fov_num}.zarr"))
 
         # generate the distance matrices
-        spatial_analysis_utils.calc_dist_matrix(label_dir, save_path)
+        spatial_analysis_utils.calc_dist_matrix(anndata_dir)
 
         # assert the fov8 and fov9 .xr files exist
-        assert os.path.exists(os.path.join(save_path, 'fov8_dist_mat.xr'))
-        assert os.path.exists(os.path.join(save_path, 'fov9_dist_mat.xr'))
+        for fov_num in [8, 9]:
+            assert os.path.exists(
+                os.path.join(anndata_dir, f"fov_{fov_num}.zarr", "obsp", "distances"))
 
-        # verify fov8, use isclose to prevent float tolerance errors
-        fov8_data = xr.load_dataarray(os.path.join(save_path, 'fov8_dist_mat.xr'))
+        # verify fov8, use is close to prevent float tolerance errors
+        fov8_adata = read_zarr(os.path.join(anndata_dir, "fov_8.zarr")).obsp["distances"]
         actual8_data = np.array([
-            [0, 6, 6, np.sqrt(72)],
-            [6, 0, np.sqrt(72), 6],
-            [6, np.sqrt(72), 0, 6],
-            [np.sqrt(72), 6, 6, 0]
+            [0, 5, 6, 10],
+            [5, 0, 5, 5],
+            [6, 5, 0, 8],
+            [10, 5, 8, 0]
         ])
-        assert np.all(np.isclose(fov8_data, actual8_data))
+        assert np.all(np.isclose(fov8_adata, actual8_data))
 
         # verify fov9, use isclose to prevent float tolerance errors
-        fov9_data = xr.load_dataarray(os.path.join(save_path, 'fov9_dist_mat.xr'))
+        fov9_adata = read_zarr(os.path.join(anndata_dir, "fov_9.zarr")).obsp["distances"]
         actual9_data = np.array([
-            [0, 3, 3, np.sqrt(18)],
-            [3, 0, np.sqrt(18), 3],
-            [3, np.sqrt(18), 0, 3],
-            [np.sqrt(18), 3, 3, 0]
+            [0, 10, 10, 10],
+            [10, 0, 16, 20],
+            [10, 16, 0, 12],
+            [10, 20, 12, 0]
         ])
-        assert np.all(np.isclose(fov9_data, actual9_data))
+        assert np.all(np.isclose(fov9_adata, actual9_data))
 
 
 def test_append_distance_features_to_dataset():
