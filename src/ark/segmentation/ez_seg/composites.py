@@ -14,9 +14,9 @@ def composite_builder(
     images_to_subtract: list[str],
     image_type: str,
     composite_method: str,
-    composite_directory: Union[str, pathlib.Path],
-    composite_name: str,
-    log_dir: Union[str, pathlib.Path],
+    composite_directory: Union[str, pathlib.Path] = None,
+    composite_name: str = None,
+    log_dir: Union[str, pathlib.Path] = None,
 ) -> None:
     """
     Adds tiffs together, either pixel clusters or base signal tiffs and returns a composite channel or mask.
@@ -38,7 +38,10 @@ def composite_builder(
 
     Returns:
         np.ndarray: Saves the composite array, either as a binary mask, or as a scaled intensity array.
+        If composite_directory is None, return a dictionary with keys being FOV names and values
+        are np.ndarray of the composite image.
     """
+    composite_images = {}
     for fov in fov_list:
         # load in tiff images and verify channels are present
         fov_data = load_utils.load_imgs_from_tree(
@@ -57,11 +60,6 @@ def composite_builder(
             composite_method=composite_method, options=["binary", "total"]
         )
 
-        # make composite dir if not there already
-        if isinstance(composite_directory, str):
-            composite_directory = pathlib.Path(composite_directory)
-            composite_directory.mkdir(parents=True, exist_ok=True)
-
         # Initialize composite array, and add & subtract channels
         composite_array = np.zeros(shape=image_shape, dtype=np.float32)
         if images_to_add:
@@ -73,28 +71,34 @@ def composite_builder(
                 fov_data, composite_array, images_to_subtract, image_type, composite_method
             )
 
-        # Create the fov dir within the composite dir
-        composite_fov_dir = composite_directory / fov
-        composite_fov_dir.mkdir(parents=True, exist_ok=True)
+        if composite_directory:
+            # Create the fov dir within the composite dir
+            composite_fov_dir = pathlib.Path(composite_directory) / fov
+            composite_fov_dir.mkdir(parents=True, exist_ok=True)
 
-        # Save the composite image
-        image_utils.save_image(
-            fname=composite_directory / fov / f"{composite_name}.tiff",
-            data=composite_array.astype(np.float32)
-        )
+            # Save the composite image
+            image_utils.save_image(
+                fname=pathlib.Path(composite_directory) / fov / f"{composite_name}.tiff",
+                data=composite_array.astype(np.uint32)
+            )
 
+        composite_images[fov] = composite_array.astype(np.float32)
+        
     # Write a log saving composite builder info
-    variables_to_log = {
-        "image_data_dir": image_data_dir,
-        "fov_list": fov_list,
-        "images_to_add": images_to_add,
-        "images_to_subtract": images_to_subtract,
-        "image_type": image_type,
-        "composite_method": composite_method,
-        "composite_directory": composite_directory,
-        "composite_name": composite_name,
-    }
-    log_creator(variables_to_log, log_dir, f"{composite_name}_composite_log.txt")
+    if log_dir:
+        variables_to_log = {
+            "image_data_dir": image_data_dir,
+            "fov_list": fov_list,
+            "images_to_add": images_to_add,
+            "images_to_subtract": images_to_subtract,
+            "image_type": image_type,
+            "composite_method": composite_method,
+            "composite_directory": composite_directory,
+            "composite_name": composite_name,
+        }
+        log_creator(variables_to_log, log_dir, f"{composite_name}_composite_log.txt")
+    else:
+        return composite_images
 
     print("Composites built and saved")
 

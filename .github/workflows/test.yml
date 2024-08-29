@@ -22,6 +22,7 @@ jobs:
         os: [ubuntu-latest, macos-13, windows-latest]
     env:
       GITHUB_WORKSPACE: ${{ github.workspace }}
+      cache-name: dataset-cache
 
     steps:
       - name: Checkout ${{ github.repository }}
@@ -31,11 +32,9 @@ jobs:
 
       - name: Download Example Dataset Cache
         uses: actions/cache/restore@v4
-        env:
-          cache-name: dataset
         with:
           path: ./data/cache/
-          key: huggingface-${{env.cache-name}}
+          key: huggingface-${{ env.cache-name }}
           enableCrossOsArchive: true
           fail-on-cache-miss: true
 

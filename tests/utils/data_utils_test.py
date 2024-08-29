@@ -17,11 +17,9 @@ import numba as nb
 import test_utils as ark_test_utils
 from anndata import read_zarr, AnnData
 from anndata.experimental import AnnCollection
-import dask.dataframe as dd
 from alpineer import image_utils, io_utils, load_utils, test_utils
 from ark import settings
 from ark.utils import data_utils
-from typing import Callable
 parametrize = pytest.mark.parametrize
 
 
