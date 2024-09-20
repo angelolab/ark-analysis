@@ -118,11 +118,23 @@ Our repo runs best on Linux-based systems (including MacOS). If you need to run 
 
 #### Using the Repository
 
-Enter the following command into terminal from the same directory you ran the above commands:
+First, activate the `conda` environment inside the root of the `ark-analysis` folder:
+
+```sh
+conda activate ark_env
+```
+
+Once activated, notebooks can be used via this command for Windows:
+
+```sh
+start_jupyter.sh
+``` 
+
+or this command for macOS:
 
 ```sh
 ./start_jupyter.sh
-``` 
+```
 
 This will automatically open your browser with a link to our Jupyter notebooks.
 
