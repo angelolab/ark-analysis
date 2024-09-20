@@ -4,7 +4,7 @@
 
 | | | 
 | ---        |    ---  |
-| CI / CD | [![CI](https://github.com/angelolab/ark-analysis/actions/workflows/ci.yml/badge.svg)](https://github.com/angelolab/ark-analysis/actions/workflows/ci.yml) ![Read the Docs](https://img.shields.io/readthedocs/ark-analysis) [![Coverage Status](https://coveralls.io/repos/github/angelolab/ark-analysis/badge.svg?branch=main)](https://coveralls.io/github/angelolab/ark-analysis?branch=main) ![Docker Image Version (latest by date)](https://img.shields.io/docker/v/angelolab/ark-analysis?arch=amd64&color=%23469ae5&label=Docker%20Version&sort=date) |
+| CI / CD | [![CI](https://github.com/angelolab/ark-analysis/actions/workflows/ci.yml/badge.svg)](https://github.com/angelolab/ark-analysis/actions/workflows/ci.yml) ![Read the Docs](https://img.shields.io/readthedocs/ark-analysis) [![Coverage Status](https://coveralls.io/repos/github/angelolab/ark-analysis/badge.svg?branch=main)](https://coveralls.io/github/angelolab/ark-analysis?branch=main) |
 | Package | [![PyPI - Version](https://img.shields.io/pypi/v/ark-analysis.svg?logo=pypi&label=PyPI&logoColor=gold)](https://pypi.org/project/ark-analysis/) [![PyPI - Downloads](https://img.shields.io/pypi/dm/ark-analysis.svg?color=blue&label=Downloads&logo=pypi&logoColor=gold)](https://pypi.org/project/ark-analysis/) [![PyPI - Python Version](https://img.shields.io/pypi/pyversions/ark-analysis.svg?logo=python&label=Python&logoColor=gold)](https://pypi.org/project/ark-analysis/) |
 |Meta | [![PyPI - License](https://img.shields.io/pypi/l/ark-analysis?color=9400d3)](LICENSE) |
 
@@ -25,9 +25,8 @@ Full documentation for the project can be found [here](https://ark-analysis.read
     - [5. Spatial analysis](#5-spatial-analysis)
   - [Installation Steps.](#installation-steps)
     - [Download the Repo](#download-the-repo)
-    - [Setting up Docker](#setting-up-docker)
     - [Running on Windows](#running-on-windows)
-    - [Using the Repository (Running the Docker)](#using-the-repository-running-the-docker)
+    - [Using the Repository](#using-the-repository)
 - [External Tools](#external-tools)
   - [Mantis Viewer](#mantis-viewer)
     - [Mantis directory structure](#mantis-directory-structure)
@@ -112,40 +111,22 @@ cd ark-analysis
 conda env create -f environment.yml
 ```
 
-#### Setting up Docker
-
-There is a complementary [setup video](https://youtu.be/EXMGdi_Izdw).
-
-Next, you'll need to download Docker Desktop:
- - First, [download](https://hub.docker.com/?overlay=onboarding) Docker Desktop. 
- - Once it's successfully installed, make sure it is running by looking in toolbar for the Docker whale icon. 
-
 
 #### Running on Windows
 
 Our repo runs best on Linux-based systems (including MacOS). If you need to run on Windows, please consult our [Windows guide](https://ark-analysis.readthedocs.io/en/latest/_rtd/windows_setup.html) for additional instructions.
 
-#### Using the Repository (Running the Docker)
+#### Using the Repository
 
 Enter the following command into terminal from the same directory you ran the above commands:
 
 ```sh
-./start_docker.sh
+./start_jupyter.sh
 ``` 
 
-If running for the first time, or if our Docker image has updated, it may take a while to build and setup before completion. 
-
-This will generate a link to a Jupyter notebook. Copy the last URL (the one with `127.0.0.1:8888` at the beginning) into your web browser. 
+This will automatically open your browser with a link to our Jupyter notebooks.
 
 Be sure to keep this terminal open.  **Do not exit the terminal or enter `control-c` until you are finished with the notebooks**. 
-
-**NOTE:**
-
-If you already have a Jupyter session open when you run `./start_docker.sh`, you will receive a couple additional prompts.
-
-Copy the URL listed after `Enter this URL instead to access the notebooks:` 
-
-You will need to authenticate. Note the last URL (the one with `127.0.0.1:8888` at the beginning), copy the token that appears there (it will be after `token=` in the URL), paste it into the password prompt of the Jupyter notebook, and log in.
 
 You can shut down the notebooks and close docker by entering `control-c` in the terminal window.
 
