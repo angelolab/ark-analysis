@@ -3,10 +3,9 @@ import os
 import numpy as np
 import pandas as pd
 import scipy
-import skimage.measure
 import sklearn.metrics
 import xarray as xr
-from alpineer import io_utils, load_utils, misc_utils
+from alpineer import io_utils, misc_utils
 from scipy.spatial.distance import cdist
 from sklearn.cluster import KMeans
 from statsmodels.stats.multitest import multipletests
