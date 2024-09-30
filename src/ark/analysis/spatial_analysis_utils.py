@@ -16,48 +16,42 @@ import ark.settings as settings
 from ark.utils._bootstrapping import compute_close_num_rand
 
 
-def calc_dist_matrix(label_dir, save_path, prefix='_whole_cell'):
+def calc_dist_matrix(cell_table, save_path, fov_id=settings.FOV_ID, label_id=settings.CELL_LABEL,
+                     centroid_ids=(settings.CENTROID_0, settings.CENTROID_1)):
     """Generate matrix of distances between center of pairs of cells.
 
     Saves each one individually to `save_path`.
 
     Args:
-        label_dir (str):
-            path to segmentation masks indexed by `(fov, cell_id, cell_id, label)`
+        cell_table (str):
+            data frame with fov, label, and centroid information
         save_path (str):
             path to save the distance matrices
-        prefix (str):
-            the prefix used to identify label map files in `label_dir`
+        fov_id (str):
+            the column name containing the fov
+        label_id (str):
+            the column name containing the cell label
+        centroid_ids (tuple):
+            the columns identifying the centroids of each cell
     """
 
     # check that both label_dir and save_path exist
-    io_utils.validate_paths([label_dir, save_path])
+    io_utils.validate_paths([save_path])
 
     # load all the file names in label_dir
-    fov_files = io_utils.list_files(label_dir, substrs=prefix + '.tiff')
+    fovs = cell_table[fov_id].unique()
 
     # iterate for each fov
-    with tqdm(total=len(fov_files), desc="Distance Matrix Generation", unit="FOVs") \
+    with tqdm(total=len(fovs), desc="Distance Matrix Generation", unit="FOVs") \
             as dist_mat_progress:
-        for fov_file in fov_files:
-            dist_mat_progress.set_postfix(FOV=fov_file)
+        for fov in fovs:
+            dist_mat_progress.set_postfix(FOV=fov)
 
-            # retrieve the fov name
-            fov_name = fov_file.replace(prefix + '.tiff', '')
+            fov_table = cell_table[cell_table[fov_id] == fov]
 
-            # load in the data
-            fov_data = load_utils.load_imgs_from_dir(
-                label_dir, [fov_file], match_substring=prefix,
-                trim_suffix=prefix, xr_channel_names=['label']
-            )
-
-            # keep just the middle two dimensions
-            fov_data = fov_data.loc[fov_name, :, :, 'label'].values
-
-            # extract region properties of label map, then just get centroids
-            props = skimage.measure.regionprops(fov_data)
-            centroids = [prop.centroid for prop in props]
-            centroid_labels = [prop.label for prop in props]
+            # get centroid and label info
+            centroids = [(row[centroid_ids[0]], row[centroid_ids[1]]) for indx, row in fov_table.iterrows()]
+            centroid_labels = list(fov_table[label_id])
 
             # generate the distance matrix, then assign centroid_labels as coords
             dist_matrix = cdist(centroids, centroids).astype(np.float32)
@@ -65,7 +59,7 @@ def calc_dist_matrix(label_dir, save_path, prefix='_whole_cell'):
 
             # save the distance matrix to save_path
             dist_mat_xarr.to_netcdf(
-                os.path.join(save_path, fov_name + '_dist_mat.xr'),
+                os.path.join(save_path, fov + '_dist_mat.xr'),
                 format='NETCDF3_64BIT'
             )
 
