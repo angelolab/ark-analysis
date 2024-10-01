@@ -44,10 +44,12 @@ def test_generate_channel_spatial_enrichment_stats():
         _write_labels(label_dir, ["fov8", "fov9"], ["label"], (10, 10),
                       '', True, np.uint8, suffix='_whole_cell')
 
-        spatial_analysis_utils.calc_dist_matrix(label_dir, dist_mat_dir)
         label_maps = load_utils.load_imgs_from_dir(label_dir, trim_suffix="_whole_cell",
                                                    xr_channel_names=["label"])
         all_data = test_utils.spoof_cell_table_from_labels(label_maps)
+        all_data[settings.CENTROID_0] = [1.5, 1.5, 7.5, 7.5, 1.5, 1.5, 7.5, 7.5]
+        all_data[settings.CENTROID_1] = [1.5, 7.5, 1.5, 7.5, 1.5, 7.5, 1.5, 7.5]
+        spatial_analysis_utils.calc_dist_matrix(all_data, dist_mat_dir)
 
         vals_pos, stats_pos = \
             spatial_enrichment.generate_channel_spatial_enrichment_stats(
@@ -81,10 +83,20 @@ def test_generate_cluster_spatial_enrichment_stats():
         _write_labels(label_dir, ["fov8", "fov9"], ["label"], (10, 10),
                       '', True, np.uint8, suffix='_whole_cell')
 
-        spatial_analysis_utils.calc_dist_matrix(label_dir, dist_mat_dir)
+        cell_table = pd.DataFrame(
+            {
+                settings.FOV_ID: ['fov8'] * 4 + ['fov9'] * 4,
+                settings.CELL_LABEL: [1, 2, 3, 4] * 2,
+                settings.CENTROID_0: [1.5, 1.5, 7.5, 7.5, 1.5, 1.5, 7.5, 7.5],
+                settings.CENTROID_1: [1.5, 7.5, 1.5, 7.5, 1.5, 7.5, 1.5, 7.5],
+            })
+
         label_maps = load_utils.load_imgs_from_dir(label_dir, trim_suffix="_whole_cell",
                                                    xr_channel_names=["label"])
         all_data = test_utils.spoof_cell_table_from_labels(label_maps)
+        all_data[settings.CENTROID_0] = [1.5, 1.5, 7.5, 7.5, 1.5, 1.5, 7.5, 7.5]
+        all_data[settings.CENTROID_1] = [1.5, 7.5, 1.5, 7.5, 1.5, 7.5, 1.5, 7.5]
+        spatial_analysis_utils.calc_dist_matrix(all_data, dist_mat_dir)
 
         vals_pos, stats_pos = \
             spatial_enrichment.generate_cluster_spatial_enrichment_stats(
