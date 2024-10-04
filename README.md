@@ -27,6 +27,7 @@ Full documentation for the project can be found [here](https://ark-analysis.read
     - [Download the Repo](#download-the-repo)
     - [Running on Windows](#running-on-windows)
     - [Using the Repository](#using-the-repository)
+    - [Updating the repo](#updating-the-repo)
 - [External Tools](#external-tools)
   - [Mantis Viewer](#mantis-viewer)
     - [Mantis directory structure](#mantis-directory-structure)
@@ -145,6 +146,33 @@ You can shut down the notebooks and close docker by entering `control-c` in the 
 **REMEMBER TO DUPLICATE AND RENAME NOTEBOOKS**
 
 If you didn't change the name of the notebooks within the `templates` folder, they will be overwritten when you decide to update the repo. Read about updating Ark [here](#updating-the-repository)
+
+### Updating the repo
+
+The `ark-analysis` repo is constantly being updated. In order to get those changes to your version, you'll need to tell git to update with the following command:
+
+```
+git pull
+```
+
+After performing the above command, you will sometimes need to update your environment:
+
+```shell
+conda remove --name ark_env --all
+conda env create -f environment.yml
+```
+
+To update the notebooks, run this command for Windows:
+
+```shell
+start_jupyter.sh -u
+```
+
+or this command for macOS:
+
+```shell
+./start_jupyter.sh -u
+```
 
 ## External Tools
 
