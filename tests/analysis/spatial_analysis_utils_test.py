@@ -198,35 +198,6 @@ def test_compute_close_cell_num():
     assert example_closenum[2, 2] == 0
 
 
-def test_compute_close_cell_num_random():
-    data_markers, example_distmat = test_utils._make_dist_exp_mats_spatial_utils_test()
-
-    marker_pos_labels = [
-        data_markers[data_markers[settings.CELL_TYPE] == lineage][settings.CELL_LABEL]
-        for lineage in data_markers[settings.CELL_TYPE].unique()
-    ]
-
-    # Generate random inputs to test shape
-    marker_nums = [len(marker_labels) for marker_labels in marker_pos_labels]
-
-    example_closenumrand = spatial_analysis_utils.compute_close_cell_num_random(
-        marker_nums, marker_pos_labels, example_distmat, dist_lim=100, bootstrap_num=100
-    )
-
-    assert example_closenumrand.shape == (len(marker_nums), len(marker_nums), 100)
-
-    # test asymmetry
-    assert (example_closenumrand[0, 1, :] != example_closenumrand[1, 0, :]).any()
-
-    # bad marker nums
-    marker_nums[0] = example_distmat.shape[0] + 1
-
-    with pytest.raises(ValueError):
-        example_closenumrand = spatial_analysis_utils.compute_close_cell_num_random(
-            marker_nums, marker_pos_labels, example_distmat, dist_lim=100, bootstrap_num=100
-        )
-
-
 def test_calculate_enrichment_stats():
     # Positive enrichment
 

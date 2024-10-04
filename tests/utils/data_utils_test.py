@@ -15,7 +15,7 @@ import skimage.io as io
 import xarray as xr
 import numba as nb
 import test_utils as ark_test_utils
-from anndata import read_zarr, AnnData
+from anndata import read_zarr
 from anndata.experimental import AnnCollection
 from alpineer import image_utils, io_utils, load_utils, test_utils
 from ark import settings
@@ -936,24 +936,6 @@ def test_load_anndatas(testing_anndatas):
 
     # Assert that each AnnData component of an AnnCollection is the same as the one on disk.
     for fov_name, fov_adata in zip(fov_names, ann_collection.adatas):
-        anndata.tests.helpers.assert_adata_equal(
-            a=read_zarr(anndata_dir / f"{fov_name}.zarr"),
-            b=fov_adata
-        )
-
-
-def test_AnnDataIterDataPipe(testing_anndatas):
-
-    fov_names, _, anndata_dir = testing_anndatas
-    ac = data_utils.load_anndatas(anndata_dir, join_obs="inner", join_obsm="inner")
-
-    a_idp = data_utils.AnnDataIterDataPipe(fovs=ac)
-
-    from torchdata.datapipes.iter import IterDataPipe
-    assert isinstance(a_idp, IterDataPipe)
-
-    for fov_name, fov_adata in zip(fov_names, a_idp):
-        assert isinstance(fov_adata, AnnData)
         anndata.tests.helpers.assert_adata_equal(
             a=read_zarr(anndata_dir / f"{fov_name}.zarr"),
             b=fov_adata

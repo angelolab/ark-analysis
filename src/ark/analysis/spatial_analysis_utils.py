@@ -13,7 +13,6 @@ from statsmodels.stats.multitest import multipletests
 from tqdm.notebook import tqdm
 
 import ark.settings as settings
-from ark.utils._bootstrapping import compute_close_num_rand
 
 
 def calc_dist_matrix(label_dir, save_path, prefix='_whole_cell'):
@@ -280,78 +279,6 @@ def compute_close_cell_num(dist_mat, dist_lim, analysis_type,
             close_num[k, j] = close_num[j, k]
 
     return close_num, mark1_num, mark1poslabels
-
-
-# TODO: passing marker_nums and mark_pos_labels is redundant:
-#       marker_nums[j] = len(mark_pos_labels[j])
-def compute_close_cell_num_random(marker_nums, mark_pos_labels, dist_mat, dist_lim, bootstrap_num):
-    """Uses bootstrapping to permute cell labels randomly and records the number of close cells
-    (within the dist_lim) in that random setup.
-
-    Args:
-        marker_nums (numpy.ndarray):
-            list of cell counts of each marker type
-        mark_pos_labels (list):
-            cell labels for each marker number
-        dist_mat (xr.DataArray):
-            cells x cells matrix with the euclidian distance between centers of corresponding
-            cells. This can be indexed by cell label
-        dist_lim (int):
-            threshold for spatial enrichment distance proximity
-        bootstrap_num (int):
-            number of permutations
-
-    Returns:
-        numpy.ndarray:
-            Large matrix of random positive marker counts for every permutation in the bootstrap
-    """
-
-    # Generate binarized distance matrix
-    dist_mat_bin = ((dist_mat.values < dist_lim) & (dist_mat.values > 0)).astype(np.uint16)
-
-    # assures that marker counts don't exceed number of cells
-    for mn in marker_nums:
-        if mn > dist_mat_bin.shape[0]:
-            raise ValueError('Marker number count can not be greater than number of cells...')
-
-    # flattens list-of-list representation into 1D array and stores the index keys
-    row_indicies = [0]
-    cols_in_row_flat = []
-
-    for row in range(dist_mat_bin.shape[0]):
-        cols = list(np.nonzero(dist_mat_bin[row, :])[0])
-        cols_in_row_flat.extend(cols)
-        row_indicies.append(len(cols) + row_indicies[row])
-
-    # formats list-of-list representation into cython compatable argument
-    cols_in_row_flat = np.array(cols_in_row_flat, dtype=np.uint16)
-    _row_indicies = np.array(row_indicies, dtype=np.uint64)
-
-    # sort marker_nums and save permutation
-    # this can speed up compute_close_num_rand
-    marker_order = [
-        (
-            mn,
-            np.flatnonzero(dist_mat[dist_mat.dims[0]].isin(mark_pos_labels[i])).astype(np.uint64),
-            i
-        )
-        for i, mn in enumerate(marker_nums)
-    ]
-    marker_order.sort(key=lambda x: x[0])
-    sorted_marker_nums, sorted_pos_labels, sort_permutation = zip(*marker_order)
-    _marker_nums = np.array(sorted_marker_nums, dtype=np.uint16)
-    _pos_labels = {i: v for i, v in enumerate(sorted_pos_labels)}
-
-    # performing bootstrapping
-    close_num_rand = compute_close_num_rand(dist_mat_bin, cols_in_row_flat, _row_indicies,
-                                            _marker_nums, _pos_labels, int(bootstrap_num))
-
-    # unpermute close_num_rand
-    x_scramble = np.tile(np.argsort(sort_permutation), (len(sort_permutation), 1))
-    y_scramble = x_scramble.T
-    close_num_rand = close_num_rand[x_scramble, y_scramble, :]
-
-    return close_num_rand
 
 
 def calculate_enrichment_stats(close_num, close_num_rand):
