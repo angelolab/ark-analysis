@@ -6,7 +6,6 @@ import pandas as pd
 import pytest
 import test_utils
 import xarray as xr
-from alpineer.test_utils import _write_labels
 
 import ark.settings as settings
 from ark.analysis import spatial_analysis_utils
@@ -21,14 +20,16 @@ def test_calc_dist_matrix():
         os.mkdir(save_path)
 
         # generate sample label data
-        # NOTE: this function should support varying FOV sizes
-        _write_labels(label_dir, ["fov8"], ["label"], (10, 10),
-                      '', True, np.uint8, suffix='_whole_cell')
-        _write_labels(label_dir, ["fov9"], ["label"], (5, 5),
-                      '', True, np.uint8, suffix='_whole_cell')
+        cell_table = pd.DataFrame(
+            {
+                settings.FOV_ID: ['fov8'] * 4 + ['fov9'] * 4,
+                settings.CELL_LABEL: [1, 2, 3, 4] * 2,
+                settings.CENTROID_0: [1.5, 1.5, 7.5, 7.5, 0.5, 0.5, 3.5, 3.5],
+                settings.CENTROID_1: [1.5, 7.5, 1.5, 7.5, 0.5, 3.5, 0.5, 3.5],
+            })
 
         # generate the distance matrices
-        spatial_analysis_utils.calc_dist_matrix(label_dir, save_path)
+        spatial_analysis_utils.calc_dist_matrix(cell_table, save_path)
 
         # assert the fov8 and fov9 .xr files exist
         assert os.path.exists(os.path.join(save_path, 'fov8_dist_mat.xr'))

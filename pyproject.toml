@@ -38,7 +38,6 @@ dependencies = [
     "statsmodels>=0.13.2,<1",
     "tifffile>=2022",
     "torchdata",
-    "torch==2.2.0",
     "tqdm>=4,<5",
     "umap-learn>=0.5,<1.0",
     "xarray>=2022",
