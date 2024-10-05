@@ -91,7 +91,7 @@ lab_ext = [
 
 [tool.coverage.run]
 source = ["ark"]
-omit = ["**test_*.py", "**_test.py"]
+omit = ["*test_*.py", "*_test.py"]
 branch = true
 
 [tool.coverage.report]
