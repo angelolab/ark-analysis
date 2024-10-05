@@ -37,16 +37,22 @@ jobs:
           key: huggingface-${{ env.cache-name }}
           enableCrossOsArchive: true
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
+      - name: Install uv
+        uses: astral-sh/setup-uv@v3
         with:
-          python-version: "3.11"
-          cache-dependency-path: "**/pyproject.toml"
-          cache: "pip"
+            enable-cache: true
+            cache-dependency-glob: "uv.lock"
+  
+      - name: Set up Python
+        run: |
+          uv python install 3.11
+    
+      - name: Install Dependencies and ${{ github.repository }}
+        run: |
+          uv sync --all-extras
       - name: Check the Example Dataset Cache
         run: |
-          pip install datasets
-          python ./.github/scripts/get_example_dataset.py
+          uv run ./.github/scripts/get_example_dataset.py
 
   test:
     needs: [get_dataset]

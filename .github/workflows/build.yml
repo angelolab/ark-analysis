@@ -35,7 +35,7 @@ jobs:
 
       - name: Install Dependencies
         run: |
-          uv sync
+          uv sync --all-extras
 
       - name: Build Package
         run: |

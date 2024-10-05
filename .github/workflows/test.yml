@@ -49,7 +49,7 @@ jobs:
   
       - name: Install Dependencies and ${{ github.repository }}
         run: |
-          uv sync --all-extras --dev
+          uv sync --all-extras
 
       - name: Run Tests
         run: |
