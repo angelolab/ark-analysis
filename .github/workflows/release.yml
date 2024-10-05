@@ -51,9 +51,8 @@ jobs:
           path: dist
 
       - name: Publish distributions 📦 to TestPyPI
-        uses: pypa/gh-action-pypi-publish@release/v1.9
-        with:
-          repository-url: https://test.pypi.org/legacy/
+        run:
+          uv publish --publish-url https://test.pypi.org/legacy/
 
 
   publish-to-pypi:
@@ -81,7 +80,8 @@ jobs:
           path: dist/
 
       - name: Publish Distributions 📦 to PyPI
-        uses: pypa/gh-action-pypi-publish@release/v1.9
+        run: |
+          uv publish
         
 
   github-release-upload-dists:
@@ -104,7 +104,7 @@ jobs:
           path: dist/
 
       - name: Sign the dists with Sigstore
-        uses: sigstore/gh-action-sigstore-python@v2.1.1
+        uses: sigstore/gh-action-sigstore-python@v3.0.0
         with:
           inputs: >-
             ./dist/*.tar.gz

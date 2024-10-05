@@ -2,12 +2,24 @@
 
 <div align="center">
 
-| | | 
-| ---        |    ---  |
-| CI / CD | [![CI](https://github.com/angelolab/ark-analysis/actions/workflows/ci.yml/badge.svg)](https://github.com/angelolab/ark-analysis/actions/workflows/ci.yml) ![Read the Docs](https://img.shields.io/readthedocs/ark-analysis) [![Coverage Status](https://coveralls.io/repos/github/angelolab/ark-analysis/badge.svg?branch=main)](https://coveralls.io/github/angelolab/ark-analysis?branch=main) |
-| Package | [![PyPI - Version](https://img.shields.io/pypi/v/ark-analysis.svg?logo=pypi&label=PyPI&logoColor=gold)](https://pypi.org/project/ark-analysis/) [![PyPI - Downloads](https://img.shields.io/pypi/dm/ark-analysis.svg?color=blue&label=Downloads&logo=pypi&logoColor=gold)](https://pypi.org/project/ark-analysis/) [![PyPI - Python Version](https://img.shields.io/pypi/pyversions/ark-analysis.svg?logo=python&label=Python&logoColor=gold)](https://pypi.org/project/ark-analysis/) |
-|Meta | [![PyPI - License](https://img.shields.io/pypi/l/ark-analysis?color=9400d3)](LICENSE) |
+|         |                                                                                                                            |
+| ------- | -------------------------------------------------------------------------------------------------------------------------- |
+| Status  | [![CI][badge-ci]][link-badge-ci] [![Docs][badge-docs]][link-badge-docs] [![Coverage][badge-coverage]][link-badge-coverage] |
+| Package | [![PyPI - Version][badge-pypi]][link-badge-pypi] [![PyPI - Python Version][badge-python-versions]][link-badge-pypi]        |
+| Meta    | [![License][badge-license]][link-badge-license] [![uv][badge-uv]][link-uv]                                                 |
 
+<!-- Badges -->
+
+<!-- Status -->
+[badge-ci]: https://github.com/angelolab/ark-analysis/actions/workflows/ci.yml/badge.svg
+[badge-docs]: https://img.shields.io/readthedocs/ark-analysis?logo=readthedocs
+[badge-coverage]: https://img.shields.io/coverallsCoverage/github/angelolab/ark-analysis?logo=coveralls
+<!-- Package -->
+[badge-pypi]: https://img.shields.io/pypi/v/ark-analysis.svg?logo=pypi&label=PyPI&logoColor=gold
+[badge-python-versions]: https://img.shields.io/pypi/pyversions/ark-analysis.svg?logo=python&label=Python&logoColor=gold
+<!-- Meta / License -->
+[badge-license]: https://img.shields.io/badge/License-MIT-yellow.svg
+[badge-uv]: https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/uv/main/assets/badge/v0.json
 </div>
 
 Toolbox for analyzing multiplexed imaging data.
@@ -390,7 +402,7 @@ segmentation/example_cell_output_dir/
 
 ## Questions?
 
-If you have a general question or are having trouble with part of the repo, you can refer to our [FAQ](https://ark-analysis.readthedocs.io/en/latest/_rtd/faq.html) or head to the [discussions](https://github.com/angelolab/ark-analysis/discussions) tab to get help. If you've found a bug with the codebase, first make sure there's not already an [open issue](https://github.com/angelolab/ark-analysis/issues), and if not, you can then [open an issue](https://github.com/angelolab/ark-analysis/issues/new/choose) describing the bug.
+If you have a general question or are having trouble with part of the repo, you can refer to our [FAQ](https://ark-analysis.readthedocs.io/en/latest/_rtd/faq.html) or head to the [discussions](https://github.com/angelolab/ark-analysis/discussions) tab to get help. If you've found a bug with the codebase, first make sure there's not already an [open issue][issue-tracker], and if not, you can then [open an issue](https://github.com/angelolab/ark-analysis/issues/new/choose) describing the bug.
 
 
 ## Want to contribute?  
@@ -402,3 +414,25 @@ Please directly cite the `ark` repo (https://github.com/angelolab/ark-analysis) 
 
 1. [Greenwald, Miller et al. Whole-cell segmentation of tissue images with human-level performance using large-scale data annotation and deep learning [2021]](https://www.nature.com/articles/s41587-021-01094-0)
 2. [Liu et al. Robust phenotyping of highly multiplexed tissue imaging data using pixel-level clustering [2023]](https://doi.org/10.1038/s41467-023-40068-5)
+
+
+<!-- Links -->
+
+<!-- Badges -->
+
+<!-- Status -->
+[link-badge-ci]: https://github.com/angelolab/ark-analysis/actions/workflows/ci.yml
+[link-badge-docs]: https://ark-analysis.readthedocs.io
+[link-badge-coverage]: https://coveralls.io/github/angelolab/ark-analysis?branch=main
+
+<!-- Package  --> 
+[link-badge-pypi]: https://pypi.org/project/ark-analysis
+
+
+<!-- Meta / License -->
+[link-badge-license]: https://opensource.org/licenses/MIT
+[link-uv]: https://github.com/astral-sh/uv
+
+<!-- Other -->
+
+[issue-tracker]: https://github.com/angelolab/ark-analysis/issues
