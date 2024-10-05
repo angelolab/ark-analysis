@@ -42,4 +42,3 @@ data/*
 .virtual_documents
 .history/
 .editorconfig
-uv.lock
