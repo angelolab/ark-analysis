@@ -1,0 +1,5 @@
+[version]
+source = "vcs"
+
+[build.targets.wheel]
+packages = ["src/ark"]

@@ -1,64 +1,52 @@
-name: Build
+name: Build distribution 📦
 
 on:
   workflow_call:
 
 permissions:
-  contents: read # to fetch code (actions/checkout)
+  id-token: write # This is required for requesting the JWT
+  contents: read # This is required for actions/checkout
 
 jobs:
-  build_wheels:
-    name: ${{ matrix.os }} Wheels
-    runs-on: ${{ matrix.os }}
+  build:
+    name: Build
+    runs-on: ubuntu-latest
     strategy:
-      # Ensure that a wheel builder finishes even if another fails
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, windows-latest, macos-13]
+        python-version: ["3.11"]
 
     steps:
       - name: Checkout ${{ github.repository }}
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-          
 
-      - name: Set up QEMU (For Linux ARM)
-        if: runner.os == 'Linux'
-        uses: docker/setup-qemu-action@v3
+      - name: Install uv
+        uses: astral-sh/setup-uv@v3
         with:
-          platforms: arm64
+            enable-cache: true
+            cache-dependency-glob: "uv.lock"
+            github-token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Build Wheels
-        uses: pypa/cibuildwheel@v2.18.0
-        with:
-          package-dir: .
-          output-dir: wheelhouse
-          config-file: "{package}/pyproject.toml"
+      - name: Set up Python
+        run: |
+          uv python install ${{ matrix.python-version }}
+
+      - name: Install Dependencies
+        run: |
+          uv sync --all-extras
+
+      - name: Build Package
+        run: |
+          uv build
+
+      - name: Check Package
+        run: |
+            uv run twine check --strict dist/*.whl
 
       - name: Store Wheel Artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: dist-wheels-${{ matrix.os }}
-          path: wheelhouse/*.whl
-
-  build_sdist:
-    name:  Source Distribution
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout ${{ github.repository }}
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: Build sdist
-        run: pipx run build --sdist
-
-      - name: Check sdist Metadata
-        run: pipx run twine check dist/*
-
-      - name: Store sdist Artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: dist-sdist
-          path: dist/*.tar.gz
+          name: dist
+          path: dist/*.whl

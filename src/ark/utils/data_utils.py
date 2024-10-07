@@ -22,8 +22,7 @@ from pandas.core.groupby.generic import DataFrameGroupBy
 from anndata import AnnData, read_zarr
 from anndata.experimental import AnnCollection
 from anndata.experimental.multi_files._anncollection import ConvertType
-from torchdata.datapipes.iter import IterDataPipe
-from typing import Iterator, Optional
+from typing import Optional
 try:
     from typing import TypedDict, Unpack
 except ImportError:
@@ -1033,26 +1032,3 @@ def load_anndatas(anndata_dir: os.PathLike, **anncollection_kwargs: Unpack[AnnCo
     
     adata_zarr_stores = {f.stem: read_zarr(f) for f in ns.natsorted(anndata_dir.glob("*.zarr"))}
     return AnnCollection(adatas=adata_zarr_stores, **anncollection_kwargs)
-
-
-class AnnDataIterDataPipe(IterDataPipe):
-    """The TorchData Iterable-style DataPipe. Takes an `AnnCollection`
-    and makes it iterable by FOV for easy and flexible data pipelines.
-
-    Args:
-        fovs (AnnCollection): The `AnnCollection` containing the `AnnData` objects.
-    """
-
-    @property
-    def fovs(self) -> AnnCollection:
-        return self._fovs
-
-    @fovs.setter
-    def fovs(self, value: AnnCollection) -> None:
-        self._fovs: AnnCollection = value
-
-    def __init__(self, fovs: AnnCollection):
-        self.fovs = fovs
-
-    def __iter__(self) -> Iterator[AnnData]:
-        yield from self.fovs.adatas
