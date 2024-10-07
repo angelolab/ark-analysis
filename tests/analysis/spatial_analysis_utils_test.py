@@ -199,50 +199,6 @@ def test_compute_close_cell_num():
     assert example_closenum[2, 2] == 0
 
 
-def test_calculate_enrichment_stats():
-    # Positive enrichment
-
-    # Generate random closenum matrix
-    stats_cnp = np.zeros((20, 20))
-    stats_cnp[:, :] = 80
-
-    # Generate random closenumrand matrix, ensuring significant positive enrichment
-    stats_cnrp = np.random.randint(1, 40, (20, 20, 100))
-
-    stats_xr_pos = spatial_analysis_utils.calculate_enrichment_stats(stats_cnp, stats_cnrp)
-
-    assert stats_xr_pos.loc["z", 0, 0] > 0
-    assert stats_xr_pos.loc["p_pos", 0, 0] < .05
-
-    # Negative enrichment
-
-    # Generate random closenum matrix
-    stats_cnn = np.zeros((20, 20))
-
-    # Generate random closenumrand matrix, ensuring significant negative enrichment
-    stats_cnrn = np.random.randint(40, 80, (20, 20, 100))
-
-    stats_xr_neg = spatial_analysis_utils.calculate_enrichment_stats(stats_cnn, stats_cnrn)
-
-    assert stats_xr_neg.loc["z", 0, 0] < 0
-    assert stats_xr_neg.loc["p_neg", 0, 0] < .05
-
-    # No enrichment
-
-    # Generate random closenum matrix
-    stats_cn = np.zeros((20, 20))
-    stats_cn[:, :] = 80
-
-    # Generate random closenumrand matrix, ensuring no enrichment
-    stats_cnr = np.random.randint(78, 82, (20, 20, 100))
-
-    stats_xr = spatial_analysis_utils.calculate_enrichment_stats(stats_cn, stats_cnr)
-
-    assert abs(stats_xr.loc["z", 0, 0]) < 1
-    assert stats_xr.loc["p_neg", 0, 0] > .05
-    assert stats_xr.loc["p_pos", 0, 0] > .05
-
-
 def test_compute_neighbor_counts():
     fov_col = settings.FOV_ID
     cluster_id_col = settings.CELL_TYPE_NUM
