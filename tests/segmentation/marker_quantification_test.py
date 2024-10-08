@@ -751,6 +751,43 @@ def test_generate_cell_table_tree_loading():
             nuc_cell_table_cols=arcsinh_data_nuc.columns.values
         )
 
+        # tests for different mask suffixes
+        for fov in range(cell_masks_40.shape[0]):
+            fov_whole_cell = cell_masks_40[fov, :, :, 0]
+            fov_nuclear = cell_masks_40[fov, :, :, 1]
+            image_utils.save_image(os.path.join(temp_dir, 'fov%d.tiff' % fov),
+                                   fov_whole_cell)
+            image_utils.save_image(os.path.join(temp_dir, 'fov%dtest.tiff' % fov),
+                                   fov_nuclear)
+
+        for fov in range(cell_masks_20.shape[0]):
+            fov_whole_cell = cell_masks_20[fov, :, :, 0]
+            fov_nuclear = cell_masks_20[fov, :, :, 1]
+            image_utils.save_image(
+                os.path.join(temp_dir, 'fov%d.tiff' % (fov + fov_size_split)),
+                fov_whole_cell
+            )
+            image_utils.save_image(
+                os.path.join(temp_dir, 'fov%dtest.tiff' % (fov + fov_size_split)),
+                fov_nuclear
+            )
+
+        # generate sample norm and arcsinh data for all fovs with no suffix
+        norm_data_all_fov, arcsinh_data_all_fov = marker_quantification.generate_cell_table(
+            segmentation_dir=temp_dir, tiff_dir=tiff_dir,
+            img_sub_folder=img_sub_folder, is_mibitiff=False, fovs=None, mask_types=[None])
+
+        assert norm_data_all_fov.shape[0] > 0 and norm_data_all_fov.shape[1] > 0
+        assert arcsinh_data_all_fov.shape[0] > 0 and arcsinh_data_all_fov.shape[1] > 0
+
+        # generate sample norm and arcsinh data for all fovs with 'test' suffix
+        norm_data_all_fov, arcsinh_data_all_fov = marker_quantification.generate_cell_table(
+            segmentation_dir=temp_dir, tiff_dir=tiff_dir, img_sub_folder=img_sub_folder,
+            is_mibitiff=False, fovs=None, mask_types=['test'], add_underscore=False)
+
+        assert norm_data_all_fov.shape[0] > 0 and norm_data_all_fov.shape[1] > 0
+        assert arcsinh_data_all_fov.shape[0] > 0 and arcsinh_data_all_fov.shape[1] > 0
+
 
 # TODO: consider removing since MIBItiffs are being phased out
 def test_generate_cell_table_mibitiff_loading():

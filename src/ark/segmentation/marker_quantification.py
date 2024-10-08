@@ -453,9 +453,9 @@ def create_marker_count_matrices(segmentation_labels, image_data, nuclear_counts
 
 
 def generate_cell_table(segmentation_dir, tiff_dir, img_sub_folder="TIFs",
-                        is_mibitiff=False, fovs=None,
-                        extraction='total_intensity', nuclear_counts=False,
-                        fast_extraction=False, mask_types=['whole_cell'], **kwargs):
+                        is_mibitiff=False, fovs=None, extraction='total_intensity',
+                        nuclear_counts=False, fast_extraction=False, mask_types=['whole_cell'],
+                        add_underscore=True, **kwargs):
     """This function takes the segmented data and computes the expression matrices batch-wise
     while also validating inputs
 
@@ -480,6 +480,8 @@ def generate_cell_table(segmentation_dir, tiff_dir, img_sub_folder="TIFs",
             if set, skips the custom regionprops and expensive base regionprops extraction steps
         mask_types (list):
             list of masks to extract data for, defaults to ['whole_cell']
+        add_underscore (str):
+            whether to add '_' before the mask type suffix in file names, defaults to True
         **kwargs:
             arbitrary keyword arguments for signal and regionprops extraction
 
@@ -529,13 +531,17 @@ def generate_cell_table(segmentation_dir, tiff_dir, img_sub_folder="TIFs",
                                                         fovs=[fov_name])
 
         for mask_type in mask_types:
+            if mask_type is None:
+                mask_type, mask_suff = 'cell_mask', None
+            else:
+                mask_suff = '_' + mask_type if add_underscore else mask_type
             # load the segmentation labels in
-            fov_mask_name = fov_name + '_' + mask_type + ".tiff"
+            fov_mask_name = fov_name + mask_suff + ".tiff" if mask_suff else fov_name + ".tiff"
             current_labels_cell = load_utils.load_imgs_from_dir(data_dir=segmentation_dir,
                                                                 files=[fov_mask_name],
                                                                 xr_dim_name='compartments',
                                                                 xr_channel_names=[mask_type],
-                                                                trim_suffix='_' + mask_type)
+                                                                trim_suffix=mask_suff)
 
             compartments = ['whole_cell']
             segmentation_labels = current_labels_cell.values
