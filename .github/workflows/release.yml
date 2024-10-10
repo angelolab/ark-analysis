@@ -14,19 +14,24 @@ concurrency:
 
 permissions:
   contents: read # to fetch code (actions/checkout)
+  id-token: write # This is required for requesting the JWT
 
 jobs:
   test:
     name: Test
-    permissions:
-      contents: read
     secrets: inherit
+    permissions:
+      contents: read # to fetch code (actions/checkout)
+      id-token: write # This is required for requesting the JWT
     uses: ./.github/workflows/test.yml
 
   build:
     name: Build distribution 📦
-    uses: ./.github/workflows/build.yml
     secrets: inherit
+    permissions:
+      contents: read # to fetch code (actions/checkout)
+      id-token: write # This is required for requesting the JWT
+    uses: ./.github/workflows/build.yml
 
   publish-to-testpypi:
     # Test PyPI publish, requires wheels and source dist to pass
@@ -40,19 +45,20 @@ jobs:
         url: https://test.pypi.org/p/ark-analysis
 
     permissions:
+      contents: read # to fetch code (actions/checkout)
       id-token: write # Necessary for trusted publishing
 
     steps:
       - name: Download Built Distributions 📦
         uses: actions/download-artifact@v4
         with:
-          pattern: dist-*
-          merge-multiple: true
-          path: dist
+          name: dist
+          path: dist/
 
       - name: Publish distributions 📦 to TestPyPI
-        run:
-          uv publish --publish-url https://test.pypi.org/legacy/
+        uses: pypa/gh-action-pypi-publish@release/v1.9
+        with:
+          repository-url: https://test.pypi.org/legacy/
 
 
   publish-to-pypi:
@@ -67,7 +73,8 @@ jobs:
       url: https://pypi.org/p/ark-analysis
 
     permissions:
-        id-token: write
+        contents: read # to fetch code (actions/checkout)
+        id-token: write # Necessary for trusted publishing
 
     # Publish when a GitHub Release is created, use the following rule:
     if: github.event_name == 'release' && github.event.action == 'published'
@@ -75,13 +82,11 @@ jobs:
       - name: Download Built Distributions 📦
         uses: actions/download-artifact@v4
         with:
-          pattern: dist-*
-          merge-multiple: true
+          name: dist
           path: dist/
 
       - name: Publish Distributions 📦 to PyPI
-        run: |
-          uv publish
+        uses: pypa/gh-action-pypi-publish@release/v1.9
         
 
   github-release-upload-dists:
@@ -99,8 +104,7 @@ jobs:
       - name: Download Built Distributions 📦
         uses: actions/download-artifact@v4
         with:
-          pattern: dist-*
-          merge-multiple: true
+          name: dist
           path: dist/
 
       - name: Sign the dists with Sigstore
