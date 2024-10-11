@@ -153,7 +153,7 @@ This will automatically open your browser with a link to our Jupyter notebooks.
 
 Be sure to keep this terminal open.  **Do not exit the terminal or enter `control-c` until you are finished with the notebooks**. 
 
-You can shut down the notebooks and close docker by entering `control-c` in the terminal window.
+You can shut down the notebooks by entering `control-c` in the terminal window.
 
 **REMEMBER TO DUPLICATE AND RENAME NOTEBOOKS**
 
@@ -251,27 +251,6 @@ the cell expression of that marker when you mouse over the cell in Mantis.
 
 ![](docs/_images/mantis_feature_view.png)
 
-### External Hard Drives and Google File Stream
-
-To configure external hard drive (or google file stream) access, you will have to add this to Dockers file paths in the Preferences menu. 
-
-On Docker for macOS, this can be found in Preferences -> Resources -> File Sharing.  Adding `/Volumes` will allow docker to see external drives 
-
-On Docker for Windows with the WSL2 backend, no paths need to be added.  However, if using the Hyper-V backend, these paths will need to be added as in the macOS case.
-
-![](docs/_images/docker_preferences.png)
-
-Once the path is added, you can run:
-```
-bash start_docker.sh --external 'path/added/to/preferences'
-```
-or
-```
-bash start_docker.sh -e 'path/added/to/preferences'
-```
-
-to mount the drive into the virtual `/data/external` path inside the docker.
-
 ## Updating the Repository
 
 This project is still under development, and we are making frequent changes and improvements. If you want to update the version on your computer to have the latest changes, perform the following steps. Otherwise, we recommend waiting for new releases.
@@ -283,13 +262,7 @@ git pull
 ```
 
 Then, run the command below to update the Jupyter notebooks to the latest version
-```sh
-./start_docker.sh --update
-```
-or
-```sh
-./start_docker.sh -u
-```
+
 
 If you have made changes to these notebooks that you would like to keep (specific file paths, settings, custom routines, etc), rename them before updating! 
 

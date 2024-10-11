@@ -1,12 +1,8 @@
-name: Build Wheels and upload to PyPI
+name: Publish Python 🐍 distribution 📦 to PyPI and TestPyPI
 
 on:
-  pull_request:
-    branches: ["releases/**"]
-    types: [labeled, opened, synchronize, reopened]
   release:
     types: [published]
-  workflow_dispatch:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}

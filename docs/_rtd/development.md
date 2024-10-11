@@ -57,48 +57,11 @@ To verify installation, activate your `conda` environment with `conda activate <
  
 You're now set to start working with `ark-analysis`! Please look at [our contributing guidelines](contributing.html) for more information about development. For detailed explanations of the functions available to you in `ark`, please consult the Libraries section of this documentation. 
 
-### Updating Ark Analysis in the Docker
 
-**Note** that code changes aren't automatically propagated into the Docker Image.
-However there may be times where you would like to work with and test out new changes and features.
-
-You may update the current version of `ark-analysis` by running the following commands
-in the Jupyter Lab terminal.
-
-```sh
-cd /opt/ark-analysis
-git pull
-pip install .
-```
-
-#### Using ark functions directly
+### Using ark functions directly
 
 If you will only be using functions in `ark` without developing on top of it, do not clone the repo. Simply run `pip install ark-analysis` inside the virtual environment to gain access to our functions. To verify installation, type `conda list ark-analysis` after completion. If `ark-analysis` is listed, the installation was successful. You can now access the `ark` library with `import ark`.
 
-### Developing template notebooks via Docker
-
-If you are using docker for your virtual environment, and plan to develop and commit template notebooks, then you should use the `--develop-notebook-templates` flag for `start_docker.sh`.
-
-Typically, the `./templates` folder is copied into `./scripts` before starting docker and Jupyter is started within `./scripts`. This enables users of `ark-analysis` to use the notebooks without dirtying the git working directory—doing so would cause merge conflicts on pull. When using `--develop-notebook-templates`, `./templates` is used directly, so changes are changes reflected directly.
-
-To enable, pass the either `-d` or  `--develop-notebook-templates` to `start_docker.sh`
-
-    $ ./start_docker -d
-
-Now notebooks can be `git diff`ed and `git commit`ed without having to copy changed notedbooks between `./scripts` and `./templates`.
-
-### Building Docker Images Locally
-
-It may be useful to be able to manually build a new Docker Image as features get added, changes made and libraries updated.
-Specifically, updating Python libraries requires building a new docker image from scratch. 
-
-
-Once you are in `ark-analysis`, the Docker Image can be built with the following command.
-```
-docker build -t ark-analysis .
-``` 
-
-The docker image will now build, and this process can take some time.
 
 ### More on xarrays
 
