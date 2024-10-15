@@ -1,5 +1,6 @@
 ## FAQ
-
+### When I run the notebook, it says "No module named 'ark'"
+This could be an issue with the `ark_env` Conda environment. Make sure that `ark_env` is activated before opening `jupyter lab`. You can also try to reinstall the package with `pip install ark-analysis`.
 ### I got an error when running the notebook
 
 The functions in `ark` have a lot of error checking built in. This means that if any of the arguments are wrong, you will get a ValueError of some kind. There's a good chance that the error message will tell you in very direct terms what the problem is, so please carefully read the error message. 
