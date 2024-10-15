@@ -9,7 +9,6 @@
    About MIBI Pipeline <_rtd/pipeline>
    Data Type Info <_rtd/data_types>
    Developer Info <_rtd/development>
-   Windows Configuration Info <_rtd/windows_setup>
    Contributing Guidelines <_rtd/contributing>
    FAQ <_rtd/faq>
 
