@@ -58,10 +58,6 @@ If you are using your own spatial analysis tools to generate information for the
 * `PRE_CHANNEL_COL`: Set this to be the column name which precedes first channel column.
 * `POST_CHANNEL_COL`: Set this to be the column name which comes after the last channel column.
 
-Afterwards the Docker Image can be started with the updated settings.
-```sh
-start_docker.sh
-```
 
 ---
 
