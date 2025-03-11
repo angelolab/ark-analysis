@@ -272,6 +272,31 @@ def test_cluster_pixels_base(multiprocess, capsys):
         # further ensures that all FOVs were overwritten
         assert "There are no more FOVs to assign SOM labels to" not in output
 
+        # run SOM cluster assignment with overwrite flag AND a temp dir
+        os.mkdir(os.path.join(temp_dir, 'pixel_mat_data_temp'))
+        pixel_som_clustering.cluster_pixels(
+            fovs, temp_dir, pixel_pysom, 'pixel_mat_data', multiprocess=multiprocess,
+            overwrite=True
+        )
+
+        # test is otherwise the same as overwrite
+        output = capsys.readouterr().out
+        desired_status_updates = \
+            "Overwrite flag set, reassigning SOM cluster labels to all FOVs\n"
+        assert desired_status_updates in output
+
+        # further ensures that all FOVs were overwritten
+        assert "There are no more FOVs to assign SOM labels to" not in output
+
+        # test functionality where pixel pysom's seen clusters needs to be determined
+        pixel_pysom.som_clusters_seen = set()
+        pixel_som_clustering.cluster_pixels(
+            fovs, temp_dir, pixel_pysom, 'pixel_mat_data', multiprocess=multiprocess
+        )
+
+        # can't determine if all SOM clusters will be assigned, but absolutely more than zero
+        assert len(pixel_pysom.som_clusters_seen) > 0
+
 
 @parametrize('multiprocess', [True, False])
 def test_cluster_pixels_corrupt(multiprocess, capsys):

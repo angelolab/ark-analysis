@@ -220,7 +220,12 @@ def cluster_pixels(fovs, base_dir, pixel_pysom, data_dir='pixel_mat_data',
     if overwrite:
         print('Overwrite flag set, reassigning SOM cluster labels to all FOVs')
         pixel_pysom.som_clusters_seen = set()
+
+        # reset temp state if run interrupted early
+        if os.path.exists(os.path.join(data_path + '_temp')):
+            rmtree(os.path.join(data_path + '_temp'))
         os.mkdir(data_path + '_temp')
+
         fovs_list = io_utils.remove_file_extensions(
             io_utils.list_files(data_path, substrs='.feather')
         )
@@ -235,6 +240,12 @@ def cluster_pixels(fovs, base_dir, pixel_pysom, data_dir='pixel_mat_data',
 
     # if there are no FOVs left without SOM labels don't run function
     if len(fovs_list) == 0:
+        # ensure on a full restart, all SOM clusters get loaded in
+        if pixel_pysom.som_clusters_seen is None or len(pixel_pysom.som_clusters_seen) == 0:
+            pixel_pysom.som_clusters_seen = pixel_cluster_utils.identify_seen_pixel_clusters(
+                base_dir, data_dir, fovs
+            )
+
         print("There are no more FOVs to assign SOM labels to, skipping")
         return
 

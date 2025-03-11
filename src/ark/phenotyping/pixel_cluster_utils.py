@@ -142,6 +142,35 @@ def normalize_rows(pixel_data, channels, include_seg_label=True):
     return pixel_data_sub
 
 
+def identify_seen_pixel_clusters(base_dir, data_dir, fovs, cluster_col="pixel_som_cluster"):
+    """Identifies all the seen pixel clusters in a cohort
+
+    Args:
+        base_dir (str):
+            The path to the data directory
+        data_dir (str):
+            Name of the directory which contains the full preprocessed pixel data
+        fovs (list):
+            The list of fovs to subset on
+        cluster_col (str):
+            The cluster column to count over
+    Returns:
+        list:
+            The list of all pixel clusters 
+    """
+    misc_utils.verify_in_list(
+        cluster_col=cluster_col,
+        pixel_cluster_col_types=["pixel_som_cluster", "pixel_meta_cluster"]
+    )
+
+    pixel_clusters_seen = set()
+    for fov in fovs:
+        fov_data = feather.read_dataframe(os.path.join(base_dir, data_dir, fov + ".feather"))
+        pixel_clusters_seen.update(list(np.unique(fov_data[cluster_col])))
+
+    return pixel_clusters_seen
+
+
 def check_for_modified_channels(tiff_dir, test_fov, img_sub_folder, channels):
     """Checks to make sure the user selected newly modified channels
 
