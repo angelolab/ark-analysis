@@ -286,13 +286,6 @@ dependencies = [
 ]
 
 [package.optional-dependencies]
-colors = [
-    { name = "cmasher" },
-    { name = "cmocean" },
-    { name = "colorcet" },
-    { name = "palettable" },
-    { name = "scienceplots" },
-]
 dev = [
     { name = "attrs" },
     { name = "coveralls" },
@@ -331,12 +324,11 @@ test = [
 requires-dist = [
     { name = "alpineer", specifier = "==0.1.12" },
     { name = "anndata" },
-    { name = "ark-analysis", extras = ["colors"] },
     { name = "attrs", marker = "extra == 'dev'" },
     { name = "attrs", marker = "extra == 'test'" },
-    { name = "cmasher", marker = "extra == 'colors'" },
-    { name = "cmocean", marker = "extra == 'colors'" },
-    { name = "colorcet", marker = "extra == 'colors'" },
+    { name = "cmasher" },
+    { name = "cmocean" },
+    { name = "colorcet" },
     { name = "coveralls", extras = ["toml"], marker = "extra == 'dev'" },
     { name = "coveralls", extras = ["toml"], marker = "extra == 'test'" },
     { name = "datasets", specifier = ">=2.6,<3.0" },
@@ -356,8 +348,8 @@ requires-dist = [
     { name = "multiprocess", specifier = ">=0.70.13" },
     { name = "natsort", specifier = ">=8,<9" },
     { name = "numpy", specifier = ">=1.20,<1.24" },
+    { name = "palettable" },
     { name = "palettable", specifier = ">=3.3.0,<4" },
-    { name = "palettable", marker = "extra == 'colors'" },
     { name = "pandas", specifier = ">=2" },
     { name = "pillow", specifier = ">=9,<10" },
     { name = "pyflowsom", specifier = ">=0.1.16" },
@@ -378,7 +370,7 @@ requires-dist = [
     { name = "python-dateutil", specifier = ">=2.9.0" },
     { name = "python-lsp-server", extras = ["all"], marker = "extra == 'lab-ext'" },
     { name = "requests", specifier = ">=2.20,<3" },
-    { name = "scienceplots", marker = "extra == 'colors'" },
+    { name = "scienceplots" },
     { name = "scikit-image", specifier = "<0.19.3" },
     { name = "scikit-learn", specifier = ">=1.1,<2" },
     { name = "scipy", specifier = ">=1.7,<2" },
@@ -396,7 +388,7 @@ requires-dist = [
     { name = "zarr" },
     { name = "zstandard", specifier = ">=0.19.0,<1" },
 ]
-provides-extras = ["colors", "dev", "lab-ext", "test"]
+provides-extras = ["dev", "lab-ext", "test"]
 
 [[package]]
 name = "array-api-compat"
