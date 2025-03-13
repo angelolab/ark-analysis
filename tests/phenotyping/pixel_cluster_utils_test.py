@@ -156,6 +156,35 @@ def test_normalize_rows():
     assert np.all(fov_pixel_matrix_sub.drop(columns=meta_cols).values == [1 / 3, 2 / 3])
 
 
+def test_identify_seen_pixel_clusters():
+    with tempfile.TemporaryDirectory() as temp_dir:
+        os.mkdir(os.path.join(temp_dir, "pixel_mat_data"))
+        fovs = ["fov1", "fov2", "fov3"]
+
+        for i, fov in enumerate(fovs):
+            fov_df = pd.DataFrame.from_dict(
+                {
+                    "pixel_som_cluster": np.arange(1, 11) + i,
+                    "pixel_meta_cluster": np.arange(1, 11) + i
+                }
+            )
+            feather.write_dataframe(
+                fov_df, os.path.join(temp_dir, "pixel_mat_data", fov + ".feather")
+            )
+
+        # test som cluster ID functionality
+        pixel_clusters_seen = pixel_cluster_utils.identify_seen_pixel_clusters(
+            temp_dir, "pixel_mat_data", fovs
+        )
+        assert list(pixel_clusters_seen) == list(np.arange(1, 13))
+
+        # test meta cluster ID functionality
+        pixel_clusters_seen = pixel_cluster_utils.identify_seen_pixel_clusters(
+            temp_dir, "pixel_mat_data", fovs, cluster_col="pixel_meta_cluster"
+        )
+        assert list(pixel_clusters_seen) == list(np.arange(1, 13))
+
+
 @parametrize('chan_names, err_str', [(['CK18', 'CK17', 'CK18_smoothed'], 'selected CK18'),
                                      (['CK17', 'CK18', 'CK17_nuc_include'], 'selected CK17')])
 def test_check_for_modified_channels(chan_names, err_str):

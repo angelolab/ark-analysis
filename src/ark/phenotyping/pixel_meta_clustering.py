@@ -97,7 +97,12 @@ def pixel_consensus_cluster(fovs, channels, base_dir, max_k=20, cap=3,
     # if overwrite flag set, run on all FOVs in data_dir
     if overwrite:
         print('Overwrite flag set, reassigning meta cluster labels to all FOVs')
+
+        # reset temp state if run interrupted early
+        if os.path.exists(os.path.join(pixel_data_path + '_temp')):
+            rmtree(os.path.join(pixel_data_path + '_temp'))
         os.mkdir(pixel_data_path + '_temp')
+
         fovs_list = io_utils.remove_file_extensions(
             io_utils.list_files(pixel_data_path, substrs='.feather')
         )

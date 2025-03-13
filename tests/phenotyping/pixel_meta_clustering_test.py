@@ -226,6 +226,21 @@ def test_pixel_consensus_cluster_base(multiprocess, capsys):
         # further ensures that all FOVs were overwritten
         assert "There are no more FOVs to assign meta labels to" not in output
 
+        # run SOM cluster assignment with overwrite flag AND a temp dir
+        os.mkdir(os.path.join(temp_dir, 'pixel_mat_data_temp'))
+        pixel_cc = pixel_meta_clustering.pixel_consensus_cluster(
+            fovs=fovs, channels=chans, base_dir=temp_dir, overwrite=True
+        )
+
+        # test is otherwise the same as overwrite
+        output = capsys.readouterr().out
+        desired_status_updates = \
+            "Overwrite flag set, reassigning meta cluster labels to all FOVs\n"
+        assert desired_status_updates in output
+
+        # further ensures that all FOVs were overwritten
+        assert "There are no more FOVs to assign meta labels to" not in output
+
 
 @parametrize('multiprocess', [True, False])
 def test_pixel_consensus_cluster_corrupt(multiprocess, capsys):
