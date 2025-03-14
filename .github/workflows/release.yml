@@ -52,7 +52,7 @@ jobs:
           path: dist/
 
       - name: Publish distributions 📦 to TestPyPI
-        uses: pypa/gh-action-pypi-publish@release/v1.9
+        uses: pypa/gh-action-pypi-publish@release/v1.12
         with:
           repository-url: https://test.pypi.org/legacy/
 
@@ -82,7 +82,7 @@ jobs:
           path: dist/
 
       - name: Publish Distributions 📦 to PyPI
-        uses: pypa/gh-action-pypi-publish@release/v1.9
+        uses: pypa/gh-action-pypi-publish@release/v1.12
         
 
   github-release-upload-dists:
