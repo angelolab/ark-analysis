@@ -51,11 +51,9 @@ jobs:
           cache-dependency-glob: "uv.lock"
           github-token: ${{ secrets.GITHUB_TOKEN }}
 
-
-  
       - name: Install Dependencies and ${{ github.repository }}
         run: |
-          uv sync --all-extras
+          uv sync --frozen
       - name: Check the Example Dataset Cache
         run: |
           uv run ./.github/scripts/get_example_dataset.py

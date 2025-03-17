@@ -48,7 +48,7 @@ jobs:
 
       - name: Install Dependencies
         run: |
-          uv sync --all-extras
+          uv sync --frozen --extras test
 
       - name: Run Tests
         run: |

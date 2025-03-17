@@ -33,7 +33,7 @@ jobs:
 
       - name: Install Dependencies
         run: |
-          uv sync --all-extras
+          uv sync --frozen
 
       - name: Build Package
         run: |
@@ -41,7 +41,7 @@ jobs:
 
       - name: Check Package
         run: |
-          uv run twine check --strict dist/*.whl
+          uvx twine check --strict dist/*
 
       - name: Store Wheel Artifacts
         uses: actions/upload-artifact@v4
