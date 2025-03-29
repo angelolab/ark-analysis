@@ -1,6 +1,3 @@
-from enum import Enum
-from pathlib import Path
-from enum import StrEnum
 # hope u like capital letters
 
 # default cell table column names
