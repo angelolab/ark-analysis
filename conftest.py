@@ -4,15 +4,16 @@ from typing import Generator, Iterator, Union
 
 import numpy as np
 import pytest
+from ark.utils.example_dataset import ArkDatasetSettings
 
 
 @pytest.fixture(scope="session")
 def dataset_cache_dir() -> Iterator[Union[str, None]]:
     # Change cache directory if running on CI
-    if os.environ.get("CI", None):
+    if os.environ.get("CI", False):
         cache_dir = (Path(os.environ.get("GITHUB_WORKSPACE")) / "data" / "cache").resolve()
     else:
-        cache_dir = None
+        cache_dir = ArkDatasetSettings.get_cache_dir().expanduser().resolve()
     yield cache_dir
 
 

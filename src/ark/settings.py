@@ -1,4 +1,6 @@
-
+from enum import Enum
+from pathlib import Path
+from enum import StrEnum
 # hope u like capital letters
 
 # default cell table column names
@@ -55,9 +57,4 @@ BASE_COLS = [FOV_ID, CELL_LABEL, CELL_SIZE, CENTROID_0, CENTROID_1, CELL_TYPE]
 # spatial_lda topic EDA key names
 EDA_KEYS = ['inertia', 'silhouette', 'gap_stat', 'gap_sds', 'cell_counts', "featurization"]
 LDA_PLOT_TYPES = ["adjacency", "topic_assignment"]
-# mibitracker
-MIBITRACKER_BACKEND = 'https://backend-dot-mibitracker-angelolab.appspot.com'
 
-# Switch it from `main` to the commit ID on HuggingFace to test a
-# specific version of the Example Dataset
-EXAMPLE_DATASET_REVISION: str = "main"

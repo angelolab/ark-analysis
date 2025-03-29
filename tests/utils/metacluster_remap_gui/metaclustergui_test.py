@@ -2,9 +2,14 @@ import asyncio
 from pathlib import Path
 
 import pytest
+import matplotlib
+
 
 from ark.utils.metacluster_remap_gui.metaclusterdata import MetaClusterData
 from ark.utils.metacluster_remap_gui.metaclustergui import MetaClusterGui
+
+
+matplotlib.use("Agg")  # Use the non-interactive Agg backend
 
 THIS_DIR = Path(__file__).parent
 
@@ -16,10 +21,11 @@ def mcg(simple_metaclusterdata: MetaClusterData):
     yield MetaClusterGui(simple_metaclusterdata, enable_throttle=False)
 
 
-@pytest.fixture(autouse=True, scope='session')
+@pytest.fixture(autouse=True, scope="session")
 def use_pseudo_inverse():
     import matplotlib.transforms as f
     from numpy.linalg import inv, pinv
+
     f.inv = pinv
     yield
     f.inv = inv
@@ -34,7 +40,9 @@ def test_enable_debug_mode(simple_metaclusterdata: MetaClusterData):
 
 
 @pytest.mark.asyncio
-async def test_can_run_asyncio_pieces_of_gui_refresh(simple_metaclusterdata: MetaClusterData):
+async def test_can_run_asyncio_pieces_of_gui_refresh(
+    simple_metaclusterdata: MetaClusterData,
+):
     mcg = MetaClusterGui(simple_metaclusterdata, enable_throttle=True)
     mcg._heatmaps_stale = True
 
@@ -87,15 +95,18 @@ def test_update_zscore_fractional(mcg: MetaClusterGui):
 def test_new_metacluster(mcg: MetaClusterGui):
     mcg.selected_clusters.add(1)
     mcg.new_metacluster(None)
-    assert mcg.mcd.mapping.loc[1, 'metacluster'] == 4
+    assert mcg.mcd.mapping.loc[1, "metacluster"] == 4
 
 
 class DummyClick:
-    def __init__(self, artist, x, y=None, is_rightclick=False, event_type='button_press_event'):
+    def __init__(
+        self, artist, x, y=None, is_rightclick=False, event_type="button_press_event"
+    ):
         self.artist = artist
 
         class MouseEvent:
             pass
+
         self.mouseevent = MouseEvent()
         self.mouseevent.name = event_type
         self.mouseevent.xdata = x
@@ -104,7 +115,7 @@ class DummyClick:
 
 
 def test_handler_ignore_non_clicks(mcg: MetaClusterGui):
-    dummyclick = DummyClick(mcg.im_c, 0.5, event_type='fake')
+    dummyclick = DummyClick(mcg.im_c, 0.5, event_type="fake")
     mcg.onpick(dummyclick)
     assert mcg.selected_clusters == set()
 

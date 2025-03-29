@@ -31,7 +31,6 @@ urls.Home-page = "https://github.com/angelolab/ark-analysis"
 dependencies = [
     "alpineer==0.1.12",
     "anndata",
-    "datasets>=2.6,<3.0",
     "dill>=0.3.5,<0.4",
     "feather-format>=0.4.1,<1",
     "importlib-metadata>=5.0",
@@ -45,6 +44,7 @@ dependencies = [
     "palettable>=3.3.0,<4",
     "pandas>=2",
     "pillow>=9,<10",
+    "pooch>=1.8.0",
     "pyFlowSOM>=0.1.16",
     "requests>=2.20,<3",
     "scikit-image<0.19.3",
@@ -62,14 +62,15 @@ dependencies = [
     "zstandard>=0.19.0,<1",
     "zarr",
     "python-dateutil>=2.9.0",
-    "ark-analysis[colors]",
+    "fsspec>=2024.6.1",
 ]
 
 [project.optional-dependencies]
+dev = ["ark-analysis[test]", "twine"]
 colors = ["palettable", "cmasher", "cmocean", "colorcet", "scienceplots"]
 test = [
     "attrs",
-    "coveralls[toml]",
+    "coveralls",
     "pytest",
     "pytest-cases",
     "pytest-cov",
@@ -78,6 +79,7 @@ test = [
     "pytest-randomly",
     "pytest-asyncio",
     "testbook",
+    "pytest-xdist>=3.6.1",
 ]
 lab_ext = [
     "jupyterlab-lsp",
@@ -118,3 +120,10 @@ addopts = [
 ]
 console_output_style = "count"
 testpaths = ["tests"]
+
+# Add hatch-vcs configuration
+[tool.hatch.version]
+source = "vcs"
+
+[tool.hatch.build.hooks.vcs]
+version-file = "ark/_version.py"

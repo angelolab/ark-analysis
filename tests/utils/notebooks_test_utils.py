@@ -6,7 +6,6 @@ import numpy as np
 import pandas as pd
 from alpineer import image_utils
 
-from ark.settings import EXAMPLE_DATASET_REVISION
 from ark.utils import example_dataset
 
 
@@ -85,7 +84,7 @@ def _ex_dataset_download(dataset: str, save_dir: str, cache_dir: Union[str, None
     ex_dataset = example_dataset.ExampleDataset(dataset=dataset,
                                                 overwrite_existing=overwrite_existing,
                                                 cache_dir=cache_dir,
-                                                revision=EXAMPLE_DATASET_REVISION)
+                                                revision="main")
     ex_dataset.download_example_dataset()
 
     ex_dataset.move_example_dataset(move_dir=save_dir)

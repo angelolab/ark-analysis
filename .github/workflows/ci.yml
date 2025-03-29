@@ -39,7 +39,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ./data/cache/
-          key: huggingface-${{ env.cache-name }}
+          key: ${{ env.cache-name }}
           enableCrossOsArchive: true
 
       - name: Install uv and setup Python
