@@ -33,7 +33,7 @@ jobs:
         uses: actions/cache/restore@v4
         with:
           path: ./data/cache/
-          key: huggingface-${{ env.cache-name }}
+          key: ${{ env.cache-name }}
           enableCrossOsArchive: true
           fail-on-cache-miss: true
       
