@@ -33,23 +33,22 @@ jobs:
         uses: actions/cache/restore@v4
         with:
           path: ./data/cache/
-          key: huggingface-${{ env.cache-name }}
+          key: ${{ env.cache-name }}
           enableCrossOsArchive: true
           fail-on-cache-miss: true
       
-      - name: Install uv
-        uses: astral-sh/setup-uv@v3
+      - name: Install uv and setup Python
+        uses: astral-sh/setup-uv@v5
         with:
-            enable-cache: true
-            cache-dependency-glob: "uv.lock"
+          version: "latest"
+          python-version: ${{ matrix.python-version }}
+          enable-cache: true
+          cache-dependency-glob: "uv.lock"
+          github-token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Set up Python ${{ matrix.python-version }}
+      - name: Install Dependencies
         run: |
-          uv python install ${{ matrix.python-version }}
-  
-      - name: Install Dependencies and ${{ github.repository }}
-        run: |
-          uv sync --all-extras
+          uv sync --frozen --extra test
 
       - name: Run Tests
         run: |

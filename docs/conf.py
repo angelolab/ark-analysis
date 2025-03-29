@@ -102,7 +102,8 @@ autodoc_mock_imports = ['cryptography',
                         'tqdm',
                         'ark.utils._bootstrapping',
                         'xmltodict',
-                        'zarr',]
+                        'zarr',
+                        'pooch']
 
 # prefix each section label with the name of the document it is in, followed by a colon
 # autosection_label_prefix_document = True

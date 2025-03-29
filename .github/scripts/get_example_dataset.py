@@ -1,28 +1,26 @@
 from pathlib import Path
 import os
+from ark.utils.example_dataset import get_example_dataset, DatasetConfig
 
-import datasets
+repo_root = Path(os.environ.get("GITHUB_WORKSPACE", ".")).resolve()
 
-datasets.disable_progress_bar()
 
-DATASET_PATH = "angelolab/ark_example"
+# Create the save directory
+save_dir = repo_root / "data"
+save_dir.mkdir(parents=True, exist_ok=True)
 
-valid_configs = datasets.get_dataset_config_names(DATASET_PATH, trust_remote_code=True)
-
-def load_dataset(cache_dir: Path, name: str):
-    _ = datasets.load_dataset(
-        path=DATASET_PATH,
-        cache_dir=cache_dir,
-        name=name,
-        token=False,
-        revision="main",
-        trust_remote_code=True,
-    )
-
-# Create the cache directory
-cache_dir = Path(os.environ.get("GITHUB_WORKSPACE")).resolve() / "data" / "cache"
+# Create a cache directory 
+cache_dir = save_dir / "cache"
 cache_dir.mkdir(parents=True, exist_ok=True)
 
-# Download all available datasets
-for dataset_config in valid_configs:
-    load_dataset(cache_dir=cache_dir, name=dataset_config)
+# Download all available datasets using our implementation
+for dataset_config in DatasetConfig:
+    print(f"Downloading dataset: {dataset_config.value}")
+    get_example_dataset(
+        dataset=dataset_config.value,
+        save_dir=save_dir, 
+        overwrite_existing=True,
+        revision="main"
+    )
+
+print("All datasets downloaded successfully to:", save_dir)
