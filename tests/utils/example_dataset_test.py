@@ -65,7 +65,8 @@ class TestExampleDataset:
 
         self.cell_table_names = ["cell_table_arcsinh_transformed", "cell_table_size_normalized",
                                  "cell_table_size_normalized_cell_labels",
-                                 "generalized_cell_table_input"]
+                                 "generalized_cell_table_input",
+                                 "noisy_groundtruth"]
 
         self.deepcell_output_names = [f"fov{i}_{j}" for i in range(11)
                                       for j in ['whole_cell', 'nuclear']]
