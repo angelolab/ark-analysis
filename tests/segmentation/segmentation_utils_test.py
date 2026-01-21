@@ -189,6 +189,13 @@ def test_transform_expression_matrix_multiple_compartments():
             )
             assert np.array_equal(normalized_data.loc['whole_cell', cell, modified_cols].values,
                                   normalized_vals)
+        if cell_data.loc['nuclear', cell, settings.CELL_SIZE] != 0:
+            normalized_vals = np.divide(
+                cell_data.loc['nuclear', cell, modified_cols].values,
+                cell_data.loc['nuclear', cell, settings.CELL_SIZE].values
+            )
+            assert np.array_equal(normalized_data.loc['nuclear', cell, modified_cols].values,
+                                  normalized_vals)
 
     # test arcsinh transform
     transform_kwargs = {'linear_factor': 1}

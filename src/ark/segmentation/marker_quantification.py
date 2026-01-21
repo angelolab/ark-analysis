@@ -454,7 +454,8 @@ def create_marker_count_matrices(segmentation_labels, image_data, nuclear_counts
 
 def generate_cell_table(segmentation_dir, tiff_dir, img_sub_folder="TIFs",
                         is_mibitiff=False, fovs=None, extraction='total_intensity',
-                        nuclear_counts=False, fast_extraction=False, mask_types=['whole_cell'],
+                        nuclear_counts=False, split_large_nuclei=False,
+                        fast_extraction=False, mask_types=['whole_cell'],
                         add_underscore=True, **kwargs):
     """This function takes the segmented data and computes the expression matrices batch-wise
     while also validating inputs
@@ -476,6 +477,9 @@ def generate_cell_table(segmentation_dir, tiff_dir, img_sub_folder="TIFs",
         nuclear_counts (bool):
             boolean flag to determine whether nuclear counts are returned, note that if
             set to True, the compartments coordinate in segmentation_labels must contain 'nuclear'
+        split_large_nuclei (bool):
+            boolean flag to determine whether nuclei which are larger than their assigned cell
+            will get split into two different nuclear objects
         fast_extraction (bool):
             if set, skips the custom regionprops and expensive base regionprops extraction steps
         mask_types (list):
@@ -570,6 +574,7 @@ def generate_cell_table(segmentation_dir, tiff_dir, img_sub_folder="TIFs",
                 image_data=image_data,
                 extraction=extraction,
                 nuclear_counts=nuclear_counts,
+                split_large_nuclei=split_large_nuclei,
                 fast_extraction=fast_extraction,
                 **kwargs
             )
