@@ -129,7 +129,8 @@ def draw_heatmap(data, x_labels, y_labels, dpi=None, center_val=None, min_val=No
         data_df, cmap=colormap, center=center_val,
         vmin=min_val, vmax=max_val, row_colors=row_colors, row_cluster=row_cluster,
         col_colors=col_colors, col_cluster=col_cluster,
-        cbar_kws={'ticks': cbar_ticks}
+        cbar_kws={'ticks': cbar_ticks},
+        yticklabels=True
     )
 
     # ensure the row color axis doesn't have a label attacked to it
