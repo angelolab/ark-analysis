@@ -750,8 +750,75 @@ def split_img_stack(stack_dir, output_dir, stack_list, indices, names, channels_
             image_utils.save_image(save_path, channel)
 
 
+def _load_tiled_img_data(data_dir, fovs, expected_fovs, channel, single_dir, file_ext="tiff",
+                         img_sub_folder=""):
+    """ Loads a set of tiled images into an xarray, preserving multi-channel image data
+
+    This is a local equivalent of alpineer's `load_utils.load_tiled_img_data`. Unlike that
+    version, it does not collapse each loaded image into a single channel slot, so images with
+    more than two dimensions (e.g. RGB overlays/colored masks) can be tiled without corruption.
+
+    Args:
+        data_dir (str):
+            directory containing folders of images
+        fovs (list):
+            list of fovs to load data for
+        expected_fovs (list):
+            list of all expected RnCm fovs names in the tiled grid
+        channel (str):
+            single image name to load
+        single_dir (bool):
+            whether the images are stored in a single directory rather than within fov subdirs
+        file_ext (str):
+            the file type of existing images
+        img_sub_folder (str):
+            optional name of image sub-folder within each fov
+
+    Returns:
+        xarray.DataArray:
+            xarray with shape [fovs, x_dim, y_dim, depth]
+    """
+
+    io_utils.validate_paths(data_dir)
+
+    if single_dir:
+        test_path = os.path.join(data_dir, fovs[0] + "_" + channel + "." + file_ext)
+    else:
+        test_path = os.path.join(data_dir, fovs[0], img_sub_folder, channel + "." + file_ext)
+    test_img = io.imread(test_path)
+    depth = 1 if test_img.ndim == 2 else test_img.shape[-1]
+
+    img_data = np.zeros(
+        (len(expected_fovs), test_img.shape[0], test_img.shape[1], depth), dtype=test_img.dtype
+    )
+
+    for idx, fov_name in enumerate(expected_fovs):
+        # leave missing fovs as zeros
+        if fov_name not in fovs:
+            continue
+
+        if single_dir:
+            temp_img = io.imread(os.path.join(data_dir, fov_name + "_" + channel + "." + file_ext))
+        else:
+            temp_img = io.imread(
+                os.path.join(data_dir, fov_name, img_sub_folder, channel + "." + file_ext))
+
+        if temp_img.ndim == 2:
+            img_data[idx, :temp_img.shape[0], :temp_img.shape[1], 0] = temp_img
+        else:
+            img_data[idx, :temp_img.shape[0], :temp_img.shape[1], :] = temp_img
+
+    row_coords, col_coords = range(img_data.shape[1]), range(img_data.shape[2])
+    img_xr = xr.DataArray(
+        img_data,
+        coords=[expected_fovs, row_coords, col_coords, range(depth)],
+        dims=["fovs", "rows", "cols", "channels"],
+    )
+    return img_xr
+
+
 def stitch_images_by_shape(data_dir, stitched_dir, img_sub_folder=None, channels=None,
-                           segmentation=False, clustering=False):
+                           segmentation=False, clustering=False, single_dir_suffix=None):
     """ Creates stitched images for the specified channels based on the FOV folder names
 
     Args:
@@ -767,6 +834,11 @@ def stitch_images_by_shape(data_dir, stitched_dir, img_sub_folder=None, channels
             if stitching images from the single segmentation dir
         clustering (bool or str):
             if stitching images from the single pixel or cell mask dir, specify 'pixel' / 'cell'
+        single_dir_suffix (str):
+            if stitching images from a single flat directory not covered by `segmentation` or
+            `clustering` (e.g. a segmentation overlay or Pixie colored mask visualization dir),
+            the filename suffix identifying each FOV's image, e.g.
+            '_nuclear_channel_membrane_channel_overlay.tiff' or '_pixel_mask_colored.tiff'
     """
 
     io_utils.validate_paths(data_dir)
@@ -779,6 +851,10 @@ def stitch_images_by_shape(data_dir, stitched_dir, img_sub_folder=None, channels
         raise ValueError('If stitching images from the pixie pipeline, the clustering arg must be '
                          'set to either \"pixel\" or \"cell\".')
 
+    if sum(bool(mode) for mode in [segmentation, clustering, single_dir_suffix]) > 1:
+        raise ValueError('Only one of segmentation, clustering, or single_dir_suffix may be '
+                         'specified at a time.')
+
     # retrieve valid fov names
     if segmentation:
         fovs = ns.natsorted(io_utils.list_files(data_dir, substrs='_whole_cell.tiff'))
@@ -786,6 +862,9 @@ def stitch_images_by_shape(data_dir, stitched_dir, img_sub_folder=None, channels
     elif clustering:
         fovs = ns.natsorted(io_utils.list_files(data_dir, substrs=f'_{clustering}_mask.tiff'))
         fovs = io_utils.extract_delimited_names(fovs, delimiter=f'_{clustering}_mask.tiff')
+    elif single_dir_suffix:
+        fovs = ns.natsorted(io_utils.list_files(data_dir, substrs=single_dir_suffix))
+        fovs = io_utils.extract_delimited_names(fovs, delimiter=single_dir_suffix)
     else:
         fovs = ns.natsorted(io_utils.list_folders(data_dir))
         # ignore previous toffy stitching in fov directory
@@ -811,8 +890,10 @@ def stitch_images_by_shape(data_dir, stitched_dir, img_sub_folder=None, channels
         raise ValueError(f"Invalid FOVs found in directory, {data_dir}. FOV names "
                          f"{bad_fov_names} should have the form RnCm.")
 
+    single_dir = any([segmentation, clustering, single_dir_suffix])
+
     # retrieve all extracted channel names and verify list if provided
-    if not segmentation and not clustering:
+    if not single_dir:
         channel_imgs = io_utils.list_files(
             dir_name=os.path.join(data_dir, fovs[0], img_sub_folder),
             substrs=EXTENSION_TYPES["IMAGE"])
@@ -837,12 +918,14 @@ def stitch_images_by_shape(data_dir, stitched_dir, img_sub_folder=None, channels
         stitched_subdir = os.path.join(stitched_dir, prefix)
         if not os.path.exists(stitched_subdir):
             os.makedirs(stitched_subdir)
-        image_data = load_utils.load_tiled_img_data(data_dir, fovs, expected_fovs, chan,
-                                                    single_dir=any([segmentation, clustering]),
-                                                    file_ext=file_ext[1:],
-                                                    img_sub_folder=img_sub_folder)
+        image_data = _load_tiled_img_data(data_dir, fovs, expected_fovs, chan,
+                                          single_dir=single_dir,
+                                          file_ext=file_ext[1:],
+                                          img_sub_folder=img_sub_folder)
         stitched_data = data_utils.stitch_images(image_data, num_cols)
-        current_img = stitched_data.loc['stitched_image', :, :, chan].values
+        current_img = stitched_data.loc['stitched_image'].values
+        if current_img.shape[-1] == 1:
+            current_img = current_img[..., 0]
         image_utils.save_image(os.path.join(stitched_subdir, chan + '_stitched' + file_ext),
                                current_img)
 
