@@ -718,10 +718,12 @@ def stitching_fovs(request: str) -> Iterator[List[str]]:
     yield fovs
 
 
-@pytest.mark.parametrize('segmentation, clustering, subdir',
-                         [(False, False, 'TIFs'), (True, False, ''), (False, 'cell', ''),
-                          (False, 'pixel', '')])
-def test_stitch_images_by_shape(segmentation, clustering, subdir, stitching_fovs):
+@pytest.mark.parametrize('segmentation, clustering, subdir, single_dir_suffix',
+                         [(False, False, 'TIFs', None), (True, False, '', None),
+                          (False, 'cell', '', None), (False, 'pixel', '', None),
+                          (False, False, '', '_overlay.tiff')])
+def test_stitch_images_by_shape(segmentation, clustering, subdir, single_dir_suffix,
+                                stitching_fovs):
 
     # validation checks (only once)
     if clustering == 'pixel':
@@ -755,6 +757,11 @@ def test_stitch_images_by_shape(segmentation, clustering, subdir, stitching_fovs
                 data_utils.stitch_images_by_shape(data_dir, stitched_dir,
                                                   segmentation=segmentation, clustering='not_cell')
 
+            # specifying more than one flat-dir mode at once should raise an error
+            with pytest.raises(ValueError, match="Only one of segmentation, clustering"):
+                data_utils.stitch_images_by_shape(data_dir, stitched_dir, segmentation=True,
+                                                  single_dir_suffix='_overlay.tiff')
+
             # check for existing previous stitched images
             os.makedirs(os.path.join(stitched_dir))
             with pytest.raises(ValueError, match="already exists"):
@@ -770,6 +777,8 @@ def test_stitch_images_by_shape(segmentation, clustering, subdir, stitching_fovs
             chans = ['nuclear', 'whole_cell']
         elif clustering:
             chans = [clustering + '_mask']
+        elif single_dir_suffix:
+            chans = ['overlay']
         else:
             chans = [f"chan{i}" for i in range(5)]
             # check that ignores toffy stitching in fov level dir
@@ -778,14 +787,15 @@ def test_stitch_images_by_shape(segmentation, clustering, subdir, stitching_fovs
         filelocs, data_xr = test_utils.create_paired_xarray_fovs(
             data_dir, stitching_fovs, chans,
             img_shape=(10, 10), fills=True, sub_dir=subdir, dtype=np.float32,
-            single_dir=any([segmentation, clustering])
+            single_dir=any([segmentation, clustering, single_dir_suffix])
         )
 
         # bad channel name should raise an error
         with pytest.raises(ValueError, match="Not all values given in list"):
             data_utils.stitch_images_by_shape(data_dir, stitched_dir, channels='bad_channel',
                                               img_sub_folder=subdir, segmentation=segmentation,
-                                              clustering=clustering)
+                                              clustering=clustering,
+                                              single_dir_suffix=single_dir_suffix)
 
         # test successful stitching
         if len(stitching_fovs) == 13*13*2:
@@ -796,7 +806,8 @@ def test_stitch_images_by_shape(segmentation, clustering, subdir, stitching_fovs
             prefixes = ["run_1"]
 
         data_utils.stitch_images_by_shape(data_dir, stitched_dir, img_sub_folder=subdir,
-                                          segmentation=segmentation, clustering=clustering)
+                                          segmentation=segmentation, clustering=clustering,
+                                          single_dir_suffix=single_dir_suffix)
         for prefix in prefixes:
             stitched_subdir = os.path.join(stitched_dir, prefix)
             assert sorted(io_utils.list_files(stitched_subdir)) == \
@@ -812,15 +823,52 @@ def test_stitch_images_by_shape(segmentation, clustering, subdir, stitching_fovs
         random_channel = chans[random.randint(0, len(chans) - 1)]
         data_utils.stitch_images_by_shape(data_dir, stitched_dir, img_sub_folder=subdir,
                                           channels=[random_channel], segmentation=segmentation,
-                                          clustering=clustering)
+                                          clustering=clustering,
+                                          single_dir_suffix=single_dir_suffix)
         for prefix in prefixes:
             stitched_subdir = os.path.join(stitched_dir, prefix)
             assert sorted(io_utils.list_files(stitched_subdir)) == \
                 [random_channel + '_stitched.tiff']
 
         # remove stitched_images from fov list
-        if not segmentation and not clustering:
+        if not segmentation and not clustering and not single_dir_suffix:
             stitching_fovs.pop()
+
+
+def test_stitch_images_by_shape_rgb():
+    # 2x2 RnCm grid, distinct color per fov so we can check tile placement
+    fovs = [f"R{n}C{m}" for n in range(1, 3) for m in range(1, 3)]
+    colors = {
+        "R1C1": (255, 0, 0),
+        "R1C2": (0, 255, 0),
+        "R2C1": (0, 0, 255),
+        "R2C2": (255, 255, 0),
+    }
+
+    with tempfile.TemporaryDirectory() as temp_dir:
+        data_dir = os.path.join(temp_dir, 'images')
+        stitched_dir = os.path.join(temp_dir, 'stitched_images')
+        os.makedirs(data_dir)
+
+        for fov in fovs:
+            rgb_img = np.zeros((10, 10, 3), dtype=np.uint8)
+            rgb_img[..., :] = colors[fov]
+            image_utils.save_image(os.path.join(data_dir, f"{fov}_overlay.tiff"), rgb_img)
+
+        data_utils.stitch_images_by_shape(data_dir, stitched_dir,
+                                          single_dir_suffix='_overlay.tiff')
+
+        stitched_subdir = os.path.join(stitched_dir, "unnamed_tile")
+        stitched_img = io.imread(os.path.join(stitched_subdir, "overlay_stitched.tiff"))
+
+        # 2 x 2 fovs with img size 10, so the stitched image is 20 x 20 x 3
+        assert stitched_img.shape == (20, 20, 3)
+
+        # verify each fov's color landed in the correct tile position
+        assert tuple(stitched_img[0, 0, :]) == colors["R1C1"]
+        assert tuple(stitched_img[0, 10, :]) == colors["R1C2"]
+        assert tuple(stitched_img[10, 0, :]) == colors["R2C1"]
+        assert tuple(stitched_img[10, 10, :]) == colors["R2C2"]
 
 
 def test_convert_ct_fov_to_adata(tmp_path: pytest.TempPathFactory):
